@@ -1,0 +1,8 @@
+{
+  "rated_continuous_current_A": 20.0,
+  "peak_burst_current_A": 35.0,
+  "temp_at_20A_airflow_C": 100.91076197530865,
+  "temp_at_35A_burst_airflow_C": 218.2658,
+  "pcb_stackup": "6-Layer HDI 2oz Copper Outer/Inner with Thermal Via Arrays",
+  "thermal_safety_status": "CERTIFIED_SAFE_UNDER_FLIGHT_AIRFLOW"
+}

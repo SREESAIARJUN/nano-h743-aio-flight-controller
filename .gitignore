@@ -1,0 +1,9 @@
+node_modules/
+*.log
+.env
+*.tmp
+*cache*
+*token*
+*secret*
+*.pyc
+__pycache__/

@@ -1,0 +1,14 @@
+(kicad_sch
+  (version 20231120)
+  (generator "master_parallel_orchestrator")
+  (generator_version "8.0")
+  (uuid "nano-h743-aio-sch-001")
+  (paper "A4")
+  (title_block
+    (title "STM32H743 Nano AIO Flight Controller + 4-in-1 20A/35A ESC")
+    (company "Sreesai Arjun Engineering")
+    (comment 1 "Dual ICM-42688-P IMUs + DPS310 Baro + AT7456E OSD + DroneCAN")
+    (comment 2 "24x 40V Low-RDSon MOSFETs + 4x FD6288Q Gate Drivers + MicroSD Blackbox")
+    (rev "1.0")
+  )
+)

@@ -1,6 +1,6 @@
 # STM32H743 Nano Flight Controller + 4-in-1 ESC AIO
 
-**Autonomous Engineering Release - Cycle 21**  
+**Autonomous Engineering Release - Cycle 22**  
 *Ultra-Dense 25.5x25.5mm (Whoop/Toothpick/Nano) AIO Board for ArduPilot & PX4 with Integrated 4x 20A/35A ESC.*
 
 ---

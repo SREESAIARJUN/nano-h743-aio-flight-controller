@@ -211,32 +211,41 @@ bool DualImuPairer::push(uint8_t imu, const ImuSample& s)
     return ok;
 }
 
-static int64_t abs_diff(uint64_t a, uint64_t b) { return a > b ? int64_t(a - b) : int64_t(b - a); }
-
 bool DualImuPairer::pop_pair(PairedSample& out)
 {
-    const uint64_t half = _cfg.odr_period_ns / 2U;
+    // Search window: +/-T/2 around the tracked phase (0 before the first pair).
+    // Centring on the phase instead of on t1 stops jitter from flipping the
+    // pairing back and forth when the phase sits near +/-T/2; the centre is
+    // re-wrapped once it passes T/2 + T/8 so a drifting pair slips by exactly
+    // one sample and pairs are never more than 5/8 T apart.
+    const int64_t T = int64_t(_cfg.odr_period_ns);
+    const int64_t half = T / 2;
+    const int64_t hyst = T / 8;
+    if (_center_ns > half + hyst) _center_ns -= T;
+    if (_center_ns < -(half + hyst)) _center_ns += T;
     Queue& q1 = _q[0];
     Queue& q2 = _q[1];
     while (q1.n && q2.n) {
-        const ImuSample& s1 = q1.at(0);
+        const int64_t want = int64_t(q1.at(0).t_ns) + _center_ns;
         // IMU2 samples older than the window can never pair with s1 or later
-        while (q2.n && q2.at(0).t_ns + half < s1.t_ns) { q2.pop(); _orphans[1]++; }
+        while (q2.n && int64_t(q2.at(0).t_ns) < want - half) { q2.pop(); _orphans[1]++; }
         if (!q2.n) return false;
-        if (q2.at(0).t_ns > s1.t_ns + half) {   // nothing for s1 in its window
+        if (int64_t(q2.at(0).t_ns) > want + half) {   // nothing for s1 in its window
             q1.pop(); _orphans[0]++;
             continue;
         }
         // nearest neighbour: a later IMU2 sample may be closer (jitter / drift)
-        if (q2.n >= 2 && abs_diff(q2.at(1).t_ns, s1.t_ns) < abs_diff(q2.at(0).t_ns, s1.t_ns)) {
-            q2.pop(); _orphans[1]++;
+        if (q2.n >= 2) {
+            const int64_t d0 = int64_t(q2.at(0).t_ns) - want, d1 = int64_t(q2.at(1).t_ns) - want;
+            if ((d1 < 0 ? -d1 : d1) < (d0 < 0 ? -d0 : d0)) { q2.pop(); _orphans[1]++; }
         }
-        out.imu1 = s1;
+        out.imu1 = q1.at(0);
         out.imu2 = q2.at(0);
         out.offset_ns = int64_t(out.imu2.t_ns) - int64_t(out.imu1.t_ns);
         q1.pop();
         q2.pop();
         _pairs++;
+        _center_ns = out.offset_ns;
         account(out.offset_ns, out.imu1.t_ns);
         return true;
     }

@@ -16,9 +16,9 @@
 - **DroneCAN / UAVCAN**: On-board TCAN334 CAN FD transceiver on FDCAN1.
 - **Blackbox**: MicroSD card slot with 4-bit high-speed SDIO (SDMMC1).
 - **Integrated 4-in-1 ESC**:
-  - 4x Brushless ESC channels, 2S–4S LiPo input. **Rev 9 thermal rating per motor, all four loaded, 24 kHz PWM:** 20 A continuous / 25 A for 10 s in typical prop wash; 16 A / 21 A in the pessimistic case. 35 A is held for only ~2.5 s, and only ~8 A is allowed on a static bench. These figures require 12 AWG battery and 20 AWG motor leads. Rev 9 lowered them from 20/28 and 17/22 A once the FD6288Q's built-in dead time was included in the loss model.
+  - 4x Brushless ESC channels, 2S–4S LiPo input. **Rev 9 thermal rating per motor, all four loaded, 24 kHz PWM:** 20 A continuous / 25 A for 10 s in typical prop wash; 16 A / 21 A in the pessimistic case. 35 A is held for only ~2.4 s, and only ~8 A is allowed on a static bench. These figures require 12 AWG battery and 20 AWG motor leads. Rev 9 lowered them from 20/28 and 17/22 A once the FD6288Q's built-in dead time was included in the loss model.
   - 24x Toshiba TPHR8504PL 40 V N-MOSFETs, SOP Advance. RDS(on) max 0.85 mΩ at VGS=10 V and 1.40 mΩ at 4.5 V, Rth(ch-c) 0.88 K/W. ESC1/2 sit on the top face and ESC3/4 on the bottom; each half-bridge site is shared by both faces, and every high-side pair has a 16-via POFV thermal array.
-  - 4x AT32F421K8U7 ESC MCUs running AM32 (target `NANO_H743_AIO_F421`), each driving one FD6288Q 3-phase gate driver. The FD6288Q has no internal bootstrap diode; an external Schottky plus 2.2 Ω is used per phase. Gate network: 15 Ω per gate with a Schottky across it for fast turn-off. AM32 `DEAD_TIME 34` (283 ns) adds to the driver's fixed 100–300 ns dead time (Rev 9).
+  - 4x AT32F421K8U7 ESC MCUs running AM32 (target `NANO_H743_AIO_F421`), each driving one FD6288Q 3-phase gate driver. The FD6288Q has no internal bootstrap diode, so each phase has an external low-leakage Schottky, 2.2 Ω and 2.2 µF. Each gate has a 0 Ω series footprint (kept so the slew rate can be re-tuned at bring-up) and a 2.2 nF C0G Cgs. AM32 `DEAD_TIME 43` (358 ns) adds to the driver's fixed 100–300 ns dead time. The FC battery failsafe `BATT_CRT_VOLT 6.4` protects the driver's UVLO (Rev 9).
   - 0.5 mΩ shunt resistor with INA226 / INA169 current monitor. **Rev 8 finding:** at 4 × 20 A, D=0.9 (72 A battery current) it dissipates 2.6 W, which is over the 2 W rating previously specified. It needs a ≥ 4 W part or 0.25 mΩ; this is an open item.
   - Support for BLHeli_32 / AM32 firmware, DShot300/600/1200, and bi-directional DShot RPM filtering.
 
@@ -34,7 +34,7 @@
 - `analysis/hse_vdda_analysis.py`: design check for the 24 MHz crystal and the VDDA filter (clock tree, load capacitance, gm_crit, drive level, LC damping). Writes `analysis/hse_vdda_report.json`.
 - `am32_esc/am32_target.h`: AM32 `Inc/targets.h` block for the AT32F421 + FD6288Q channel (Rev 9).
 - `am32_esc/gate_drive_design.py`: FD6288Q/TPHR8504PL gate-drive design (gate-resistor sweep, dead-time derivation, DTG encoding, driver and bootstrap checks). It checks `am32_target.h` and `eeprom_settings.json` against the derived values and writes `gate_drive_report.json`, which the thermal model reads (Rev 9).
-- `am32_esc/eeprom_settings.json`: the AM32 EEPROM fields the analysis depends on (PWM frequency, complementary PWM, brake dead-time override, cutoffs), with offsets (Rev 9).
+- `am32_esc/eeprom_settings.json`: the AM32 EEPROM fields the analysis depends on (PWM frequency, complementary PWM, minimum duty, brake dead-time override, cutoffs), with offsets (Rev 9).
 - `tools/am32_build_target.sh`: splices the target into an AM32 checkout, builds it with AM32's pinned toolchain, checks the resolved macros and runs a SITL twin (Rev 9).
 - `tools/gen_power_stage_pcb.py`: generates the footprint library, DRC rules, project rules and the 6-layer board (Rev 8).
 - `tools/verify_power_stage_pcb.py`: PCB gate covering stackup, MOSFET population, thermal via geometry, through-hole net safety, topology, DRC with a rule-liveness check, regeneration, fab outputs and the thermal report (Rev 8).
@@ -118,6 +118,108 @@ eRPM quantisation is ≤ 0.40 % (0.12 Hz) from 1 500 to 42 000 RPM, and the slow
 - The notch cannot follow a full-throttle punch at any DShot rate: it lags by ≥ 75 Hz and keeps < 1 dB of depth during the ~60 ms slew. Options are a higher `SCHED_LOOP_RATE`, or splitting the motors over two timers (two captures per frame). The second needs a pin change, because PE9/11/13/14 are TIM1-only.
 - Submit the `RECV_FAILED` patch upstream.
 - Leave PCB placement for R4–R7 to the signal-layout revision.
+
+---
+
+## Revision 9.0 Engineering Changelog
+
+**Scope:** AM32 ESC firmware target for the FD6288Q gate drivers: the dead-time generator setting and slew-rate (gate network) tuning.
+
+### Changes implemented
+
+**1. A real AM32 target in place of a placeholder.** The Rev ≤ 8 `am32_esc/am32_target.h` defined `DEAD_TIME_NS 60`, `PWM_FREQ_KHZ 48`, `TEMPERATURE_CUTOFF_C`, `BIDIRECTIONAL_DSHOT` and similar macros. AM32 reads none of them. The board also had no ESC MCU, and AM32 cannot run on the H743. Rev 9 picks the **AT32F421K8U7** (one per motor). AM32 has 86 F421 targets, the MCU's TMR1 runs at 120 MHz (8.33 ns dead-time resolution), and it costs under $1. The new file is a drop-in `Inc/targets.h` block, checked against AM32 v2.21 (3d8cd50):
+
+| Macro | Value | Why |
+|---|---|---|
+| `FILE_NAME` / `FIRMWARE_NAME` | `NANO_H743_AIO_F421` / `NanoH743AIO` | `_F421` suffix makes `make` discover the target. The name must be ≤ 12 characters (`_Static_assert`, main.c:351) |
+| `HARDWARE_GROUP_AT_B` | — | Complementary TMR1 pairs: HIN A/B/C ← PA10/PA9/PA8 (CH3/2/1), LIN A/B/C ← PB1/PB0/PA7 (CH3N/2N/1N). Signal input PB4 (TMR3_CH1) |
+| `HARDWARE_GROUP_AT_045` | — | Back-EMF comparator A = PA0, B = PA4, C = PA5 |
+| `DEAD_TIME` | **43** | Raw TMR1_BRK.DTC code: 43 × 8.333 ns = **358.3 ns**. Derived in section 3 |
+| `TARGET_VOLTAGE_DIVIDER` | 110 | 100 k / 10 k on PA3. AM32 scales V × 10, full scale 36.3 V |
+| `CURRENT_OFFSET` / `MILLIVOLT_PER_AMP` | 0 / 20 | There is no per-channel current amplifier. PA6 is grounded through 10 k, so AM32 reports 0 A |
+| *not defined* | `USE_INVERTED_*`, `USE_OPEN_DRAIN_*`, `PWM_ENABLE_BRIDGE`, `USE_SERIAL_TELEMETRY` | FD6288Q **HIN and LIN are both active-high** (datasheet V1.6 §1.3: "output in phase with input"; Table 1-2). Telemetry is extended DShot telemetry over the signal wire (Rev 10) |
+
+**2. Slew-rate tuning: the gate network is chosen by a calibrated sweep (`am32_esc/gate_drive_design.py`).** The script integrates the TPHR8504PL gate-charge curve (Qgs1 25 nC, Qgd 12.4 nC, Qg 103 nC at 10 V). The Miller plateau depends on current, temperature and Vth corner (Fig. 8.1, shifted by −8.5 mV/K and by Vth,min − Vth,typ). The FD6288Q is modelled as a resistive output (VOH/VOL ⇒ 6/9 Ω source, 3/4.5 Ω sink) **limited to its rated IOH/IOL** (1.1–1.9 A / 1.3–2.3 A, scaled down below VCC 15 V). Calibrated against Toshiba's switching test circuit, the model gives turn-on 25.9 ns vs 26 ns and turn-off 98.6 ns vs 63 ns, so it errs slow on turn-off, which is the safe side for dead time. It sweeps 99 networks (Rg_on × {single R, Rg ∥ Schottky + R_off} × Cgs_ext). Each network is checked at the fast corner (4S HV 17.4 V, 35 A, 125 °C, Vth,min; the victim FET held off through rg_int,max) against four limits:
+
+- dv/dt ≤ 5 V/ns
+- Miller shoot-through energy ≤ 10 % of the turn-on energy
+- VDS peak ≤ 32 V with a 3 nH loop
+- FD6288Q Tj ≤ 125 °C at a 105 °C board
+
+Selection rule: within 10 % of the minimum feasible loss, fewest parts per FET, then lowest dv/dt. Every gate keeps a series-resistor footprint.
+
+| Network (per FET) | Switching loss per HS, 4S 20 A 24 kHz | dv/dt | Shoot-through E_st/E_on | Result |
+|---|---|---|---|---|
+| **0 Ω footprint + 2.2 nF C0G Cgs (selected)** | **117 mW** | **2.85 V/ns** | **5.2 %** | Selected: best shoot-through within the loss band |
+| 0 Ω + 1.0 nF Cgs | 110 mW | 2.88 V/ns | 8.9 % | Feasible, less shoot-through margin |
+| 15 Ω ∥ Schottky | 145 mW | 1.21 V/ns | 9.5 % | Feasible but +24 % loss |
+| 4.7 Ω single (Rev 8 thermal assumption) | 183 mW | — | > 10 % | **Rejected:** shoot-through |
+| 0 Ω, no Cgs | 106 mW | > 5 V/ns | > 10 % | Rejected |
+
+With 0 Ω, the driver's current limit sets the slew rate. Gate-loop damping is still ζ ≥ 1.19 for a 10 nH loop (check C9). The 2.2 nF Cgs divides the Cdv/dt charge: induced Vgs is 1.07 V peak against Vth,min(125 °C) 0.55 V, with 0.39 µJ shoot-through per edge.
+
+**3. Dead time is derived, not guessed.** The FD6288Q already inserts a fixed 100/200/300 ns interlock (min/typ/max, Table 3-4), so the MCU only covers the rest:
+
+DT_mcu ≥ toff_prop,max + t_out(→ Vth,min,125 °C | slow) − (toff_prop,min + DT_int,min + t_in(→ Vth,min | fast)) + MT 30 ns + 25 ns guard
+
+The worst case is evaluated over both transitions, with the outgoing FET hard-switched (at 10/20/35 A) or soft, at 4S HV and 2S min:
+
+| Bus | Transition | Outgoing soft | Outgoing hard (10 A, plateau 1.67 V) |
+|---|---|---|---|
+| 4S HV | HS off → LS on | 324.8 ns | 349.8 ns |
+| 4S HV | LS off → HS on (negative phase current: deceleration, braking) | 328.9 ns | **353.9 ns** |
+| 2S min | HS off → LS on / LS off → HS on | 239.0 / 243.8 ns | 247.9 / 252.8 ns |
+
+The requirement is 353.9 ns, which rounds up to **`DEAD_TIME 43` = 358.3 ns**. It is in the linear DTC range (< 128), and the same encoder/decoder handles codes ≥ 128. Body-diode conduction per edge (outgoing channel off → incoming channel on) is **457 ns typ / 755 ns max**. The thermal model uses the max.
+
+**4. EEPROM settings AM32 actually reads (`am32_esc/eeprom_settings.json`, offsets from `Inc/eeprom.h`).**
+- `pwm_frequency` 24 kHz, `variable_pwm` 0, `comp_pwm` 1.
+- `minimum_duty_cycle` **4**. AM32 duty runs 0..2000 of ARR, so this gives 842 ns. The AM32 default of 1 gives 208 ns, which is shorter than the 688 ns worst-case dead time, so the shortest pulses would vanish.
+- `driving_brake_strength` **10**. Strengths 1–9 **OR** (`BDTR |=`, main.c:708) `DEAD_TIME + 150 − 10·s` into the register, which gives a non-monotonic 0.93–2.12 µs.
+- `low_voltage_cut_off` **0**. AM32's cutoff latches `allOff()` on one ESC until power cycle, and mode 1 guesses the cell count once at arming. The FD6288Q UVLO floor is enforced by the FC instead: `BATT_CRT_VOLT 6.4` / `BATT_FS_CRT_ACT 1` (Land), added to `ardupilot/defaults.parm`.
+- `limits.temperature` 115 °C. This is the uncalibrated AT32 die sensor with a last-resort step derate.
+- `limits.current` 0.
+- `motor_poles` 14, matching `SERVO_BLH_POLES`.
+
+**5. Gate-drive hardware requirements (report `requirements`, for the ESC schematic sheet).**
+- FD6288Q VCC = VBAT through 10 Ω, with 10 µF and an 18 V Zener. The HS bootstrap can pump to 20.9 V on a −4 V VS undershoot, against VGSS 20 V.
+- Bootstrap per phase: 40 V Schottky with IR ≤ 100 µA at 105 °C, 2.2 Ω in series, and 2.2 µF/25 V. The worst-case HS on-time without refresh is 1.25 ms at 2S (≥ 2.3 k rpm at 100 % duty), 13.6 ms at 3S and 25.9 ms at 4S, including IQBS, diode leakage and the 100 k HS pull-down.
+- Pull-downs: 10 k on each LS, 100 k on each HS.
+- Commutation loop ≤ 3 nH.
+
+**6. Thermal model updated (`analysis/thermal_power_analysis.py`).** It reads `gate_drive_report.json` as the single source of truth:
+- HS switching energy now comes from the simulator's (I, Vbus) table instead of the optimistic Qsw/I_plateau formula.
+- Body-diode window: 755 ns, not the Rev 8 value of 60 ns.
+- Gate power now includes Cgs.
+- RDS(on) tempco corrected from 0.0056 to 0.0072 /K (Fig. 8.9).
+- Miller plateau 3.0 → 3.3 V.
+- Datasheet citation corrected to Rev.5.0 (2019-10-24).
+
+**The published per-motor ratings drop from 20 A / 28 A (typical) and 17 A / 22 A (conservative) to 20 A / 25 A and 16 A / 21 A.** The search confirms these are the largest whole-amp values that pass (17, 22 and 26 A fail).
+
+### Architecture improvements
+- **Single source of truth, closed loop.** Datasheet tables feed `gate_drive_design.py`, which writes `gate_drive_report.json`. That report feeds the thermal model, and the thermal model feeds the published ratings, which `verify_power_stage_pcb.py` P11 checks. The script also checks the header (H1–H7: DEAD_TIME, groups, polarity, names, divider, dead macros, quoted ns figures), the EEPROM file (E1–E2) and `defaults.parm` (E3, SERVO_BLH_POLES). Hand-editing any of them breaks the gate.
+- **Real-toolchain build gate.** `tools/am32_build_target.sh <AM32>` copies AM32, splices the block in before AM32's "Missing defines" guard, and installs AM32's pinned xPack GCC 10.3.1. It then builds `NANO_H743_AIO_F421`, asserts 34 resolved macros from `arm-none-eabi-gcc -E -dM` (pins, comparator, clock, DEAD_TIME, absent inversion macros), and runs a SITL twin to confirm the DTC code reaches the timer's BDTR unchanged.
+
+### Validation status
+
+| Check | Result |
+|---|---|
+| `python3 am32_esc/gate_drive_design.py`: C0 calibration, C1–C3, C9 slew/damping, C4 DTG, C5–C8 supply/driver/bootstrap, H1–H7 header, E1–E3 EEPROM/FC | **PASS** (20/20) |
+| Mutation tests on that gate (13 cases): old DEAD_TIME 34, stale header ns, `USE_INVERTED_HIGH`, LVC on, AM32-default min duty, brake 5, variable PWM, BATT_CRT_VOLT 5.5, FS action 0, model without IOL cap, model without LS-hard rows, 10 k HS pull-down, 40 nH gate loop | **every mutation caught**; the unmodified control passes |
+| `tools/am32_build_target.sh /tmp/AM32` (AM32 v2.21) | **PASS**: 21,284 B flash (77 % of 27 KB), 3,680 B RAM, all 34 macros resolved. SITL: `dead time 268ns (BDTR 0x2b)` (SITL clock 160 MHz; on the F421 at 120 MHz, 0x2B = 358 ns) |
+| `python3 analysis/thermal_power_analysis.py` | **PASS** at 16/21/20/25 A. Conservative 10 s burst ends at 109.4 °C board against a 110 °C limit: 0.6 K margin |
+| `python3 tools/verify_power_stage_pcb.py` P11 (thermal report re-run identical, ratings hold) | **PASS**. The 2 P10 Gerber failures predate this revision; Rev 9 changes no PCB file |
+| Independent 3-lens adversarial review (physics, AM32 semantics, thermal coupling), each finding verified by a separate refuter | 11 confirmed, 10 refuted. **All 11 fixed:** IOL/IOH current caps, LS hard-turn-off rows, corner-consistent plateau, rg_int,max on the Miller victim, bootstrap pull-down and leakage, latching LVC replaced by FC failsafe, min-duty units, thermal switching energy from the simulator, temperature-limit wording, header ns figures |
+| `BATT_CRT_VOLT` / `BATT_FS_CRT_ACT` names | Present in upstream `AP_BattMonitor_Params.cpp` (Copter: 1 = Land) |
+| Hardware | **Not run.** Bring-up must measure: dead time on the HO/LO pins at 4S under load (expect ≥ 358 ns MCU + driver interlock); switch-node dv/dt and VDS overshoot at 35 A (≤ 2.9 V/ns, ≤ 24 V); LS gate bounce during HS turn-on (≤ 1.1 V); AT32 die-sensor offset to the board |
+
+**Open items.**
+- **FD6288Q supply:** LCSC C328453 shows 0 in stock. The AT32F421K8U7 QFN has 39.
+- **Model inputs to confirm:** the FD6288Q output resistance and the minimum turn-off propagation delay are not in the datasheet. They are derived or assumed and flagged in the report.
+- **Vth tempco:** the design is sensitive to it. At −12 mV/K instead of −8.5 mV/K, no network meets the shoot-through limit. Confirm it against Toshiba data.
+- **ESC schematic:** the sheet with the parts above is still to be drawn.
+- **Burst margin:** the 0.6 K margin on the conservative burst rating is thin.
 
 ---
 

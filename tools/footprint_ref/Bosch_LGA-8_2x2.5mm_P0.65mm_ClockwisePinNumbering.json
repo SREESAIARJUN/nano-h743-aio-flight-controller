@@ -1,0 +1,164 @@
+{
+ "_comment": "Vendored pad table of the stock KiCad 8.0.9 footprint, extracted once from the official kicad-footprints repository (Rev 12.0) so tools/verify_mcu_core_sch.py S10 can check the U4 land pattern offline. Units mm, footprint frame (y down), 'at' = [x, y, rotation_deg].",
+ "lib_id": "Package_LGA:Bosch_LGA-8_2x2.5mm_P0.65mm_ClockwisePinNumbering",
+ "kicad_tag": "8.0.9",
+ "source_url": "https://gitlab.com/kicad/libraries/kicad-footprints/-/raw/8.0.9/Package_LGA.pretty/Bosch_LGA-8_2x2.5mm_P0.65mm_ClockwisePinNumbering.kicad_mod",
+ "source_sha256": "cbdbea3c89d176bd9594f8797ad12da4e659a6cec84b88d3c290f841e955f6f0",
+ "fetched": "2026-11-06",
+ "descr": "LGA-8, https://ae-bst.resource.bosch.com/media/_tech/media/datasheets/BST-BMP280-DS001-18.pdf",
+ "attr": "smd",
+ "pads": [
+  {
+   "number": "1",
+   "type": "smd",
+   "shape": "rect",
+   "at": [
+    -0.975,
+    -0.8,
+    90.0
+   ],
+   "size": [
+    0.5,
+    0.35
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "2",
+   "type": "smd",
+   "shape": "rect",
+   "at": [
+    -0.325,
+    -0.8,
+    90.0
+   ],
+   "size": [
+    0.5,
+    0.35
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "3",
+   "type": "smd",
+   "shape": "rect",
+   "at": [
+    0.325,
+    -0.8,
+    90.0
+   ],
+   "size": [
+    0.5,
+    0.35
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "4",
+   "type": "smd",
+   "shape": "rect",
+   "at": [
+    0.975,
+    -0.8,
+    90.0
+   ],
+   "size": [
+    0.5,
+    0.35
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "5",
+   "type": "smd",
+   "shape": "rect",
+   "at": [
+    0.975,
+    0.8,
+    90.0
+   ],
+   "size": [
+    0.5,
+    0.35
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "6",
+   "type": "smd",
+   "shape": "rect",
+   "at": [
+    0.325,
+    0.8,
+    90.0
+   ],
+   "size": [
+    0.5,
+    0.35
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "7",
+   "type": "smd",
+   "shape": "rect",
+   "at": [
+    -0.325,
+    0.8,
+    90.0
+   ],
+   "size": [
+    0.5,
+    0.35
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "8",
+   "type": "smd",
+   "shape": "rect",
+   "at": [
+    -0.975,
+    0.8,
+    90.0
+   ],
+   "size": [
+    0.5,
+    0.35
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  }
+ ]
+}

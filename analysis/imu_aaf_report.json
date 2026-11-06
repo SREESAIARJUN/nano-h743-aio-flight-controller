@@ -1,0 +1,2230 @@
+{
+  "checks": [
+    {
+      "check": "IMU supply filter peaking <= +1.0 dB at every corner (L 0.47..4.7 uH, Rdc 0.1..0.39 R, C x0.35..x1.10, R +/-1 %)",
+      "pass": true,
+      "severity": "pass",
+      "detail": "worst -0.000 dB (max LC Q 0.052 -> heavily overdamped by 22R; f0_LC 22..121 kHz)"
+    },
+    {
+      "check": "IMU rail DC drop <= 50 mV at 1.50 mA design load (Rdc 0.39 R + R +1 %)",
+      "pass": true,
+      "severity": "pass",
+      "detail": "33.9 mV (typ 19.7 mV at 0.88 mA) -> +3V3_IMUx = 3.266 V, inside 1.71..3.6 V; IMU VIH 0.7*VDDIO = 2.29 V"
+    },
+    {
+      "check": "Board filter >= 20 dB at ESC PWM 24 kHz (worst corner)",
+      "pass": true,
+      "severity": "pass",
+      "detail": "worst -21.6 dB, nominal -25.6 dB"
+    },
+    {
+      "check": "Board filter >= 20 dB at ESC PWM 48 kHz (worst corner)",
+      "pass": true,
+      "severity": "pass",
+      "detail": "worst -27.7 dB, nominal -31.7 dB"
+    },
+    {
+      "check": "Board filter >= 20 dB at ESC PWM 96 kHz (worst corner)",
+      "pass": true,
+      "severity": "pass",
+      "detail": "worst -33.7 dB, nominal -37.7 dB"
+    },
+    {
+      "check": "Residual ESC ripple at IMU VDD <= 10 mVpp datasheet supply-noise limit (input 100 mVpp, assumed)",
+      "pass": true,
+      "severity": "pass",
+      "detail": "worst 8.27 mVpp; max tolerable input ripple at 24 kHz = 121 mVpp"
+    },
+    {
+      "check": "Board filter >= 20 dB in every k*ODR +/- 1 kHz alias band from 20 kHz to 490 kHz (ODR 8192 Hz)",
+      "pass": true,
+      "severity": "pass",
+      "detail": "least attenuation -21.5 dB; bands below 20 kHz (k=1,2: 7.2-9.2 kHz, 15.4-17.4 kHz) get -11.5/-17.8 dB - no ESC PWM energy there, covered by the in-sensor AAF (sec 2)"
+    },
+    {
+      "check": "IMU rail ramp monotonic and inside 0.01..3 ms (DS-000347 Table 4)",
+      "pass": true,
+      "severity": "pass",
+      "detail": "tau 80..254 us (2.2tau 0.56 ms max); with +3V3 ramp 0.3..2.0 ms (assumed) -> IMU rail 10-90 % 0.35..2.08 ms; LC Q 0.052 < 0.5 -> no overshoot"
+    },
+    {
+      "check": "Power-up: IMU rail lag behind +3V3 (Y2 supply) <= VDDIO+0.5 V abs-max on CLKIN pin 9",
+      "pass": false,
+      "severity": "warn",
+      "detail": "peak lag = 0.33..1.72 V for +3V3 ramp 0.3..2.0 ms (needs +3V3 10-90 % >= 1.34 ms); worst ESD-diode injection through 33 R ~ 17.8 mA for < 2.0 ms (latch-up rating 100 mA; 1.1 mA with R14/R15 = 1k). Only matters if Y2 already oscillates during the ramp (start-up <= 5 ms, min not specified); the same lag applies to any +3V3-powered driver of an IMU pin"
+    },
+    {
+      "check": "Self-generated ripple (gyro-enable step, SPI SDO bursts) << 10 mVpp supply-noise limit",
+      "pass": true,
+      "severity": "pass",
+      "detail": "gyro enable 0.73 mA step -> 16.5 mV slow sag (tau 254 us, settles before ArduPilot reads); SDO burst 0.84 nC/sample -> 0.231 mV, synchronous with ODR so it aliases to DC (constant offset)"
+    },
+    {
+      "check": "ArduPilot ICM-42688 AAF coefficients match the modelled table",
+      "pass": true,
+      "severity": "pass",
+      "detail": "DELT/DELTSQR/BITSHIFT per rate identical (libraries/AP_InertialSensor/AP_InertialSensor_Invensensev3.cpp)"
+    },
+    {
+      "check": "ArduPilot AAF codes are rows of the DS-000347 sec 5.3 AAF table",
+      "pass": true,
+      "severity": "pass",
+      "detail": "1k: DELT6 -> 258 Hz, 2k: DELT12 -> 536 Hz, 4k/8k: DELT21 -> 997 Hz, accel DELT5 -> 213 Hz. NB: ArduPilot's 'default: // 1KHz, 348Hz AAF' comment is wrong (348 Hz = DELT 8); code uses 258 Hz"
+    },
+    {
+      "check": "8 kHz ODR (8192 Hz with CLKIN): AAF+UI attenuation at Nyquist reported",
+      "pass": true,
+      "severity": "pass",
+      "detail": "AAF -24.1 dB + UI = -35.7 dB at 8192 Hz (ArduPilot targets ~40 dB at Nyquist and accepts less at 8k; residual is handled by the 8k->loop-rate decimation + notch/LPF in AP)"
+    },
+    {
+      "check": "Combined board+sensor rejection of ESC ripple tones landing in 0-1 kHz >= 40 dB (ODR 8192 Hz)",
+      "pass": true,
+      "severity": "pass",
+      "detail": "3 of 27 tones alias into 0-1 kHz; least rejected: 24 kHz -> 576 Hz alias, board -21.6 + sensor -61.8 = -83.5 dB"
+    },
+    {
+      "check": "ArduPilot _update_sensor_rate() constants match model",
+      "pass": true,
+      "severity": "pass",
+      "detail": "{\"filter\": 0.98, \"upper\": 1.05, \"lower\": 0.95, \"conv_filter\": 0.8, \"conv_upper\": 2.0} (libraries/AP_InertialSensor/AP_InertialSensor_Backend.cpp)"
+    },
+    {
+      "check": "CLKIN 32.768 kHz (+/-80 ppm life) inside ICM-42688-P 31..50 kHz",
+      "pass": true,
+      "severity": "pass",
+      "detail": "32765.379..32770.621 Hz; margin 5.7 % to 31 kHz"
+    },
+    {
+      "check": "ODR with CLKIN = 8192 Hz (+2.40 %) inside ArduPilot +/-5 % rate window around 8000 Hz",
+      "pass": true,
+      "severity": "pass",
+      "detail": "margin 2.60 % of 5 %; boot convergence (first 30 s: x0.5..x2 window, k=0.8) reaches 0.1 % in 15 s"
+    },
+    {
+      "check": "Shared CLKIN removes inter-IMU drift (0 ppm relative, constant offset <= 1 ODR period)",
+      "pass": true,
+      "severity": "pass",
+      "detail": "without CLKIN: per-IMU ODR +/-3 % (init+temp, DS Table 4) -> relative up to 6 % (2 % at 25 C) = 160..480 samples/s phase walk (20..60 ms/s) at 8 kHz; with CLKIN: 0 ppm relative, fixed offset in [0, 122.1 us) set by configuration order; absolute dt error +/-80 ppm (gyro integration scale error 0.0080 %)"
+    },
+    {
+      "check": "Loss-of-CLKIN fallback: ArduPilot rate estimate re-tracks within 5 s without a driver reset",
+      "pass": false,
+      "severity": "warn",
+      "detail": "ODR steps -5.27/-2.34/+0.59 %; _update_sensor_rate (k=0.98/s after 30 s) needs up to 120 s to get within 0.5 % (notch/FFT centre and dt off by up to 5.3 % meanwhile). The fallback patch must reset/re-seed the backend rate (or re-init the IMU) when it drops RTC mode."
+    },
+    {
+      "check": "CLKIN edge at IMU pin 9 <= 1 % of the 32.768 kHz period (worst Rout 758 R, CI 10 pF)",
+      "pass": true,
+      "severity": "pass",
+      "detail": "tr 55.1 ns vs 305 ns (1 % of 30.52 us)"
+    },
+    {
+      "check": "No meaningful attenuation of the 32.768 kHz fundamental at any load (> -0.01 dB)",
+      "pass": true,
+      "severity": "pass",
+      "detail": "worst -0.000560 dB"
+    },
+    {
+      "check": "Extra duty-cycle distortion from the actual load (vs 45-55 % spec at 15 pF) <= 0.5 %",
+      "pass": true,
+      "severity": "pass",
+      "detail": "worst 0.054 % of period (0.69*Rout_max*C_total, one-sided)"
+    },
+    {
+      "check": "Y2 capacitive load within L_CMOS 15 pF datasheet condition (R14/R15 = 33 R)",
+      "pass": false,
+      "severity": "warn",
+      "detail": "load 21.5 pF nominal / 31.5 pF worst (CI<10 pF per IMU pin 9, MCU 5 pF, traces) -> tr at Y2 pin up to 55 ns vs 25 ns spec. Functionally harmless at 32 kHz (edges 0.18 % of period, duty shift 0.054 %), but outside the condition under which 45-55 % duty and 25 ns tr are guaranteed. Raising R14/R15 does NOT fix this with the worst-case Rout (alt_1k: Y2-pin tr 66 ns, IMU-pin tr 75 ns); only a buffer would. Accept, and confirm duty/edges on Y2 pin 3 with a scope at bring-up."
+    },
+    {
+      "check": "Y2 VOH (0.9*Vdd) >= IMU VIH (0.7*VDDIO) and <= VDDIO+0.5 V in steady state",
+      "pass": true,
+      "severity": "pass",
+      "detail": "VOH >= 2.97 V vs VIH 2.29 V; Y2 on +3V3 is 34 mV above +3V3_IMUx"
+    },
+    {
+      "check": "SPI1 10.0 MHz: SCLK/MOSI/MISO edge (33R, ~12 pF) <= 1/3 of quarter period",
+      "pass": true,
+      "severity": "pass",
+      "detail": "tr SCLK 3.08 ns (RC part 1.80 ns), MISO 1.43 ns vs T/4 = 25.0 ns"
+    },
+    {
+      "check": "SPI1 10.0 MHz: MISO read budget (SCLK path + tVD.SDO 21.5 ns + MISO path + MCU tsu) fits half period",
+      "pass": true,
+      "severity": "pass",
+      "detail": "margin 22.1 ns of 50.0 ns (needs >= 5 ns); MOSI setup margin 32.0 ns, hold margin 42.0 ns; tLOW/tHIGH 50 ns >= 17 ns"
+    },
+    {
+      "check": "SPI4 12.5 MHz: SCLK/MOSI/MISO edge (33R, ~12 pF) <= 1/3 of quarter period",
+      "pass": true,
+      "severity": "pass",
+      "detail": "tr SCLK 3.08 ns (RC part 1.80 ns), MISO 1.43 ns vs T/4 = 20.0 ns"
+    },
+    {
+      "check": "SPI4 12.5 MHz: MISO read budget (SCLK path + tVD.SDO 21.5 ns + MISO path + MCU tsu) fits half period",
+      "pass": true,
+      "severity": "pass",
+      "detail": "margin 12.1 ns of 40.0 ns (needs >= 5 ns); MOSI setup margin 22.0 ns, hold margin 32.0 ns; tLOW/tHIGH 40 ns >= 17 ns"
+    },
+    {
+      "check": "SPI traces electrically short -> 33R source termination non-critical (EMI/ringing damping only)",
+      "pass": true,
+      "severity": "pass",
+      "detail": "flight time 0.19 ns for 30 mm vs tr 3.1 ns; R_drv+33R = 68 R ~ Z0 of 0.1-0.15 mm trace; 12.5 MHz <= 24 MHz ICM limit"
+    }
+  ],
+  "revision": "11.0",
+  "design": {
+    "imu": "ICM-42688-P (U2 = IMU1 on SPI1, U3 = IMU2 on SPI4)",
+    "supply_filter": {
+      "IMU1": "+3V3 -> FB2 -> R8 22R -> +3V3_IMU1; C5 10uF, C6 100nF (VDD pin 8), C7 100nF (VDDIO pin 5)",
+      "IMU2": "+3V3 -> FB3 -> R9 22R -> +3V3_IMU2; C8 10uF, C9 100nF (VDD), C10 100nF (VDDIO)",
+      "R_ohm": 22.0,
+      "R_tol_pct": 1.0,
+      "C_bulk_uF": 10.0,
+      "C_bulk_part": "0603 X5R 10V 10uF",
+      "C_local_uF": [
+        0.1,
+        0.1
+      ]
+    },
+    "clock": {
+      "osc": "Y2 SCTF SX2M32.768KM20F30TNN (LCSC C2901603), OE strapped high via R17 10k",
+      "f_hz": 32768.0,
+      "branches": {
+        "R14_IMU1": 33.0,
+        "R15_IMU2": 33.0,
+        "R16_MCU_PD12": 1000.0
+      }
+    },
+    "spi": {
+      "R_series_ohm": 33.0,
+      "SPI1_sclk_hz": 10000000.0,
+      "SPI4_sclk_hz": 12500000.0,
+      "mode": 3
+    },
+    "odr_nominal_hz": 8000.0
+  },
+  "assumptions": {
+    "imu_current": {
+      "I_typ_mA": 0.88,
+      "source": "ICM-42688-P DS-000347 rev1.2 (cdiweb.com copy) Table 3: 6-axis LN mode 0.88 mA typ (no max given)",
+      "I_design_mA": 1.5,
+      "I_design_source": "assumed: typ 0.88 mA + VDDIO SPI/INT activity + margin (datasheet gives no max)",
+      "gyro_enable_step_mA": 0.73,
+      "step_source": "ICM-42688-P DS-000347 rev1.2 (cdiweb.com copy) Table 3: 3-axis gyro LN 0.73 mA"
+    },
+    "imu_supply_limits": {
+      "VDD_min_V": 1.71,
+      "VDD_max_V": 3.6,
+      "source_range": "ICM-42688-P DS-000347 rev1.2 (cdiweb.com copy) features: 1.71-3.6 V",
+      "ramp_min_ms": 0.01,
+      "ramp_max_ms": 3.0,
+      "source_ramp": "ICM-42688-P DS-000347 rev1.2 (cdiweb.com copy) Table 4: Supply Ramp Time 0.01..3 ms, monotonic",
+      "noise_mVpp": 10.0,
+      "source_noise": "ICM-42688-P DS-000347 rev1.2 (cdiweb.com copy) Table 4: Power Supply Noise 10 mV p-p (note 1: by design)",
+      "por_ms": 1.0,
+      "source_por": "ICM-42688-P DS-000347 rev1.2 (cdiweb.com copy) Table 4: start-up time for register r/w 1 ms",
+      "input_abs_max_over_VDDIO_V": 0.5,
+      "source_absmax": "ICM-42688-P DS-000347 rev1.2 (cdiweb.com copy) Table 8: input level -0.5..VDDIO+0.5 V",
+      "CI_max_pF": 10.0,
+      "source_CI": "ICM-42688-P DS-000347 rev1.2 (cdiweb.com copy) Table 4: digital inputs (FSYNC, SCLK, SDI, CS) CI < 10 pF"
+    },
+    "rail_ripple": {
+      "V_esc_ripple_mVpp": 100.0,
+      "source": "assumed: +3V3 ripple at each ESC PWM fundamental on a 4-in-1 AIO; to be measured at bring-up",
+      "esc_pwm_hz": [
+        24000.0,
+        48000.0,
+        96000.0
+      ],
+      "harmonics": 9,
+      "harmonic_rolloff": "1/n (rectangular-ish ripple), assumed"
+    },
+    "bead": {
+      "part": "same as FB1: Murata BLM15AX601SN1D (LCSC C76886) 600R@100MHz, see tools/gen_mcu_core_sch.py",
+      "Rdc_ohm_min": 0.1,
+      "Rdc_ohm_max": 0.39,
+      "Rdc_source": "Murata datasheet Rdc 0.34 R max initial / 0.39 R after test (as in hse_vdda_analysis.py); 0.10 R min assumed",
+      "L_uH_list": [
+        0.47,
+        1.0,
+        2.2,
+        3.3,
+        4.7
+      ],
+      "L_source": "assumed: low-frequency inductance not specified by Murata; swept 0.47..4.7 uH (same sweep as Rev 7 VDDA)",
+      "R_parallel_ohm": 600.0
+    },
+    "caps": {
+      "bulk_dc_bias_factor": {
+        "min": 0.35,
+        "nom": 0.55,
+        "max": 1.1
+      },
+      "bulk_dc_bias_source": "assumed: 0603 X5R 10V 10uF keeps ~40-60 % at 3.3 V DC bias (typical Samsung CL10A106KP8NNNC / Murata GRM188R61A106 curves); min 0.35 adds -10 % tol and X5R temperature; max 1.10 = +10 % tol at 0 V bias",
+      "local_factor": {
+        "min": 0.8,
+        "nom": 0.95,
+        "max": 1.1
+      },
+      "local_source": "assumed: 0402 X7R 100nF 16V at 3.3 V, +/-10 % tol",
+      "esr_bulk_ohm": 0.005,
+      "esr_local_ohm": 0.02,
+      "esl_nH": 1.0,
+      "esr_esl_source": "assumed: typical MLCC ESR, 1 nH body+mounting ESL"
+    },
+    "spi_burst": {
+      "C_sdo_load_pF": 8.0,
+      "bits_per_sample": 128,
+      "toggle_fraction": 0.5,
+      "source": "assumed: MISO trace+MCU pin 8 pF, ArduPilot 16-byte FIFO packet per sample, 50 % toggling"
+    },
+    "rail_3v3_ramp_ms": {
+      "min": 0.3,
+      "max": 2.0,
+      "source": "assumed: +3V3 LDO soft-start 10-90 % ramp; not yet characterised"
+    },
+    "internal_osc": {
+      "initial_pct": 1.0,
+      "temp_pct": 2.0,
+      "source": "ICM-42688-P DS-000347 rev1.2 (cdiweb.com copy) Table 4: CLKSEL=01 (PLL) & gyro active: initial +/-1 %, over temp +/-2 % (note 1: by design, not production tested); sec 4.10: '+/-1 % in PLL mode'"
+    },
+    "clkin": {
+      "f_min_hz": 31000.0,
+      "f_max_hz": 50000.0,
+      "f_ref_hz": 32000.0,
+      "source": "ICM-42688-P DS-000347 rev1.2 (cdiweb.com copy) Table 4 external clock 31/32/50 kHz; sec 12.5 ODR scales by f_CLKIN/32 kHz"
+    },
+    "y2": {
+      "tol_ppm": 20.0,
+      "stab_ppm": 30.0,
+      "aging_ppm_per_yr": 3.0,
+      "life_years": 10,
+      "L_CMOS_pF": 15.0,
+      "tr_max_ns": 25.0,
+      "duty_pct": [
+        45.0,
+        55.0
+      ],
+      "startup_ms_max": 5.0,
+      "VOH_frac": 0.9,
+      "source": "SCTF 32.768kHz CMOS osc datasheet rev 05/11/2026 (LCSC C2901603): load 15 pF, tr/tf 25 ns max (10-90 %), duty 45-55 % at <=15 pF, start-up 5 ms max, aging +/-3 ppm first year; tol +/-20 ppm and stability +/-30 ppm from LCSC listing",
+      "R_out_min_ohm": 30.0,
+      "R_out_source": "R_out_max derived from tr 25 ns @ 15 pF (= tr/(2.2*15 pF)); R_out_min 30 R assumed"
+    },
+    "clock_loads": {
+      "C_imu_pin9_pF": {
+        "nom": 5.0,
+        "max": 10.0
+      },
+      "C_mcu_pin_pF": 5.0,
+      "C_trace_pF_per_branch": 1.5,
+      "C_osc_node_pF": 2.0,
+      "source": "pin 9 max from ICM-42688-P DS-000347 rev1.2 (cdiweb.com copy) CI<10 pF; nominal 5 pF assumed; MCU pin 5 pF assumed (STM32H7 typ C_IO); trace 1.5 pF/branch (~10 mm, 0.15 pF/mm) assumed"
+    },
+    "spi_elec": {
+      "R_mcu_drv_ohm": 35.0,
+      "t_mcu_intrinsic_ns": 2.5,
+      "t_mcu_tv_mo_ns": 5.0,
+      "t_mcu_tsu_mi_ns": 5.0,
+      "R_imu_drv_ohm": 60.0,
+      "C_imu_in_pF": 10.0,
+      "C_mcu_in_pF": 5.0,
+      "C_trace_pF": 2.0,
+      "trace_mm_max": 30.0,
+      "source": "assumed (not from DS12110 here): STM32H7 very-high-speed driver ~35 R, intrinsic edge 2.5 ns, master tv(MO) 5 ns, tsu(MI) 5 ns; ICM SDO driver 60 R; IMU CI 10 pF from DS",
+      "icm_tVD_SDO_ns": 21.5,
+      "icm_tHD_SDO_ns": 3.5,
+      "icm_tSU_SDI_ns": 13.0,
+      "icm_tHD_SDI_ns": 8.0,
+      "icm_tLOW_ns": 17.0,
+      "icm_tHIGH_ns": 17.0,
+      "icm_fmax_hz": 24000000.0,
+      "icm_source": "ICM-42688-P DS-000347 rev1.2 (cdiweb.com copy) Table 6 (24 MHz 4-wire SPI, VDDIO 1.8 V, tVD at Cload 20 pF)"
+    },
+    "sensor_filters": {
+      "aaf_table_hz": {
+        "6": 258.0,
+        "12": 536.0,
+        "21": 997.0,
+        "5": 213.0
+      },
+      "ui_2nd_order_3dB_hz": {
+        "1000": 230.7,
+        "2000": 524.0,
+        "4000": 1048.1,
+        "8000": 2096.3
+      },
+      "model": "assumed: AAF and UI filter each modelled as 2nd-order Butterworth (Q 0.707) analog prototypes at the datasheet 3 dB point; DS says 'AAF is a 2nd order filter', Q not given. The 32 kHz decimation filter response is not published -> taken as 0 dB (worst case).",
+      "internal_rate_hz": 32000.0,
+      "source_internal_rate": "ICM-42688-P DS-000347 rev1.2 (cdiweb.com copy) Fig. 8 signal path: decimation filter (32 kHz) before notch/AAF"
+    },
+    "ardupilot_rate": {
+      "window": 0.05,
+      "filter": 0.98,
+      "conv_window": 1.0,
+      "conv_filter": 0.8,
+      "conv_ms": 30000
+    },
+    "peaking_limit_dB": 1.0,
+    "dc_drop_limit_mV": 50.0,
+    "esc_atten_min_dB": 20.0,
+    "baseband_hz": 1000.0
+  },
+  "supply_filter": {
+    "R_ohm": 22.0,
+    "C_bulk_uF": 10.0,
+    "corners": [
+      {
+        "L_uH": 0.47,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 1987.4,
+        "f0_LC_kHz": 121.3,
+        "Q_LC": 0.0164,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.67,
+        "att_dB_48k": -27.67,
+        "att_dB_96k": -33.69
+      },
+      {
+        "L_uH": 0.47,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 1948.3,
+        "f0_LC_kHz": 121.3,
+        "Q_LC": 0.0161,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.84,
+        "att_dB_48k": -27.84,
+        "att_dB_96k": -33.86
+      },
+      {
+        "L_uH": 0.47,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 1961.4,
+        "f0_LC_kHz": 121.3,
+        "Q_LC": 0.0162,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.78,
+        "att_dB_48k": -27.78,
+        "att_dB_96k": -33.81
+      },
+      {
+        "L_uH": 0.47,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 1923.3,
+        "f0_LC_kHz": 121.3,
+        "Q_LC": 0.0158,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.95,
+        "att_dB_48k": -27.95,
+        "att_dB_96k": -33.98
+      },
+      {
+        "L_uH": 0.47,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 648.3,
+        "f0_LC_kHz": 69.3,
+        "Q_LC": 0.0094,
+        "peak_dB": -0.001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.37,
+        "att_dB_48k": -37.4,
+        "att_dB_96k": -43.44
+      },
+      {
+        "L_uH": 0.47,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 635.5,
+        "f0_LC_kHz": 69.3,
+        "Q_LC": 0.0092,
+        "peak_dB": -0.0011,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.55,
+        "att_dB_48k": -37.57,
+        "att_dB_96k": -43.61
+      },
+      {
+        "L_uH": 0.47,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 639.8,
+        "f0_LC_kHz": 69.3,
+        "Q_LC": 0.0092,
+        "peak_dB": -0.0011,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.49,
+        "att_dB_48k": -37.51,
+        "att_dB_96k": -43.56
+      },
+      {
+        "L_uH": 0.47,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 627.4,
+        "f0_LC_kHz": 69.3,
+        "Q_LC": 0.0091,
+        "peak_dB": -0.0011,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.66,
+        "att_dB_48k": -37.68,
+        "att_dB_96k": -43.73
+      },
+      {
+        "L_uH": 1.0,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 1987.4,
+        "f0_LC_kHz": 83.2,
+        "Q_LC": 0.0239,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.67,
+        "att_dB_48k": -27.67,
+        "att_dB_96k": -33.69
+      },
+      {
+        "L_uH": 1.0,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 1948.3,
+        "f0_LC_kHz": 83.2,
+        "Q_LC": 0.0234,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.84,
+        "att_dB_48k": -27.84,
+        "att_dB_96k": -33.86
+      },
+      {
+        "L_uH": 1.0,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 1961.4,
+        "f0_LC_kHz": 83.2,
+        "Q_LC": 0.0236,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.78,
+        "att_dB_48k": -27.78,
+        "att_dB_96k": -33.81
+      },
+      {
+        "L_uH": 1.0,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 1923.3,
+        "f0_LC_kHz": 83.2,
+        "Q_LC": 0.0231,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.95,
+        "att_dB_48k": -27.95,
+        "att_dB_96k": -33.98
+      },
+      {
+        "L_uH": 1.0,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 648.3,
+        "f0_LC_kHz": 47.5,
+        "Q_LC": 0.0136,
+        "peak_dB": -0.001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.37,
+        "att_dB_48k": -37.4,
+        "att_dB_96k": -43.44
+      },
+      {
+        "L_uH": 1.0,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 635.5,
+        "f0_LC_kHz": 47.5,
+        "Q_LC": 0.0134,
+        "peak_dB": -0.0011,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.55,
+        "att_dB_48k": -37.57,
+        "att_dB_96k": -43.62
+      },
+      {
+        "L_uH": 1.0,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 639.8,
+        "f0_LC_kHz": 47.5,
+        "Q_LC": 0.0135,
+        "peak_dB": -0.0011,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.49,
+        "att_dB_48k": -37.51,
+        "att_dB_96k": -43.56
+      },
+      {
+        "L_uH": 1.0,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 627.4,
+        "f0_LC_kHz": 47.5,
+        "Q_LC": 0.0132,
+        "peak_dB": -0.0011,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.66,
+        "att_dB_48k": -37.68,
+        "att_dB_96k": -43.73
+      },
+      {
+        "L_uH": 2.2,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 1987.4,
+        "f0_LC_kHz": 56.1,
+        "Q_LC": 0.0354,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.66,
+        "att_dB_48k": -27.66,
+        "att_dB_96k": -33.7
+      },
+      {
+        "L_uH": 2.2,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 1948.3,
+        "f0_LC_kHz": 56.1,
+        "Q_LC": 0.0347,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.83,
+        "att_dB_48k": -27.84,
+        "att_dB_96k": -33.87
+      },
+      {
+        "L_uH": 2.2,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 1961.4,
+        "f0_LC_kHz": 56.1,
+        "Q_LC": 0.035,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.77,
+        "att_dB_48k": -27.78,
+        "att_dB_96k": -33.81
+      },
+      {
+        "L_uH": 2.2,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 1923.3,
+        "f0_LC_kHz": 56.1,
+        "Q_LC": 0.0343,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.94,
+        "att_dB_48k": -27.95,
+        "att_dB_96k": -33.98
+      },
+      {
+        "L_uH": 2.2,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 648.3,
+        "f0_LC_kHz": 32.0,
+        "Q_LC": 0.0202,
+        "peak_dB": -0.001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.37,
+        "att_dB_48k": -37.4,
+        "att_dB_96k": -43.45
+      },
+      {
+        "L_uH": 2.2,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 635.5,
+        "f0_LC_kHz": 32.0,
+        "Q_LC": 0.0198,
+        "peak_dB": -0.0011,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.55,
+        "att_dB_48k": -37.57,
+        "att_dB_96k": -43.63
+      },
+      {
+        "L_uH": 2.2,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 639.8,
+        "f0_LC_kHz": 32.0,
+        "Q_LC": 0.02,
+        "peak_dB": -0.0011,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.49,
+        "att_dB_48k": -37.51,
+        "att_dB_96k": -43.57
+      },
+      {
+        "L_uH": 2.2,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 627.4,
+        "f0_LC_kHz": 32.0,
+        "Q_LC": 0.0196,
+        "peak_dB": -0.0011,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.66,
+        "att_dB_48k": -37.68,
+        "att_dB_96k": -43.74
+      },
+      {
+        "L_uH": 3.3,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 1987.4,
+        "f0_LC_kHz": 45.8,
+        "Q_LC": 0.0434,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.66,
+        "att_dB_48k": -27.66,
+        "att_dB_96k": -33.72
+      },
+      {
+        "L_uH": 3.3,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 1948.3,
+        "f0_LC_kHz": 45.8,
+        "Q_LC": 0.0425,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.83,
+        "att_dB_48k": -27.84,
+        "att_dB_96k": -33.89
+      },
+      {
+        "L_uH": 3.3,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 1961.4,
+        "f0_LC_kHz": 45.8,
+        "Q_LC": 0.0428,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.77,
+        "att_dB_48k": -27.78,
+        "att_dB_96k": -33.83
+      },
+      {
+        "L_uH": 3.3,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 1923.3,
+        "f0_LC_kHz": 45.8,
+        "Q_LC": 0.042,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.94,
+        "att_dB_48k": -27.95,
+        "att_dB_96k": -34.0
+      },
+      {
+        "L_uH": 3.3,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 648.3,
+        "f0_LC_kHz": 26.2,
+        "Q_LC": 0.0248,
+        "peak_dB": -0.001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.37,
+        "att_dB_48k": -37.4,
+        "att_dB_96k": -43.47
+      },
+      {
+        "L_uH": 3.3,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 635.5,
+        "f0_LC_kHz": 26.2,
+        "Q_LC": 0.0243,
+        "peak_dB": -0.0011,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.55,
+        "att_dB_48k": -37.58,
+        "att_dB_96k": -43.65
+      },
+      {
+        "L_uH": 3.3,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 639.8,
+        "f0_LC_kHz": 26.2,
+        "Q_LC": 0.0245,
+        "peak_dB": -0.0011,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.49,
+        "att_dB_48k": -37.52,
+        "att_dB_96k": -43.59
+      },
+      {
+        "L_uH": 3.3,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 627.4,
+        "f0_LC_kHz": 26.2,
+        "Q_LC": 0.024,
+        "peak_dB": -0.0011,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.66,
+        "att_dB_48k": -37.69,
+        "att_dB_96k": -43.76
+      },
+      {
+        "L_uH": 4.7,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 1987.4,
+        "f0_LC_kHz": 38.4,
+        "Q_LC": 0.0518,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.65,
+        "att_dB_48k": -27.67,
+        "att_dB_96k": -33.75
+      },
+      {
+        "L_uH": 4.7,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 1948.3,
+        "f0_LC_kHz": 38.4,
+        "Q_LC": 0.0508,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.82,
+        "att_dB_48k": -27.84,
+        "att_dB_96k": -33.92
+      },
+      {
+        "L_uH": 4.7,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 1961.4,
+        "f0_LC_kHz": 38.4,
+        "Q_LC": 0.0511,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.77,
+        "att_dB_48k": -27.78,
+        "att_dB_96k": -33.86
+      },
+      {
+        "L_uH": 4.7,
+        "C_corner": "min",
+        "C_total_uF": 3.66,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 1923.3,
+        "f0_LC_kHz": 38.4,
+        "Q_LC": 0.0501,
+        "peak_dB": -0.0001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -21.94,
+        "att_dB_48k": -27.95,
+        "att_dB_96k": -34.03
+      },
+      {
+        "L_uH": 4.7,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 648.3,
+        "f0_LC_kHz": 21.9,
+        "Q_LC": 0.0296,
+        "peak_dB": -0.001,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.37,
+        "att_dB_48k": -37.41,
+        "att_dB_96k": -43.51
+      },
+      {
+        "L_uH": 4.7,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.1,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 635.5,
+        "f0_LC_kHz": 21.9,
+        "Q_LC": 0.029,
+        "peak_dB": -0.0011,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.55,
+        "att_dB_48k": -37.58,
+        "att_dB_96k": -43.68
+      },
+      {
+        "L_uH": 4.7,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 21.78,
+        "f_RC_Hz": 639.8,
+        "f0_LC_kHz": 21.9,
+        "Q_LC": 0.0292,
+        "peak_dB": -0.0011,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.49,
+        "att_dB_48k": -37.53,
+        "att_dB_96k": -43.62
+      },
+      {
+        "L_uH": 4.7,
+        "C_corner": "max",
+        "C_total_uF": 11.22,
+        "Rdc_ohm": 0.39,
+        "R_ohm": 22.22,
+        "f_RC_Hz": 627.4,
+        "f0_LC_kHz": 21.9,
+        "Q_LC": 0.0286,
+        "peak_dB": -0.0011,
+        "peak_at_Hz": 10.0,
+        "att_dB_24k": -31.66,
+        "att_dB_48k": -37.7,
+        "att_dB_96k": -43.79
+      }
+    ],
+    "worst_peak_dB": -0.0001,
+    "worst_peak_corner": {
+      "L_uH": 0.47,
+      "C_corner": "min",
+      "C_total_uF": 3.66,
+      "Rdc_ohm": 0.1,
+      "R_ohm": 21.78,
+      "f_RC_Hz": 1987.4,
+      "f0_LC_kHz": 121.3,
+      "Q_LC": 0.0164,
+      "peak_dB": -0.0001,
+      "peak_at_Hz": 10.0,
+      "att_dB_24k": -21.67,
+      "att_dB_48k": -27.67,
+      "att_dB_96k": -33.69
+    },
+    "Q_LC_max": 0.0518,
+    "dc_drop_mV_design": 33.91,
+    "dc_drop_mV_typ": 19.7,
+    "C_total_uF": {
+      "min": 3.66,
+      "nom": 5.69,
+      "max": 11.22
+    },
+    "f_corner_Hz": {
+      "nominal": 1254.3,
+      "highest_corner": 1987.4
+    },
+    "esc": {
+      "24_kHz": {
+        "worst_dB": -21.65,
+        "nominal_dB": -25.65,
+        "ripple_out_mVpp": 8.268
+      },
+      "48_kHz": {
+        "worst_dB": -27.66,
+        "nominal_dB": -31.66,
+        "ripple_out_mVpp": 4.138
+      },
+      "96_kHz": {
+        "worst_dB": -33.69,
+        "nominal_dB": -37.7,
+        "ripple_out_mVpp": 2.067
+      }
+    },
+    "alias_bands": [
+      {
+        "k": 1,
+        "band_kHz": [
+          7.192,
+          9.192
+        ],
+        "worst_board_dB": -11.47
+      },
+      {
+        "k": 2,
+        "band_kHz": [
+          15.384,
+          17.384
+        ],
+        "worst_board_dB": -17.83
+      },
+      {
+        "k": 3,
+        "band_kHz": [
+          23.576,
+          25.576
+        ],
+        "worst_board_dB": -21.5
+      },
+      {
+        "k": 4,
+        "band_kHz": [
+          31.768,
+          33.768
+        ],
+        "worst_board_dB": -24.08
+      },
+      {
+        "k": 5,
+        "band_kHz": [
+          39.96,
+          41.96
+        ],
+        "worst_board_dB": -26.07
+      },
+      {
+        "k": 6,
+        "band_kHz": [
+          48.152,
+          50.152
+        ],
+        "worst_board_dB": -27.69
+      },
+      {
+        "k": 7,
+        "band_kHz": [
+          56.344,
+          58.344
+        ],
+        "worst_board_dB": -29.06
+      },
+      {
+        "k": 8,
+        "band_kHz": [
+          64.536,
+          66.536
+        ],
+        "worst_board_dB": -30.24
+      },
+      {
+        "k": 9,
+        "band_kHz": [
+          72.728,
+          74.728
+        ],
+        "worst_board_dB": -31.28
+      },
+      {
+        "k": 10,
+        "band_kHz": [
+          80.92,
+          82.92
+        ],
+        "worst_board_dB": -32.2
+      },
+      {
+        "k": 11,
+        "band_kHz": [
+          89.112,
+          91.112
+        ],
+        "worst_board_dB": -33.04
+      },
+      {
+        "k": 12,
+        "band_kHz": [
+          97.304,
+          99.304
+        ],
+        "worst_board_dB": -33.81
+      },
+      {
+        "k": 13,
+        "band_kHz": [
+          105.496,
+          107.496
+        ],
+        "worst_board_dB": -34.51
+      },
+      {
+        "k": 14,
+        "band_kHz": [
+          113.688,
+          115.688
+        ],
+        "worst_board_dB": -35.16
+      },
+      {
+        "k": 15,
+        "band_kHz": [
+          121.88,
+          123.88
+        ],
+        "worst_board_dB": -35.77
+      },
+      {
+        "k": 16,
+        "band_kHz": [
+          130.072,
+          132.072
+        ],
+        "worst_board_dB": -36.34
+      },
+      {
+        "k": 17,
+        "band_kHz": [
+          138.264,
+          140.264
+        ],
+        "worst_board_dB": -36.87
+      },
+      {
+        "k": 18,
+        "band_kHz": [
+          146.456,
+          148.456
+        ],
+        "worst_board_dB": -37.37
+      },
+      {
+        "k": 19,
+        "band_kHz": [
+          154.648,
+          156.648
+        ],
+        "worst_board_dB": -37.85
+      },
+      {
+        "k": 20,
+        "band_kHz": [
+          162.84,
+          164.84
+        ],
+        "worst_board_dB": -38.3
+      },
+      {
+        "k": 21,
+        "band_kHz": [
+          171.032,
+          173.032
+        ],
+        "worst_board_dB": -38.73
+      },
+      {
+        "k": 22,
+        "band_kHz": [
+          179.224,
+          181.224
+        ],
+        "worst_board_dB": -39.14
+      },
+      {
+        "k": 23,
+        "band_kHz": [
+          187.416,
+          189.416
+        ],
+        "worst_board_dB": -39.53
+      },
+      {
+        "k": 24,
+        "band_kHz": [
+          195.608,
+          197.608
+        ],
+        "worst_board_dB": -39.91
+      },
+      {
+        "k": 25,
+        "band_kHz": [
+          203.8,
+          205.8
+        ],
+        "worst_board_dB": -40.27
+      },
+      {
+        "k": 26,
+        "band_kHz": [
+          211.992,
+          213.992
+        ],
+        "worst_board_dB": -40.61
+      },
+      {
+        "k": 27,
+        "band_kHz": [
+          220.184,
+          222.184
+        ],
+        "worst_board_dB": -40.95
+      },
+      {
+        "k": 28,
+        "band_kHz": [
+          228.376,
+          230.376
+        ],
+        "worst_board_dB": -41.27
+      },
+      {
+        "k": 29,
+        "band_kHz": [
+          236.568,
+          238.568
+        ],
+        "worst_board_dB": -41.58
+      },
+      {
+        "k": 30,
+        "band_kHz": [
+          244.76,
+          246.76
+        ],
+        "worst_board_dB": -41.88
+      },
+      {
+        "k": 31,
+        "band_kHz": [
+          252.952,
+          254.952
+        ],
+        "worst_board_dB": -42.17
+      },
+      {
+        "k": 32,
+        "band_kHz": [
+          261.144,
+          263.144
+        ],
+        "worst_board_dB": -42.45
+      },
+      {
+        "k": 33,
+        "band_kHz": [
+          269.336,
+          271.336
+        ],
+        "worst_board_dB": -42.73
+      },
+      {
+        "k": 34,
+        "band_kHz": [
+          277.528,
+          279.528
+        ],
+        "worst_board_dB": -42.99
+      },
+      {
+        "k": 35,
+        "band_kHz": [
+          285.72,
+          287.72
+        ],
+        "worst_board_dB": -43.25
+      },
+      {
+        "k": 36,
+        "band_kHz": [
+          293.912,
+          295.912
+        ],
+        "worst_board_dB": -43.5
+      },
+      {
+        "k": 37,
+        "band_kHz": [
+          302.104,
+          304.104
+        ],
+        "worst_board_dB": -43.75
+      },
+      {
+        "k": 38,
+        "band_kHz": [
+          310.296,
+          312.296
+        ],
+        "worst_board_dB": -43.98
+      },
+      {
+        "k": 39,
+        "band_kHz": [
+          318.488,
+          320.488
+        ],
+        "worst_board_dB": -44.22
+      },
+      {
+        "k": 40,
+        "band_kHz": [
+          326.68,
+          328.68
+        ],
+        "worst_board_dB": -44.44
+      },
+      {
+        "k": 41,
+        "band_kHz": [
+          334.872,
+          336.872
+        ],
+        "worst_board_dB": -44.66
+      },
+      {
+        "k": 42,
+        "band_kHz": [
+          343.064,
+          345.064
+        ],
+        "worst_board_dB": -44.88
+      },
+      {
+        "k": 43,
+        "band_kHz": [
+          351.256,
+          353.256
+        ],
+        "worst_board_dB": -45.09
+      },
+      {
+        "k": 44,
+        "band_kHz": [
+          359.448,
+          361.448
+        ],
+        "worst_board_dB": -45.3
+      },
+      {
+        "k": 45,
+        "band_kHz": [
+          367.64,
+          369.64
+        ],
+        "worst_board_dB": -45.5
+      },
+      {
+        "k": 46,
+        "band_kHz": [
+          375.832,
+          377.832
+        ],
+        "worst_board_dB": -45.7
+      },
+      {
+        "k": 47,
+        "band_kHz": [
+          384.024,
+          386.024
+        ],
+        "worst_board_dB": -45.9
+      },
+      {
+        "k": 48,
+        "band_kHz": [
+          392.216,
+          394.216
+        ],
+        "worst_board_dB": -46.09
+      },
+      {
+        "k": 49,
+        "band_kHz": [
+          400.408,
+          402.408
+        ],
+        "worst_board_dB": -46.28
+      },
+      {
+        "k": 50,
+        "band_kHz": [
+          408.6,
+          410.6
+        ],
+        "worst_board_dB": -46.46
+      },
+      {
+        "k": 51,
+        "band_kHz": [
+          416.792,
+          418.792
+        ],
+        "worst_board_dB": -46.64
+      },
+      {
+        "k": 52,
+        "band_kHz": [
+          424.984,
+          426.984
+        ],
+        "worst_board_dB": -46.82
+      },
+      {
+        "k": 53,
+        "band_kHz": [
+          433.176,
+          435.176
+        ],
+        "worst_board_dB": -46.99
+      },
+      {
+        "k": 54,
+        "band_kHz": [
+          441.368,
+          443.368
+        ],
+        "worst_board_dB": -47.16
+      },
+      {
+        "k": 55,
+        "band_kHz": [
+          449.56,
+          451.56
+        ],
+        "worst_board_dB": -47.33
+      },
+      {
+        "k": 56,
+        "band_kHz": [
+          457.752,
+          459.752
+        ],
+        "worst_board_dB": -47.5
+      },
+      {
+        "k": 57,
+        "band_kHz": [
+          465.944,
+          467.944
+        ],
+        "worst_board_dB": -47.66
+      },
+      {
+        "k": 58,
+        "band_kHz": [
+          474.136,
+          476.136
+        ],
+        "worst_board_dB": -47.82
+      },
+      {
+        "k": 59,
+        "band_kHz": [
+          482.328,
+          484.328
+        ],
+        "worst_board_dB": -47.98
+      },
+      {
+        "k": 60,
+        "band_kHz": [
+          490.52,
+          492.52
+        ],
+        "worst_board_dB": -48.14
+      }
+    ]
+  },
+  "supply_startup": {
+    "tau_us": {
+      "min": 80.1,
+      "max": 253.7
+    },
+    "rail_rise_10_90_ms": {
+      "min": 0.348,
+      "max": 2.076
+    },
+    "por_note": "IMU register access 1 ms after its rail is valid (DS Table 4); ArduPilot probes the IMUs hundreds of ms after boot, so the extra ~0.56 ms is irrelevant.",
+    "powerup_lag_V": [
+      1.723,
+      0.335
+    ],
+    "min_3v3_ramp_ms_for_no_backdrive": 1.338,
+    "gyro_enable_sag_mV": 16.51,
+    "spi_burst_ripple_mV": 0.2308
+  },
+  "supply_candidates": [
+    {
+      "R_ohm": 10.0,
+      "C_bulk_uF": 4.7,
+      "att_24k_worst_dB": -9.07,
+      "att_alias_bands_ge20k_worst_dB": -8.93,
+      "peak_dB": -0.0,
+      "dc_drop_mV": 15.73,
+      "tau_max_us": 56.5
+    },
+    {
+      "R_ohm": 10.0,
+      "C_bulk_uF": 10.0,
+      "att_24k_worst_dB": -14.9,
+      "att_alias_bands_ge20k_worst_dB": -14.74,
+      "peak_dB": -0.0,
+      "dc_drop_mV": 15.73,
+      "tau_max_us": 117.7
+    },
+    {
+      "R_ohm": 10.0,
+      "C_bulk_uF": 22.0,
+      "att_24k_worst_dB": -21.48,
+      "att_alias_bands_ge20k_worst_dB": -21.33,
+      "peak_dB": -0.0,
+      "dc_drop_mV": 15.73,
+      "tau_max_us": 256.2
+    },
+    {
+      "R_ohm": 22.0,
+      "C_bulk_uF": 4.7,
+      "att_24k_worst_dB": -15.58,
+      "att_alias_bands_ge20k_worst_dB": -15.43,
+      "peak_dB": -0.0,
+      "dc_drop_mV": 33.91,
+      "tau_max_us": 121.9
+    },
+    {
+      "R_ohm": 22.0,
+      "C_bulk_uF": 10.0,
+      "att_24k_worst_dB": -21.65,
+      "att_alias_bands_ge20k_worst_dB": -21.5,
+      "peak_dB": -0.0,
+      "dc_drop_mV": 33.91,
+      "tau_max_us": 253.7
+    },
+    {
+      "R_ohm": 22.0,
+      "C_bulk_uF": 22.0,
+      "att_24k_worst_dB": -28.28,
+      "att_alias_bands_ge20k_worst_dB": -28.13,
+      "peak_dB": -0.001,
+      "dc_drop_mV": 33.91,
+      "tau_max_us": 552.1
+    },
+    {
+      "R_ohm": 33.0,
+      "C_bulk_uF": 4.7,
+      "att_24k_worst_dB": -19.04,
+      "att_alias_bands_ge20k_worst_dB": -18.89,
+      "peak_dB": -0.0,
+      "dc_drop_mV": 50.58,
+      "tau_max_us": 181.8
+    },
+    {
+      "R_ohm": 33.0,
+      "C_bulk_uF": 10.0,
+      "att_24k_worst_dB": -25.15,
+      "att_alias_bands_ge20k_worst_dB": -25.0,
+      "peak_dB": -0.0,
+      "dc_drop_mV": 50.58,
+      "tau_max_us": 378.3
+    },
+    {
+      "R_ohm": 33.0,
+      "C_bulk_uF": 22.0,
+      "att_24k_worst_dB": -31.79,
+      "att_alias_bands_ge20k_worst_dB": -31.63,
+      "peak_dB": -0.001,
+      "dc_drop_mV": 50.58,
+      "tau_max_us": 823.4
+    },
+    {
+      "R_ohm": 47.0,
+      "C_bulk_uF": 4.7,
+      "att_24k_worst_dB": -22.09,
+      "att_alias_bands_ge20k_worst_dB": -21.94,
+      "peak_dB": -0.0,
+      "dc_drop_mV": 71.79,
+      "tau_max_us": 258.0
+    },
+    {
+      "R_ohm": 47.0,
+      "C_bulk_uF": 10.0,
+      "att_24k_worst_dB": -28.21,
+      "att_alias_bands_ge20k_worst_dB": -28.06,
+      "peak_dB": -0.001,
+      "dc_drop_mV": 71.79,
+      "tau_max_us": 537.0
+    },
+    {
+      "R_ohm": 47.0,
+      "C_bulk_uF": 22.0,
+      "att_24k_worst_dB": -34.85,
+      "att_alias_bands_ge20k_worst_dB": -34.7,
+      "peak_dB": -0.002,
+      "dc_drop_mV": 71.79,
+      "tau_max_us": 1168.7
+    }
+  ],
+  "sensor_aaf": {
+    "per_odr": {
+      "1000": {
+        "internal_osc": {
+          "ODR_Hz": 1000.0,
+          "AAF_3dB_Hz": 258.0,
+          "UI_3dB_Hz": 230.7,
+          "AAF_att_at_Nyquist_dB": -11.79,
+          "AAF_plus_UI_att_at_Nyquist_dB": -25.42,
+          "group_delay_note": "AAF+UI group delay not published (ArduPilot comment: ~0.4 ms @1k UI)"
+        },
+        "clkin_32768": {
+          "ODR_Hz": 1024.0,
+          "AAF_3dB_Hz": 264.2,
+          "UI_3dB_Hz": 236.2,
+          "AAF_att_at_Nyquist_dB": -11.79,
+          "AAF_plus_UI_att_at_Nyquist_dB": -25.42,
+          "group_delay_note": "AAF+UI group delay not published (ArduPilot comment: ~0.4 ms @1k UI)"
+        }
+      },
+      "2000": {
+        "internal_osc": {
+          "ODR_Hz": 2000.0,
+          "AAF_3dB_Hz": 536.0,
+          "UI_3dB_Hz": 524.0,
+          "AAF_att_at_Nyquist_dB": -11.18,
+          "AAF_plus_UI_att_at_Nyquist_dB": -22.72,
+          "group_delay_note": "AAF+UI group delay not published (ArduPilot comment: ~0.4 ms @1k UI)"
+        },
+        "clkin_32768": {
+          "ODR_Hz": 2048.0,
+          "AAF_3dB_Hz": 548.9,
+          "UI_3dB_Hz": 536.6,
+          "AAF_att_at_Nyquist_dB": -11.18,
+          "AAF_plus_UI_att_at_Nyquist_dB": -22.72,
+          "group_delay_note": "AAF+UI group delay not published (ArduPilot comment: ~0.4 ms @1k UI)"
+        }
+      },
+      "4000": {
+        "internal_osc": {
+          "ODR_Hz": 4000.0,
+          "AAF_3dB_Hz": 997.0,
+          "UI_3dB_Hz": 1048.1,
+          "AAF_att_at_Nyquist_dB": -12.35,
+          "AAF_plus_UI_att_at_Nyquist_dB": -23.89,
+          "group_delay_note": "AAF+UI group delay not published (ArduPilot comment: ~0.4 ms @1k UI)"
+        },
+        "clkin_32768": {
+          "ODR_Hz": 4096.0,
+          "AAF_3dB_Hz": 1020.9,
+          "UI_3dB_Hz": 1073.3,
+          "AAF_att_at_Nyquist_dB": -12.35,
+          "AAF_plus_UI_att_at_Nyquist_dB": -23.89,
+          "group_delay_note": "AAF+UI group delay not published (ArduPilot comment: ~0.4 ms @1k UI)"
+        }
+      },
+      "8000": {
+        "internal_osc": {
+          "ODR_Hz": 8000.0,
+          "AAF_3dB_Hz": 997.0,
+          "UI_3dB_Hz": 2096.3,
+          "AAF_att_at_Nyquist_dB": -24.15,
+          "AAF_plus_UI_att_at_Nyquist_dB": -35.69,
+          "group_delay_note": "AAF+UI group delay not published (ArduPilot comment: ~0.4 ms @1k UI)"
+        },
+        "clkin_32768": {
+          "ODR_Hz": 8192.0,
+          "AAF_3dB_Hz": 1020.9,
+          "UI_3dB_Hz": 2146.6,
+          "AAF_att_at_Nyquist_dB": -24.15,
+          "AAF_plus_UI_att_at_Nyquist_dB": -35.69,
+          "group_delay_note": "AAF+UI group delay not published (ArduPilot comment: ~0.4 ms @1k UI)"
+        }
+      }
+    },
+    "esc_tones": [
+      {
+        "src_kHz": 24.0,
+        "harmonic": 1,
+        "f_kHz": 24.0,
+        "board_dB": -21.65,
+        "after_32k_decim_Hz": 8768.0,
+        "digital_AAF_UI_dB": -61.82,
+        "combined_dB": -83.47,
+        "baseband_alias_Hz_clkin": 576.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 6.71
+      },
+      {
+        "src_kHz": 24.0,
+        "harmonic": 2,
+        "f_kHz": 48.0,
+        "board_dB": -27.66,
+        "after_32k_decim_Hz": 15232.0,
+        "digital_AAF_UI_dB": -80.99,
+        "combined_dB": -108.66,
+        "baseband_alias_Hz_clkin": 1152.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.18
+      },
+      {
+        "src_kHz": 24.0,
+        "harmonic": 3,
+        "f_kHz": 72.0,
+        "board_dB": -31.19,
+        "after_32k_decim_Hz": 6464.0,
+        "digital_AAF_UI_dB": -51.27,
+        "combined_dB": -82.45,
+        "baseband_alias_Hz_clkin": 1728.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 2.51
+      },
+      {
+        "src_kHz": 24.0,
+        "harmonic": 4,
+        "f_kHz": 96.0,
+        "board_dB": -33.69,
+        "after_32k_decim_Hz": 2304.0,
+        "digital_AAF_UI_dB": -17.97,
+        "combined_dB": -51.66,
+        "baseband_alias_Hz_clkin": 2304.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 65.28
+      },
+      {
+        "src_kHz": 24.0,
+        "harmonic": 5,
+        "f_kHz": 120.0,
+        "board_dB": -35.64,
+        "after_32k_decim_Hz": 11072.0,
+        "digital_AAF_UI_dB": -69.91,
+        "combined_dB": -105.55,
+        "baseband_alias_Hz_clkin": 2880.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.11
+      },
+      {
+        "src_kHz": 24.0,
+        "harmonic": 6,
+        "f_kHz": 144.0,
+        "board_dB": -37.23,
+        "after_32k_decim_Hz": 12928.0,
+        "digital_AAF_UI_dB": -75.3,
+        "combined_dB": -112.52,
+        "baseband_alias_Hz_clkin": 3456.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.04
+      },
+      {
+        "src_kHz": 24.0,
+        "harmonic": 7,
+        "f_kHz": 168.0,
+        "board_dB": -38.57,
+        "after_32k_decim_Hz": 4160.0,
+        "digital_AAF_UI_dB": -36.21,
+        "combined_dB": -74.78,
+        "baseband_alias_Hz_clkin": 4032.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 2.6
+      },
+      {
+        "src_kHz": 24.0,
+        "harmonic": 8,
+        "f_kHz": 192.0,
+        "board_dB": -39.74,
+        "after_32k_decim_Hz": 4608.0,
+        "digital_AAF_UI_dB": -39.66,
+        "combined_dB": -79.41,
+        "baseband_alias_Hz_clkin": 3584.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 1.34
+      },
+      {
+        "src_kHz": 24.0,
+        "harmonic": 9,
+        "f_kHz": 216.0,
+        "board_dB": -40.78,
+        "after_32k_decim_Hz": 13376.0,
+        "digital_AAF_UI_dB": -76.48,
+        "combined_dB": -117.26,
+        "baseband_alias_Hz_clkin": 3008.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.02
+      },
+      {
+        "src_kHz": 48.0,
+        "harmonic": 1,
+        "f_kHz": 48.0,
+        "board_dB": -27.66,
+        "after_32k_decim_Hz": 15232.0,
+        "digital_AAF_UI_dB": -80.99,
+        "combined_dB": -108.66,
+        "baseband_alias_Hz_clkin": 1152.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.37
+      },
+      {
+        "src_kHz": 48.0,
+        "harmonic": 2,
+        "f_kHz": 96.0,
+        "board_dB": -33.69,
+        "after_32k_decim_Hz": 2304.0,
+        "digital_AAF_UI_dB": -17.97,
+        "combined_dB": -51.66,
+        "baseband_alias_Hz_clkin": 2304.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 130.55
+      },
+      {
+        "src_kHz": 48.0,
+        "harmonic": 3,
+        "f_kHz": 144.0,
+        "board_dB": -37.23,
+        "after_32k_decim_Hz": 12928.0,
+        "digital_AAF_UI_dB": -75.3,
+        "combined_dB": -112.52,
+        "baseband_alias_Hz_clkin": 3456.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.08
+      },
+      {
+        "src_kHz": 48.0,
+        "harmonic": 4,
+        "f_kHz": 192.0,
+        "board_dB": -39.74,
+        "after_32k_decim_Hz": 4608.0,
+        "digital_AAF_UI_dB": -39.66,
+        "combined_dB": -79.41,
+        "baseband_alias_Hz_clkin": 3584.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 2.68
+      },
+      {
+        "src_kHz": 48.0,
+        "harmonic": 5,
+        "f_kHz": 240.0,
+        "board_dB": -41.71,
+        "after_32k_decim_Hz": 10624.0,
+        "digital_AAF_UI_dB": -68.48,
+        "combined_dB": -110.19,
+        "baseband_alias_Hz_clkin": 2432.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.06
+      },
+      {
+        "src_kHz": 48.0,
+        "harmonic": 6,
+        "f_kHz": 288.0,
+        "board_dB": -43.32,
+        "after_32k_decim_Hz": 6912.0,
+        "digital_AAF_UI_dB": -53.58,
+        "combined_dB": -96.9,
+        "baseband_alias_Hz_clkin": 1280.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.24
+      },
+      {
+        "src_kHz": 48.0,
+        "harmonic": 7,
+        "f_kHz": 336.0,
+        "board_dB": -44.69,
+        "after_32k_decim_Hz": 8320.0,
+        "digital_AAF_UI_dB": -60.0,
+        "combined_dB": -104.7,
+        "baseband_alias_Hz_clkin": 128.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.08
+      },
+      {
+        "src_kHz": 48.0,
+        "harmonic": 8,
+        "f_kHz": 384.0,
+        "board_dB": -45.9,
+        "after_32k_decim_Hz": 9216.0,
+        "digital_AAF_UI_dB": -63.55,
+        "combined_dB": -109.44,
+        "baseband_alias_Hz_clkin": 1024.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.04
+      },
+      {
+        "src_kHz": 48.0,
+        "harmonic": 9,
+        "f_kHz": 432.0,
+        "board_dB": -46.97,
+        "after_32k_decim_Hz": 6016.0,
+        "digital_AAF_UI_dB": -48.79,
+        "combined_dB": -95.75,
+        "baseband_alias_Hz_clkin": 2176.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.18
+      },
+      {
+        "src_kHz": 96.0,
+        "harmonic": 1,
+        "f_kHz": 96.0,
+        "board_dB": -33.69,
+        "after_32k_decim_Hz": 2304.0,
+        "digital_AAF_UI_dB": -17.97,
+        "combined_dB": -51.66,
+        "baseband_alias_Hz_clkin": 2304.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 261.1
+      },
+      {
+        "src_kHz": 96.0,
+        "harmonic": 2,
+        "f_kHz": 192.0,
+        "board_dB": -39.74,
+        "after_32k_decim_Hz": 4608.0,
+        "digital_AAF_UI_dB": -39.66,
+        "combined_dB": -79.41,
+        "baseband_alias_Hz_clkin": 3584.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 5.35
+      },
+      {
+        "src_kHz": 96.0,
+        "harmonic": 3,
+        "f_kHz": 288.0,
+        "board_dB": -43.32,
+        "after_32k_decim_Hz": 6912.0,
+        "digital_AAF_UI_dB": -53.58,
+        "combined_dB": -96.9,
+        "baseband_alias_Hz_clkin": 1280.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.48
+      },
+      {
+        "src_kHz": 96.0,
+        "harmonic": 4,
+        "f_kHz": 384.0,
+        "board_dB": -45.9,
+        "after_32k_decim_Hz": 9216.0,
+        "digital_AAF_UI_dB": -63.55,
+        "combined_dB": -109.44,
+        "baseband_alias_Hz_clkin": 1024.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.08
+      },
+      {
+        "src_kHz": 96.0,
+        "harmonic": 5,
+        "f_kHz": 480.0,
+        "board_dB": -47.93,
+        "after_32k_decim_Hz": 11520.0,
+        "digital_AAF_UI_dB": -71.29,
+        "combined_dB": -119.23,
+        "baseband_alias_Hz_clkin": 3328.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.02
+      },
+      {
+        "src_kHz": 96.0,
+        "harmonic": 6,
+        "f_kHz": 576.0,
+        "board_dB": -49.64,
+        "after_32k_decim_Hz": 13824.0,
+        "digital_AAF_UI_dB": -77.62,
+        "combined_dB": -127.27,
+        "baseband_alias_Hz_clkin": 2560.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.01
+      },
+      {
+        "src_kHz": 96.0,
+        "harmonic": 7,
+        "f_kHz": 672.0,
+        "board_dB": -51.13,
+        "after_32k_decim_Hz": 16128.0,
+        "digital_AAF_UI_dB": -82.98,
+        "combined_dB": -134.11,
+        "baseband_alias_Hz_clkin": 256.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.0
+      },
+      {
+        "src_kHz": 96.0,
+        "harmonic": 8,
+        "f_kHz": 768.0,
+        "board_dB": -52.46,
+        "after_32k_decim_Hz": 14336.0,
+        "digital_AAF_UI_dB": -78.89,
+        "combined_dB": -131.35,
+        "baseband_alias_Hz_clkin": 2048.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.0
+      },
+      {
+        "src_kHz": 96.0,
+        "harmonic": 9,
+        "f_kHz": 864.0,
+        "board_dB": -53.69,
+        "after_32k_decim_Hz": 12032.0,
+        "digital_AAF_UI_dB": -72.8,
+        "combined_dB": -126.49,
+        "baseband_alias_Hz_clkin": 3840.0,
+        "baseband_alias_Hz_internal_8000": 0.0,
+        "residual_uVpp": 0.01
+      }
+    ],
+    "worst_tone": {
+      "src_kHz": 24.0,
+      "harmonic": 4,
+      "f_kHz": 96.0,
+      "board_dB": -33.69,
+      "after_32k_decim_Hz": 2304.0,
+      "digital_AAF_UI_dB": -17.97,
+      "combined_dB": -51.66,
+      "baseband_alias_Hz_clkin": 2304.0,
+      "baseband_alias_Hz_internal_8000": 0.0,
+      "residual_uVpp": 65.28
+    },
+    "worst_baseband_tone": {
+      "src_kHz": 24.0,
+      "harmonic": 1,
+      "f_kHz": 24.0,
+      "board_dB": -21.65,
+      "after_32k_decim_Hz": 8768.0,
+      "digital_AAF_UI_dB": -61.82,
+      "combined_dB": -83.47,
+      "baseband_alias_Hz_clkin": 576.0,
+      "baseband_alias_Hz_internal_8000": 0.0,
+      "residual_uVpp": 6.71
+    },
+    "internal_rate_hz_clkin": 32768.0,
+    "note": "24 kHz ESC PWM aliases to 576 Hz at 8192 Hz ODR (24000 = 3*8192 - 576) and to ~0 Hz at a nominal 8000 Hz ODR; with the +/-3 % internal oscillator the alias wanders anywhere in 0-4 kHz. The decimation-filter response (32 kHz) is unpublished and taken as 0 dB; tones within +/-1 kHz of k*32.768 kHz would bypass the AAF entirely and are protected only by the board filter (>= 24.1 dB there, sec 1).",
+    "model": "assumed: AAF and UI filter each modelled as 2nd-order Butterworth (Q 0.707) analog prototypes at the datasheet 3 dB point; DS says 'AAF is a 2nd order filter', Q not given. The 32 kHz decimation filter response is not published -> taken as 0 dB (worst case)."
+  },
+  "sync": {
+    "clkin_Hz_range": [
+      32765.379,
+      32770.621
+    ],
+    "clkin_ppm_life": 80.0,
+    "odr_clkin_Hz": 8192.0,
+    "odr_shift_pct": 2.4,
+    "aaf_ui_cutoffs_scale": 1.024,
+    "no_clkin": {
+      "per_imu_pct": 3.0,
+      "relative_pct_worst": 6.0,
+      "relative_pct_25C": 2.0,
+      "phase_walk_samples_per_s": [
+        160.0,
+        480.0
+      ]
+    },
+    "with_clkin": {
+      "relative_ppm": 0.0,
+      "phase_offset_max_us": 122.07,
+      "abs_dt_error_ppm": 80.0
+    },
+    "fallback": {
+      "internal_low": {
+        "new_ODR_Hz": 7760.0,
+        "step_pct": -5.27,
+        "outside_5pct_window": true,
+        "s_to_0p5pct": 120,
+        "s_to_0p1pct": 200
+      },
+      "internal_nom": {
+        "new_ODR_Hz": 8000.0,
+        "step_pct": -2.34,
+        "outside_5pct_window": false,
+        "s_to_0p5pct": 78,
+        "s_to_0p1pct": 158
+      },
+      "internal_high": {
+        "new_ODR_Hz": 8240.0,
+        "step_pct": 0.59,
+        "outside_5pct_window": false,
+        "s_to_0p5pct": 8,
+        "s_to_0p1pct": 88
+      }
+    },
+    "fifo_timestamp_note": "DS sec 12.7: in RTC mode FIFO timestamps scale by 32.768/30; ArduPilot uses the measured sample rate, not FIFO timestamps, so no change needed."
+  },
+  "clock_distribution": {
+    "R_out_max_derived_ohm": 757.6,
+    "design_33R": {
+      "nom": {
+        "C_total_pF": 21.5,
+        "tr_ns_Rout_max": {
+          "osc_pin": 38.9,
+          "U2_pin9": 38.8,
+          "U3_pin9": 38.8,
+          "MCU_PD12": 43.2
+        },
+        "tr_ns_Rout_min": {
+          "osc_pin": 0.1,
+          "U2_pin9": 0.3,
+          "MCU_PD12": 0.4
+        },
+        "att_32k_dB_worst": -0.00026
+      },
+      "max": {
+        "C_total_pF": 31.5,
+        "tr_ns_Rout_max": {
+          "osc_pin": 55.1,
+          "U2_pin9": 55.1,
+          "U3_pin9": 55.1,
+          "MCU_PD12": 58.3
+        },
+        "tr_ns_Rout_min": {
+          "osc_pin": 0.1,
+          "U2_pin9": 0.4,
+          "MCU_PD12": 0.3
+        },
+        "att_32k_dB_worst": -0.00056
+      }
+    },
+    "alt_1k": {
+      "nom": {
+        "C_total_pF": 21.5,
+        "tr_ns_Rout_max": {
+          "osc_pin": 44.0,
+          "U2_pin9": 49.0,
+          "U3_pin9": 49.0,
+          "MCU_PD12": 49.0
+        },
+        "tr_ns_Rout_min": {
+          "osc_pin": 0.05,
+          "U2_pin9": 15.55,
+          "MCU_PD12": 15.55
+        },
+        "att_32k_dB_worst": -0.00026
+      },
+      "max": {
+        "C_total_pF": 31.5,
+        "tr_ns_Rout_max": {
+          "osc_pin": 65.6,
+          "U2_pin9": 75.3,
+          "U3_pin9": 75.3,
+          "MCU_PD12": 70.1
+        },
+        "tr_ns_Rout_min": {
+          "osc_pin": 0.05,
+          "U2_pin9": 27.1,
+          "MCU_PD12": 16.2
+        },
+        "att_32k_dB_worst": -0.00056
+      }
+    },
+    "startup_note": "Y2 start-up up to 5 ms; RTC mode must only be enabled after PD12 sees edges (ArduPilot IMU init is far later than 5 ms after power-up).",
+    "R17_note": "OE: 'enabled if logic 1 or open' (Y2 datasheet) - R17 10k pull-up is belt-and-braces."
+  },
+  "spi": {
+    "SPI1": {
+      "sclk_MHz": 10.0,
+      "period_ns": 100.0,
+      "quarter_ns": 25.0,
+      "tr_sclk_ns": 3.08,
+      "tr_miso_ns": 1.43,
+      "miso_margin_ns": 22.1,
+      "mosi_setup_margin_ns": 32.0,
+      "mosi_hold_margin_ns": 42.0
+    },
+    "SPI4": {
+      "sclk_MHz": 12.5,
+      "period_ns": 80.0,
+      "quarter_ns": 20.0,
+      "tr_sclk_ns": 3.08,
+      "tr_miso_ns": 1.43,
+      "miso_margin_ns": 12.1,
+      "mosi_setup_margin_ns": 22.0,
+      "mosi_hold_margin_ns": 32.0
+    },
+    "note": "ICM timing (Table 6) is characterised at VDDIO 1.8 V and Cload 20 pF; at 3.3 V the output drive is stronger, so tVD.SDO 21.5 ns is conservative."
+  },
+  "refdes": {
+    "frozen_to_schematic": {
+      "C5": "C17",
+      "C6": "C18",
+      "C7": "C19",
+      "C8": "C20",
+      "C9": "C21",
+      "C10": "C22",
+      "C11": "C23"
+    },
+    "source": "tools/gen_mcu_core_sch.py",
+    "note": "Analysis uses the frozen values/topology; capacitor refdes were renumbered by the schematic because C5..C11 already existed (VDDA/core decoupling). Values unaffected."
+  },
+  "summary": {
+    "checks": 29,
+    "failures": 0,
+    "warnings": 3,
+    "warning_list": [
+      "Power-up: IMU rail lag behind +3V3 (Y2 supply) <= VDDIO+0.5 V abs-max on CLKIN pin 9",
+      "Loss-of-CLKIN fallback: ArduPilot rate estimate re-tracks within 5 s without a driver reset",
+      "Y2 capacitive load within L_CMOS 15 pF datasheet condition (R14/R15 = 33 R)"
+    ]
+  }
+}

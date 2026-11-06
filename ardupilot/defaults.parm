@@ -47,6 +47,18 @@ INS_HNTCH_HMNCS 3
 # >5 ms have passed, i.e. every 3rd 2.5 ms loop (~133 Hz at SCHED_LOOP_RATE 400).
 INS_HNTCH_OPTS 6
 
+# --- ESC gate-driver supply floor (Rev 9.0) ---------------------------------
+# The FD6288Q gate drivers run from VBAT; below ~5.95 V the high-side bootstrap
+# supply drops under the driver UVLO (5.0 V max) and that ESC stops driving.
+# AM32's own low-voltage cutoff is disabled (am32_esc/eeprom_settings.json):
+# it latches one motor off until power cycle.  This absolute floor applies
+# for any cell count (3.2 V/cell on 2S, never reached first on 3S/4S); set
+# BATT_LOW_VOLT / a higher BATT_CRT_VOLT for the actual pack.
+# Checked by am32_esc/gate_drive_design.py E3.
+BATT_CRT_VOLT 6.4
+# 1 = Land
+BATT_FS_CRT_ACT 1
+
 # --- logging ---------------------------------------------------------------
 # microSD logging on SDMMC1 (IDMA)
 LOG_BACKEND_TYPE 1

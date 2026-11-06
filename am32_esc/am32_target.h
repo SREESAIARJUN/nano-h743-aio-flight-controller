@@ -3,13 +3,17 @@
 // Drop-in block for am32-firmware/AM32 Inc/targets.h (verified against v2.21,
 // commit 3d8cd50). tools/am32_build_target.sh splices it in, builds it with
 // AM32's own toolchain and checks the preprocessed configuration.
+// Every number below is derived and cross-checked by
+// am32_esc/gate_drive_design.py (checks H1-H7); do not edit by hand.
 //
 // Hardware per ESC channel (x4, identical):
 //   MCU          AT32F421K8U7 (QFN-32, 120 MHz)  -> AM32 MCU_AT421
 //   Gate driver  Fortior FD6288Q (QFN-24), VCC = VBAT via 10 R / 10 uF + 18 V Zener
 //   Power stage  6x Toshiba TPHR8504PL (40 V, 0.85 mOhm @ 10 V)
-//   Gate network 15 R (0402) per gate, Schottky (RB521S30) across it for fast
-//                turn-off, 10 k gate-source pull-down
+//   Gate network 0 R series footprint (slew re-tune at bring-up) + 2.2 nF C0G
+//                Cgs at each FET; 10 k (LS) / 100 k (HS) gate-source pull-down.
+//                Slew is set by the FD6288Q output current (1.1-1.9 A source,
+//                1.3-2.3 A sink): 2.85 V/ns worst case at 4S HV / 35 A.
 //
 // PWM / gate-driver interface (HARDWARE_GROUP_AT_B):
 //   FD6288Q HIN1 (A) <- PA10 TMR1_CH3     LIN1 (A) <- PB1 TMR1_CH3N
@@ -26,26 +30,30 @@
 // Dead time
 //   DEAD_TIME is the raw TMR1_BRK.DTC (STM32 BDTR.DTG) code, NOT nanoseconds.
 //   tDTS = 1/120 MHz = 8.333 ns; codes < 128 are linear.
-//   34 -> 283.3 ns MCU dead time, in series with the FD6288Q fixed internal
-//   interlock dead time of 100/200/300 ns (min/typ/max). Derived in
-//   am32_esc/gate_drive_design.py: the slowest outgoing FET (4S HV, 125 C,
-//   Vth,min 0.55 V, max driver Rsink, max toff propagation) must be below
-//   threshold before the fastest incoming gate reaches it, plus the 30 ns
-//   HO/LO delay matching and a 25 ns guard -> 283.0 ns required.
-//   Body-diode conduction per edge: 483 ns typ / 613 ns max.
-//   DEAD_TIME also seeds AM32's minimum_duty_cycle and gate_drive_offset
-//   (Src/main.c:419,536): 34 of 5000 ARR counts = 0.68 % at 24 kHz.
+//   43 -> 358.3 ns MCU dead time, in series with the FD6288Q fixed internal
+//   interlock dead time of 100/200/300 ns (min/typ/max). Required: 353.9 ns,
+//   set by the LS hard turn-off (negative phase current) at 4S HV / 10 A:
+//   slow driver (IOL 1.3 A min, scaled by VCC), rg_int max, Miller plateau at
+//   125 C / Vth min, outgoing declared off at Vth,min(125 C) = 0.55 V, against
+//   the fastest incoming gate, plus 30 ns HO/LO matching and a 25 ns guard.
+//   Body-diode conduction per edge: 457 ns typ / 755 ns max.
+//   DEAD_TIME also seeds gate_drive_offset (43/2000 of ARR, sine start-up
+//   only). minimum_duty_cycle comes from EEPROM byte 6 (pinned to 4 -> 842 ns
+//   so no commanded pulse is shorter than the 688 ns worst-case dead time).
 //
-// Settings AM32 reads from EEPROM, not from this file (programmed by
-// am32_esc/eeprom_settings.json via the AM32 configurator / passthrough):
-//   pwm_frequency 24 kHz, driving_brake_strength 10 (dead-time override
-//   off; 1..9 OR into DTC and give 0.88-2.03 us), limits.temperature 115 C
-//   (MCU die sensor), limits.current 0 (no per-channel current sense).
+// Settings AM32 reads from EEPROM, not from this file (programmed per
+// am32_esc/eeprom_settings.json via BLHeli passthrough):
+//   pwm_frequency 24 kHz, comp_pwm 1, variable_pwm 0, minimum_duty_cycle 4,
+//   driving_brake_strength 10 (dead-time override off; 1..9 OR into DTC and
+//   give 0.93-2.12 us), low_voltage_cut_off 0 (AM32 cutoff latches a motor
+//   off; the FC failsafe BATT_CRT_VOLT 6.4 guards the FD6288Q UVLO instead),
+//   limits.temperature 115 C (uncalibrated MCU die sensor, last-resort step
+//   derate), limits.current 0 (no per-channel current sense).
 
 #ifdef NANO_H743_AIO_F421
 #define FIRMWARE_NAME "NanoH743AIO"
 #define FILE_NAME "NANO_H743_AIO_F421"
-#define DEAD_TIME 34
+#define DEAD_TIME 43
 #define HARDWARE_GROUP_AT_B
 #define HARDWARE_GROUP_AT_045
 #define TARGET_VOLTAGE_DIVIDER 110

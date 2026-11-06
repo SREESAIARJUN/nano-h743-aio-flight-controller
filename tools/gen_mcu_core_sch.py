@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Nano H743 AIO - MCU core schematic generator (Revision 7.0, DShot termination
-Rev 10.0, dual-IMU block Rev 11.0)
+Rev 10.0, dual-IMU block Rev 11.0, DPS310 baro Rev 12.0)
 
 Generates, deterministically:
   kicad/nano-h743-aio.kicad_sym   project-local symbol library
@@ -38,6 +38,17 @@ Scope of the sheet ("MCU core: HSE clock and analog supply"):
       Refdes note: the frozen Rev 11 plan named the IMU caps C5..C11; those
       refs are already used on this sheet, so they are C17..C23 here
       (C5->C17, C6->C18, C7->C19, C8->C20, C9->C21, C10->C22, C11->C23).
+  * Rev 12.0: U4 DPS310 barometer on I2C1 (hwdef 'BARO DPS310 I2C:0:0x76').
+      I2C mode: CSB (2) -> VDDIO rail, SDO (5) -> GND => 7-bit address 0x76.
+      +3V3 -> FB4 (BLM15AX601SN1D) -> +3V3_BARO; C24 1uF + C25 100nF at VDD
+      (8), C26 100nF at VDDIO (6).  R23/R24 2.2k pull-ups I2C1_SCL/SDA ->
+      +3V3 at U1; R25/R26 33R series I2C1_SCL/SDA -> BARO_SCL/BARO_SDA at U4
+      (pin 1 = MCU/hwdef net, pin 2 = baro-pin net).  Pinout per LCSC C130156
+      symbol: 1 GND, 2 CSB, 3 SDI, 4 SCK, 5 SDO, 6 VDDIO, 7 GND, 8 VDD.
+      Footprint: KiCad 8 Package_LGA:Bosch_LGA-8_2x2.5mm_P0.65mm_Clockwise-
+      PinNumbering (no Infineon PG-VLGA-8 footprint in the KiCad library; the
+      Bosch BMP280 land pattern has the same 2.0x2.5 body, 0.65 pitch, 1.6 mm
+      row spacing and clockwise 1..8 numbering as the DPS310 PG-VLGA-8-2).
   * Every GPIO that ardupilot/hwdef.dat assigns is broken out with a global
     label named after its hwdef function, so the schematic netlist and the
     firmware pin map can never silently diverge (tools/verify_mcu_core_sch.py
@@ -364,6 +375,29 @@ def sym_xo(prefix):
                    7.62, 7.62, XO_PINS)
 
 
+# Rev 12.0: Infineon DPS310 (PG-VLGA-8-2, 2.0 x 2.5 x 1.0 mm).  Numbers/names
+# = LCSC C130156 EasyEDA symbol = Infineon DPS310 datasheet pin table.
+DPS310_PINS = (
+    ("4", "SCK", "input", -12.7, 2.54, 0),
+    ("3", "SDI", "bidirectional", -12.7, 0, 0),
+    ("2", "CSB", "input", -12.7, -2.54, 0),
+    ("5", "SDO", "input", 12.7, 0, 180),       # I2C mode: address-select input (SPI: data out)
+    ("8", "VDD", "power_in", -2.54, 10.16, 270),
+    ("6", "VDDIO", "power_in", 2.54, 10.16, 270),
+    ("1", "GND", "power_in", -2.54, -10.16, 90),
+    ("7", "GND", "power_in", 2.54, -10.16, 90),
+)
+FP_DPS310 = "Package_LGA:Bosch_LGA-8_2x2.5mm_P0.65mm_ClockwisePinNumbering"
+DS_DPS310 = ("https://www.infineon.com/dgdl/Infineon-DPS310-DataSheet-v01_02-EN.pdf"
+             "?fileId=5546d462576f34750157750826c42242")
+
+
+def sym_dps310(prefix):
+    return _sym_ic(prefix, "DPS310", "U", "DPS310", FP_DPS310, DS_DPS310,
+                   "Digital barometric pressure sensor, I2C/SPI, 1.7-3.6 V, PG-VLGA-8-2 2.0x2.5 mm",
+                   10.16, 7.62, DPS310_PINS)
+
+
 def sym_power(prefix, n, kind):
     """kind: 'gnd' (arrow down) or 'rail' (bar up)."""
     if kind == "gnd":
@@ -405,7 +439,7 @@ def sym_pwr_flag(prefix):
 
 def all_symbols(prefix):
     return [sym_mcu(prefix), sym_r(prefix), sym_c(prefix), sym_fb(prefix),
-            sym_crystal(prefix), sym_icm42688(prefix), sym_xo(prefix),
+            sym_crystal(prefix), sym_icm42688(prefix), sym_xo(prefix), sym_dps310(prefix),
             sym_power(prefix, "GND", "gnd"),
             sym_power(prefix, "+3V3", "rail"), sym_power(prefix, "+3.3VA", "rail"),
             sym_pwr_flag(prefix)]
@@ -419,6 +453,7 @@ PIN_OFFS = {
     "Crystal_GND24": {"1": (-3.81, 0), "3": (3.81, 0), "2": (0, 5.08), "4": (0, -5.08)},
     "ICM-42688-P": {p[0]: (p[3], -p[4]) for p in ICM_PINS},
     "XO_OE_4p": {p[0]: (p[3], -p[4]) for p in XO_PINS},
+    "DPS310": {p[0]: (p[3], -p[4]) for p in DPS310_PINS},
 }
 
 
@@ -431,6 +466,7 @@ class Sheet:
         self.pwr_n = 0
         self.flg_n = 0
         self.glabels = set()
+        self.refs = []          # BOM references placed (no #PWR/#FLG), for the verifier
 
     def _instances(self, ref):
         return ('(instances (project %s (path %s (reference %s) (unit 1))))'
@@ -440,6 +476,8 @@ class Sheet:
                pins=("1", "2"), in_bom=True, ref_xy=None, val_xy=None, hide_val=False,
                dnp=False):
         fields = fields or {}
+        if not ref.startswith("#"):
+            self.refs.append(ref)
         u = uid("sym-" + ref)
         rx, ry = ref_xy if ref_xy else (x + 2.54, y - 1.27)
         vx, vy = val_xy if val_xy else (x + 2.54, y + 1.27)
@@ -563,6 +601,12 @@ IMU_NC_PINS = ("2", "3", "10", "11")      # RESV: "No Connect or Connect to GND"
 IMU_CLK = {"xo": "Y2", "src_net": "IMU_CLKIN", "mon_r": "R16", "mon_net": "IMU_CLKIN_MON",
            "oe_r": "R17", "oe_net": "Y2_OE", "c_dec": "C23"}
 LCSC_100N = "C1525"
+
+# Rev 12.0: DPS310 barometer on I2C1.  (ref, MCU/hwdef net, baro-pin net, U4 pin)
+BARO = {"ref": "U4", "fb": "FB4", "rail": "+3V3_BARO", "c_bulk": "C24", "c_vdd": "C25",
+        "c_vddio": "C26", "pullup": (("R23", "I2C1_SCL"), ("R24", "I2C1_SDA")),
+        "series": (("R25", "I2C1_SCL", "BARO_SCL", "4"), ("R26", "I2C1_SDA", "BARO_SDA", "3"))}
+R2K2 = {"MPN": "0402WGF2201TCE", "Manufacturer": "UNI-ROYAL", "LCSC": "C25879"}
 R33 = {"MPN": "0402WGF330JTCE", "Manufacturer": "UNI-ROYAL", "LCSC": "C25105"}
 
 
@@ -710,6 +754,9 @@ def build():
     # ---------------- dual ICM-42688-P IMU block (Rev 11.0) ----------------
     imu_block(sh, hw)
 
+    # ---------------- DPS310 barometer on I2C1 (Rev 12.0) ----------------
+    baro_block(sh, hw)
+
     # ---------------- power flags ----------------
     fx, fy = 345.44, 40.64
     for i, net in enumerate(["+3V3", "GND", "+3.3VA"]):
@@ -729,6 +776,11 @@ def build():
         sh.pwr_flag(x, fy)
         sh.wire(x, fy, x, fy + 5.08)
         sh.label(blk["rail"], x, fy + 5.08)
+    # Rev 12.0: +3V3_BARO is fed through FB4 (passive)
+    x = fx + 5 * 15.24 + 5.08
+    sh.pwr_flag(x, fy)
+    sh.wire(x, fy, x, fy + 5.08)
+    sh.label(BARO["rail"], x, fy + 5.08)
 
     # ---------------- design notes ----------------
     notes = (
@@ -862,6 +914,126 @@ def imu_block(sh, hw):
     sh.text(notes, 431.8, 252.73)
 
 
+BARO_I2C_REPORT = os.path.join(REPO, "analysis", "baro_i2c_report.json")
+
+
+def i2c_pullup_window(path=BARO_I2C_REPORT):
+    """I2C1 pull-up window for the sheet note, taken from the E3 gate data of
+    analysis/baro_i2c_report.json (VOL 0.4 V at 3 mA with VDD max, tr 300 ns).
+    Falls back to the same worst-case formulas if the report is absent."""
+    vdd_max, vol, iol, rp = 3.465, 0.4, 3e-3, 2200.0
+    rp_min = (vdd_max - vol) / iol
+    rp_min_4k7 = rp_max = None
+    if os.path.exists(path):
+        import json
+        rep = json.load(open(path))
+        a = rep.get("assumptions", {})
+        vdd_max = a.get("vdd", {}).get("max", vdd_max)
+        vol = a.get("um10204_fm", {}).get("VOL_max_V_at_3mA", vol)
+        w = rep.get("bus", {}).get("Rp_window")
+        if w:
+            rp_min = w["Rp_min_ohm_VOL_0V4_3mA"]
+            rp_min_4k7 = w["Rp_min_ohm_with_4k7_module"]
+            rp_max = w["Rp_max_ohm_tr300_at_Cmax"]
+            rp = w.get("baseline_Rp_ohm", rp)
+    if rp_min_4k7 is None:                      # report absent: 4k7 || Rp at its own VOL limit
+        rp_min_4k7 = 1.0 / (1.0 / rp_min - 1.0 / 4700.0)
+    if rp_max is None:
+        rp_max = float("nan")
+    if rp_min >= rp:
+        raise SystemExit("I2C1: on-board %.0f R already below the VOL limit %.0f R" % (rp, rp_min))
+    return {"vdd_max": vdd_max, "vol": vol, "rp": rp, "rp_min": rp_min, "rp_min_4k7": rp_min_4k7,
+            "rp_max": rp_max, "module_min": 1.0 / (1.0 / rp_min - 1.0 / rp),
+            "cb_max_pf": 300e-9 / (0.8473 * rp) * 1e12}
+
+
+def baro_block(sh, hw):
+    """Rev 12.0 DPS310 barometer on I2C1, upper-right sheet area."""
+    funcs = {net_for_hwdef(v): k for k, v in hw.items()}
+    for net, port in (("I2C1_SCL", "PB6"), ("I2C1_SDA", "PB7")):
+        if funcs.get(net) != port:
+            raise SystemExit("baro block: %s must be on %s in hwdef.dat (got %s)" % (net, port, funcs.get(net)))
+    if not re.search(r"^BARO\s+DPS310\s+I2C:0:0x76\b", open(HWDEF).read(), re.M):
+        raise SystemExit("baro block: hwdef.dat lacks 'BARO DPS310 I2C:0:0x76' (SDO strap would be wrong)")
+
+    bx, by = 444.5, 25.4
+    sh.text("DPS310 barometer on I2C1 400 kHz (Rev 12.0)\n"
+            "I2C mode: CSB -> VDDIO, SDO -> GND => addr 0x76", bx, by, 2.0)
+    ux, uy = 477.52, 68.58
+    sh.symbol("DPS310", BARO["ref"], "DPS310", ux, uy, footprint=FP_DPS310,
+              fields={"MPN": "DPS310XTSA1", "Manufacturer": "Infineon Technologies", "LCSC": "C130156",
+                      "Spec": "Baro, I2C addr 0x76 (SDO=GND), CSB=VDDIO -> I2C; pinout LCSC C130156 / "
+                              "DPS310 DS v01_02; alt LCSC C3232509"},
+              pins=tuple(p[0] for p in DPS310_PINS),
+              ref_xy=(ux - 10.16, uy - 8.89), val_xy=(ux + 3.81, uy + 8.89))
+    o = PIN_OFFS["DPS310"]
+
+    def pt(num):
+        return ux + o[num][0], uy + o[num][1]
+    for _, _, bnet, num in BARO["series"]:
+        sh.attach(bnet, *pt(num), -5.08, 0)
+    sh.attach(BARO["rail"], *pt("2"), -5.08, 0)          # CSB high -> I2C
+    sh.attach("GND", *pt("5"), 5.08, 0)                  # SDO low -> 0x76
+    (x8, y8), (x6, y6) = pt("8"), pt("6")
+    sh.wire(x8, y8, x8, y8 - 2.54)
+    sh.wire(x6, y6, x6, y6 - 2.54)
+    sh.wire(x8, y8 - 2.54, x6, y6 - 2.54)
+    sh.label(BARO["rail"], x6, y6 - 2.54)
+    (x1, y1), (x7, y7) = pt("1"), pt("7")
+    sh.wire(x1, y1, x1, y1 + 2.54)
+    sh.wire(x7, y7, x7, y7 + 2.54)
+    sh.wire(x1, y1 + 2.54, x7, y7 + 2.54)
+    sh.power("GND", x1, y1 + 2.54, 0)
+
+    # supply: +3V3 -> FB4 -> +3V3_BARO, 1u + 100n at VDD, 100n at VDDIO
+    py = 106.68
+    passive(sh, "FerriteBead", BARO["fb"], "600R@100MHz", bx + 5.08, py, "+3V3", BARO["rail"], FP_L0402,
+            {"MPN": "BLM15AX601SN1D", "Manufacturer": "Murata", "LCSC": "C76886",
+             "Spec": "600R@100MHz, Rdc 0.34R max - DPS310 supply filter (same part as FB1-FB3)"})
+    passive(sh, "C", BARO["c_bulk"], "1uF", bx + 30.48, py, BARO["rail"], "GND", FP_C0402,
+            {"Spec": "1 uF X5R 25V 0402 - +3V3_BARO bulk at U4 pin 8 VDD", "MPN": "CL05A105KA5NQNC",
+             "Manufacturer": "Samsung", "LCSC": "C52923"})
+    passive(sh, "C", BARO["c_vdd"], "100nF", bx + 45.72, py, BARO["rail"], "GND", FP_C0402,
+            {"Spec": "100 nF X7R 16V 0402 - at U4 pin 8 VDD", "LCSC": LCSC_100N})
+    passive(sh, "C", BARO["c_vddio"], "100nF", bx + 60.96, py, BARO["rail"], "GND", FP_C0402,
+            {"Spec": "100 nF X7R 16V 0402 - at U4 pin 6 VDDIO", "LCSC": LCSC_100N})
+
+    # I2C1: 2.2k pull-ups at U1 (pin 1 = +3V3), 33R series at U4 (pin 1 = MCU net)
+    ry = 134.62
+    for j, (ref, mnet) in enumerate(BARO["pullup"]):
+        passive(sh, "R", ref, "2.2k", bx + 5.08 + j * 20.32, ry, "+3V3", mnet, FP_R0402,
+                dict(R2K2, Spec="2.2k 1%% 0402 - %s pull-up to +3V3, place at U1 (only pull-up on I2C1)" % mnet),
+                kind2="global")
+    for j, (ref, mnet, bnet, num) in enumerate(BARO["series"]):
+        passive(sh, "R", ref, "33R", bx + 50.8 + j * 20.32, ry, mnet, bnet, FP_R0402,
+                dict(R33, Spec="33R 1%% 0402 - %s series, place at U4 pin %s" % (mnet, num)),
+                kind="global", kind2="label")
+
+    rw = i2c_pullup_window()
+    notes = (
+        "BARO BLOCK (Rev 12.0)\n"
+        "- U4 DPS310 pinout: LCSC C130156 / Infineon DS v01_02: 1 GND, 2 CSB, 3 SDI, 4 SCK, 5 SDO, 6 VDDIO, 7 GND, 8 VDD.\n"
+        "  CSB tied to VDDIO selects I2C; SDO to GND = 0x76 = hwdef 'BARO DPS310 I2C:0:0x76'.\n"
+        "- I2C1 PB6 SCL / PB7 SDA, 400 kHz Fm. The ONLY on-board pull-ups on I2C1 are R23/R24 %.1fk; the\n"
+        "  GPS/compass module must not add strong pull-ups: combined Rp >= %.0fR for 3 mA at VOL 0.4 V with\n"
+        "  VDD max %.3f V => module pull-up >= %.2fk (none/4k7/10k OK; 4k7 module -> E3 window %.0f..%.0f R).\n"
+        "  %.1fk meets Fm tr <= 300 ns (0.8473*Rp*Cb) up to Cb = %.0f pF incl. the GPS/compass cable.\n"
+        "- Supply: FB4 + C24 1uF + C25 100nF (VDD) + C26 100nF (VDDIO); DS reference 100 nF per supply pin.\n"
+        "LAYOUT RULES\n"
+        "- U4 on the face/corner farthest from ESC switch nodes and hot FETs: >= 5 mm from any phase node or\n"
+        "  MOSFET copper, no motor/battery current under U4 on any layer; not next to the LDO/regulators.\n"
+        "- Keep-out under U4: no vias, no traces on the U4 layer between pads, solid GND on the adjacent plane.\n"
+        "- Shield U4 from light (opaque foam/cover); vent hole of U4 faces into the foam chamber.\n"
+        "- Vent position and keep-out must match the acoustic foam chamber in cad/ (open-cell foam over U4,\n"
+        "  no direct prop-wash path; chamber vent away from the FC fan/airflow).\n"
+        "- I2C1 SCL/SDA routed on a layer referenced to In1/In4 GND, adjacent pair, no plane splits;\n"
+        "  R25/R26 within 2 mm of U4 pins 4/3, R23/R24 within 3 mm of U1 pins 92/93.\n"
+        "- C25/C26 within 1 mm of U4 pins 8/6; GND pins 1/7 straight to a GND via.\n"
+    ) % (rw["rp"] / 1e3, rw["rp_min"], rw["vdd_max"], rw["module_min"] / 1e3, rw["rp_min_4k7"], rw["rp_max"],
+         rw["rp"] / 1e3, rw["cb_max_pf"])
+    sh.text(notes, 444.5, 152.4)
+
+
 def write_lib(kdir=KDIR):
     body = "\n".join(all_symbols(""))
     out = "(kicad_symbol_lib (version 20231120) (generator \"nano_h743_gen_mcu_core\") (generator_version \"8.0\")\n%s\n)\n" % body
@@ -875,12 +1047,12 @@ def write_sch(sh, kdir=KDIR):
         "(kicad_sch (version 20231120) (generator \"nano_h743_gen_mcu_core\") (generator_version \"8.0\")",
         "(uuid %s)" % q(ROOT_UUID),
         "(paper \"A2\")",
-        "(title_block (title \"Nano H743 AIO - MCU core: HSE, VDDA filter, dual IMU\")",
-        "  (date \"2026-11-06\") (rev \"11.0\") (company \"Sreesai Arjun Engineering\")",
+        "(title_block (title \"Nano H743 AIO - MCU core: HSE, VDDA filter, dual IMU, baro\")",
+        "  (date \"2026-11-06\") (rev \"12.0\") (company \"Sreesai Arjun Engineering\")",
         "  (comment 1 \"STM32H743VIT6 480 MHz: HSE 24 MHz, PLL1 M3 N120 P2\")",
-        "  (comment 2 \"Y1 CL 12 pF; VDDA FB1+R2 2R2; U2/U3 ICM-42688-P, Y2 32.768 kHz CLKIN\")",
+        "  (comment 2 \"Y1 CL 12 pF; VDDA FB1+R2 2R2; U2/U3 ICM-42688-P, Y2 32.768 kHz CLKIN; U4 DPS310 I2C1 0x76\")",
         "  (comment 3 \"Generated: tools/gen_mcu_core_sch.py + hwdef.dat\")",
-        "  (comment 4 \"Production Revision 11.0 / 150\"))",
+        "  (comment 4 \"Production Revision 12.0 / 150\"))",
         "(lib_symbols\n%s\n)" % libsyms,
         "\n".join(sh.items),
         "(sheet_instances (path \"/\" (page \"1\")))",

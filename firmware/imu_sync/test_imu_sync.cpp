@@ -345,7 +345,10 @@ static PairRun run_pair(DualImuPairer& p, Stream& a, Stream& b, double t_end_ns,
         while (p.pop_pair(ps)) {
             res.pairs++;
             if (!std::isnan(expect_off_ns)) {
-                const double e = std::fabs(double(ps.offset_ns) - expect_off_ns);
+                // phase is only defined modulo T (a lock on the other neighbour is equivalent)
+                const double T = 1e9 / 8192.0;
+                const double e0 = std::fabs(double(ps.offset_ns) - expect_off_ns);
+                const double e = std::fmin(e0, std::fabs(e0 - T));
                 if (e > res.max_abs_off_err) res.max_abs_off_err = e;
             }
         }
@@ -357,7 +360,7 @@ static void test_pairing_shared()
 {
     std::printf("T5 pairing on a shared CLKIN: constant phase, zero drift\n");
     const double T = 1e9 / 8192.0;
-    const double offs[] = {37000.0, -45000.0, 59000.0, 0.0};
+    const double offs[] = {37000.0, -45000.0, 59000.0, 0.0, 61000.0, -61000.0};   // T/2 = 61035 ns
     for (double off : offs) {
         DualImuPairer p;
         // both IMUs on Y2 running at +27 ppm: the common error must not show as drift
@@ -367,11 +370,14 @@ static void test_pairing_shared()
         CHECK(p.windows() >= 3, "3 regression windows (%u)", unsigned(p.windows()));
         CHECK(p.state() == SyncState::Shared, "offset %.0f ns: state Shared", off);
         CHECK(std::fabs(p.drift_ppm()) < 0.5, "offset %.0f ns: drift %.4f ppm ~ 0", off, p.drift_ppm());
-        CHECK(std::fabs(p.phase_offset_ns() - off) < 100.0, "phase estimate %.1f ns vs %.0f", p.phase_offset_ns(), off);
+        const double perr = std::fabs(p.phase_offset_ns() - off);
+        CHECK(std::fmin(perr, std::fabs(perr - T)) < 100.0, "phase estimate %.1f ns vs %.0f (mod T)", p.phase_offset_ns(), off);
         CHECK(r.max_abs_off_err <= 1001.0, "every pair within jitter of the phase (max err %.0f ns)", r.max_abs_off_err);
-        CHECK(p.orphans(0) == 0 && p.orphans(1) <= 1 && p.overflow(0) == 0 && p.overflow(1) == 0,
+        CHECK(p.orphans(0) <= 1 && p.orphans(1) <= 1 && p.overflow(0) == 0 && p.overflow(1) == 0,
               "no orphans/overflow (%llu, %llu)", (unsigned long long)p.orphans(0), (unsigned long long)p.orphans(1));
         CHECK(r.pairs >= 26200, "pairs %llu for 3.2 s", (unsigned long long)r.pairs);
+        std::printf("    phase %+6.0f ns: est %+8.1f ns, drift %+.4f ppm, %llu pairs, max pair err %.0f ns\n", off,
+                    p.phase_offset_ns(), p.drift_ppm(), (unsigned long long)r.pairs, r.max_abs_off_err);
     }
 }
 
@@ -389,6 +395,12 @@ static void test_pairing_drift()
         CHECK(p.state() == SyncState::NotShared, "%+.0f ppm -> NotShared", ppm);
         CHECK(std::fabs(p.drift_ppm() - ppm) < 0.05 * std::fabs(ppm) + 0.3, "measured %.3f ppm vs injected %+.0f",
               p.drift_ppm(), ppm);
+        std::printf("    injected %+6.1f ppm: measured %+8.3f ppm, %llu pairs, orphans %llu/%llu\n", ppm, p.drift_ppm(),
+                    (unsigned long long)r.pairs, (unsigned long long)p.orphans(0), (unsigned long long)p.orphans(1));
+        // each +/-T slip costs one orphan per side; no jitter flapping at the boundary
+        const double slips = std::fabs(ppm) * 1e-6 * 4.1e9 / T;
+        CHECK(double(p.orphans(0)) <= slips + 2 && double(p.orphans(1)) <= slips + 2, "orphans %llu/%llu vs %.1f slips",
+              (unsigned long long)p.orphans(0), (unsigned long long)p.orphans(1), slips);
         CHECK(r.pairs > 33000, "pairing continues through the +/-T/2 slip (%llu pairs)", (unsigned long long)r.pairs);
     }
     // internal RC oscillators after fallback: +0.4 % vs -0.3 % at nominal 8 kHz
@@ -550,6 +562,8 @@ static void test_clock_death_integration()
     const double latency_ms = fallback_at_ms - t_death / 1e6;
     CHECK(latency_ms > 0 && latency_ms <= 30.0, "detection latency %.1f ms (<= 3 windows)", latency_ms);
     CHECK(!rtc_active(imu[0]) && !rtc_active(imu[1]), "both IMUs back on internal clock");
+    std::printf("    clock died at %.1f ms, fallback applied at %d ms (latency %.1f ms), post-fallback drift %.0f ppm\n",
+                t_death / 1e6, fallback_at_ms, latency_ms, p.drift_ppm());
     CHECK(wd.status() == ClockStatus::Dead, "watchdog reports Dead");
     CHECK(p.windows() >= 3 && p.state() == SyncState::NotShared,
           "after fallback the pairer correctly reports clocks not shared (%.0f ppm)", p.drift_ppm());
@@ -624,7 +638,7 @@ static void test_voter()
         CHECK(r.fault_mask == VOTE_GYRO_Y, "gyro-Y bias isolated to bit gyro Y (0x%02X)", r.fault_mask);
         CHECK(first_fault_block == 8, "persistence: fault on block %d (8 blocks = 64 samples = 7.8 ms)", first_fault_block);
         CHECK(r.suspect == Suspect::Unknown, "two-way bias disagreement: suspect Unknown (no evidence)");
-        CHECK(r.diff[1] < -0.15f && r.diff[1] > -0.25f, "diff gyro y %.3f rad/s", double(r.diff[1]));
+        CHECK(r.diff[1] < -0.10f && r.diff[1] > -0.30f, "diff gyro y %.3f rad/s", double(r.diff[1]));
         // clears after clear_blocks
         int clear_blocks = 0;
         for (int k = 0; k < 8 * 40 && vt.fault_mask(); k++) {

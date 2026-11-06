@@ -1,0 +1,1715 @@
+{
+ "revision": "12.0",
+ "title": "I2C1 400 kHz timing, electricals and ESC noise immunity (DPS310 U4 + external compass)",
+ "result": "PASS",
+ "gates": [
+  {
+   "gate": "C1 I2C123 kernel clock",
+   "pass": true,
+   "detail": "STM32_I2C123SEL_PLL3_R_CK, PLL3 M=6 N=72 R=9 -> 32.000 MHz (/tmp/nano_rev11_imu_wt/autopilot/libraries/AP_HAL_ChibiOS/hwdef/common/stm32h7_mcuconf.h)"
+  },
+  {
+   "gate": "E1 tr <= 300 ns over design bus (no-GPS .. 30 cm cable, module Rp none/4k7/10k)",
+   "pass": true,
+   "detail": "worst 154.3 ns"
+  },
+  {
+   "gate": "E2 VOL <= 0.4 V for a 3 mA-class driver incl. module pull-ups",
+   "pass": true,
+   "detail": "worst 0.284 V"
+  },
+  {
+   "gate": "E3 Rp 2.2 k inside window",
+   "pass": true,
+   "detail": "1305 (with 4k7 module) .. 4321 ohm (tr 300 ns at 82 pF)"
+  },
+  {
+   "gate": "E4 33 R series: low-level margin at every receiver >= VnL",
+   "pass": true,
+   "detail": "VIL 0.940 V, margin at U4 0.751 V, at MCU 0.579 V (Rs drop 77 mV)"
+  },
+  {
+   "gate": "E5 on-board I2C1 trace is lumped (no ringing)",
+   "pass": true,
+   "detail": "tpd 0.113 ns vs edge >= 2 ns"
+  },
+  {
+   "gate": "E6 Cbus <= 400 pF (Fm) incl. 50 cm abuse cable",
+   "pass": true,
+   "detail": "105.9 pF"
+  },
+  {
+   "gate": "F1 ArduPilot TIMINGR/MAX_CLOCK defaults match and are #ifndef-overridable",
+   "pass": true,
+   "detail": "H7_400 0x00300F38, H7_100 0x00707CBB, MAX_CLOCK 100000"
+  },
+  {
+   "gate": "F2 CR1 DNF/ANFOFF not settable from hwdef (CR1 = config->cr1, ArduPilot sets SMBHEN only)",
+   "pass": true,
+   "detail": "DNF = 0, analog filter ON"
+  },
+  {
+   "gate": "F3 on H7 a device opened at <= 100 kHz lowers the bus to HAL_I2C_F7_100_TIMINGR, and external-bus drivers do request 100 kHz",
+   "pass": true,
+   "detail": "I2CDevice ctor -> HAL_I2C_F7_100_TIMINGR (HAL_I2C_H7_100_TIMINGR only used if MAX_CLOCK <= 100 kHz); 100 kHz requesters: ['AP_BattMonitor_INA2xx.cpp', 'AP_BattMonitor_INA3221.cpp', 'AP_BattMonitor_LTC2946.cpp', 'AP_BattMonitor_SMBus.cpp', 'AP_DAC_MCP40D1x.cpp']; I2C1 is external (HAL_I2C_INTERNAL_MASK 0)"
+  },
+  {
+   "gate": "S1 100 kHz TIMINGR meets UM10204 Sm with margin for every Sm-legal bus (tr <= 1000 ns)",
+   "pass": true,
+   "detail": "0x4080231E {'PRESC': 4, 'SCLDEL': 8, 'SDADEL': 0, 'SCLH': 35, 'SCLL': 30}: fSCL 78.1..93.4 kHz, tLOW>=4853, tHIGH>=4739, tSU;STA>=4739, tBUF>=4724, tSU;DAT>=3812, tVD;DAT<=1806 ns"
+  },
+  {
+   "gate": "S2 100 kHz TIMINGR meets RM0433 SCLDEL/SDADEL rules (tr 1000 ns, tSU;DAT 250 ns)",
+   "pass": true,
+   "detail": "tSCLDEL 1406.2 >= 1250.0 ns, SDADEL 0 in [0, 13]"
+  },
+  {
+   "gate": "S3 default F7_100 0x30812E3E (used on H7 by the ctor) is non-compliant -> override justified",
+   "pass": true,
+   "detail": "fails ['RM SCLDEL'] (tSCLDEL 1125 < 1250 ns)"
+  },
+  {
+   "gate": "T1 TIMINGR found meeting Fm with margin for every Fm-legal bus (tr <= 300 ns)",
+   "pass": true,
+   "detail": "0x00D01A2D {'PRESC': 0, 'SCLDEL': 13, 'SDADEL': 0, 'SCLH': 26, 'SCLL': 45}: fSCL 275.9..396.1 kHz, tLOW>=1447, tHIGH>=658, tSU;DAT>=1106, tVD;DAT<=811 ns"
+  },
+  {
+   "gate": "T2 chosen TIMINGR meets RM0433 SCLDEL/SDADEL rules",
+   "pass": true,
+   "detail": "tSCLDEL 437.5 >= 400.0 ns, SDADEL 0 in [0, 6]"
+  },
+  {
+   "gate": "T3 default 0x00300F38 is non-compliant/marginal -> override justified",
+   "pass": true,
+   "detail": "fails ['tHIGH', 'RM SCLDEL', 'tHD;STA', 'tSU;STA', 'tSU;STO'] at tr 300 ns; on this bus (tr<=154 ns) fails ['tHIGH', 'RM SCLDEL', 'tHD;STA', 'tSU;STA', 'tSU;STO']"
+  },
+  {
+   "gate": "N1 routing rules exist that keep ESC glitches < 50 % VnH / VnL without filter credit",
+   "pass": true,
+   "detail": "gaps [1.5, 2.1, 3.0, 4.3] mm for runs 5/10/20/40 mm, ground keep-out 5.9 mm"
+  },
+  {
+   "gate": "A1 hwdef.dat: define HAL_I2C_MAX_CLOCK 400000 (ArduPilot default is 100 kHz)",
+   "pass": true,
+   "detail": "found ['400000']"
+  },
+  {
+   "gate": "A2 hwdef.dat: define HAL_I2C_H7_400_TIMINGR = chosen value",
+   "pass": true,
+   "detail": "found ['0x00D01A2D'], chosen 0x00D01A2D"
+  },
+  {
+   "gate": "A4a hwdef.dat: define HAL_I2C_F7_100_TIMINGR = Sm TIMINGR (used by the I2CDevice ctor whenever a driver asks for <= 100 kHz)",
+   "pass": true,
+   "detail": "found ['0x4080231E'], chosen 0x4080231E"
+  },
+  {
+   "gate": "A4b hwdef.dat: define HAL_I2C_H7_100_TIMINGR = Sm TIMINGR (used only if HAL_I2C_MAX_CLOCK is ever <= 100 kHz (kept consistent))",
+   "pass": true,
+   "detail": "found ['0x4080231E'], chosen 0x4080231E"
+  },
+  {
+   "gate": "A3 generated hwdef.h carries every I2C timing define once (I2CDevice.cpp #ifndef then uses them)",
+   "pass": true,
+   "detail": "rc 0, {'HAL_I2C_MAX_CLOCK': ['400000'], 'HAL_I2C_H7_400_TIMINGR': ['0x00D01A2D'], 'HAL_I2C_F7_100_TIMINGR': ['0x4080231E'], 'HAL_I2C_H7_100_TIMINGR': ['0x4080231E']}"
+  }
+ ],
+ "assumptions": {
+  "vdd": {
+   "nom": 3.3,
+   "min": 3.135,
+   "max": 3.465,
+   "note": "+3V3 rail +/-5 %"
+  },
+  "um10204_fm": {
+   "fscl_max_hz": 400000.0,
+   "tLOW_min_ns": 1300,
+   "tHIGH_min_ns": 600,
+   "tSU_DAT_min_ns": 100,
+   "tHD_DAT_min_ns": 0,
+   "tVD_DAT_max_ns": 900,
+   "tSU_STA_min_ns": 600,
+   "tHD_STA_min_ns": 600,
+   "tSU_STO_min_ns": 600,
+   "tBUF_min_ns": 1300,
+   "tr_max_ns": 300,
+   "tf_max_ns": 300,
+   "tf_min_ns_formula": "20 ns x VDD/5.5 V",
+   "tSP_max_ns": 50,
+   "Cb_max_pF": 400,
+   "VIL_frac": 0.3,
+   "VIH_frac": 0.7,
+   "VOL_max_V_at_3mA": 0.4,
+   "Vhys_min_frac": 0.05,
+   "VnL_frac": 0.1,
+   "VnH_frac": 0.2,
+   "Ci_max_pF": 10
+  },
+  "um10204_sm": {
+   "tLOW_min_ns": 4700,
+   "tHIGH_min_ns": 4000,
+   "tSU_DAT_min_ns": 250,
+   "tHD_DAT_min_ns": 0,
+   "tVD_DAT_max_ns": 3450,
+   "tSU_STA_min_ns": 4700,
+   "tHD_STA_min_ns": 4000,
+   "tSU_STO_min_ns": 4000,
+   "tBUF_min_ns": 4700,
+   "tr_max_ns": 1000,
+   "tf_max_ns": 300,
+   "fscl_max_hz": 100000.0
+  },
+  "stm32h7_i2c": {
+   "tAF_ns": [
+    50.0,
+    260.0
+   ],
+   "sync_clk": [
+    2,
+    3
+   ],
+   "DNF": 0,
+   "ANFOFF": 0,
+   "Cio_pF": 5.0,
+   "Ron_sink_ohm": 50.0,
+   "Vth_frac_window": [
+    0.3,
+    0.7
+   ],
+   "Vth_frac_typ": 0.5
+  },
+  "dps310": {
+   "Cin_pF": 10.0,
+   "Ron_sink_ohm": 133.0,
+   "tSP_ns": 50.0,
+   "pinout": {
+    "1": "GND",
+    "2": "CSB",
+    "3": "SDI",
+    "4": "SCK",
+    "5": "SDO",
+    "6": "VDDIO",
+    "7": "GND",
+    "8": "VDD"
+   },
+   "pinout_confidence": "high (DPS310 datasheet v1.1 pin table; CSB high selects I2C, SDO low -> 0x76, SDO high -> 0x77)"
+  },
+  "baseline": {
+   "Rp_ohm": 2200.0,
+   "Rs_ohm": 33.0,
+   "Rp_tol": 0.01
+  },
+  "pcb": {
+   "h_L1_In1_mm": 0.1375,
+   "er": 3.91,
+   "w_mm": 0.1,
+   "t_mm": 0.035,
+   "len_mcu_to_baro_mm": 20.0,
+   "len_mcu_to_gps_conn_mm": 25.0
+  },
+  "external": {
+   "connector_pF": 2.0,
+   "cable_pF_per_m": [
+    50.0,
+    120.0
+   ],
+   "cable_len_m": [
+    0.0,
+    0.3
+   ],
+   "cable_len_abuse_m": 0.5,
+   "module_devices": 2,
+   "module_pF_per_device": 10.0,
+   "module_trace_pF": 5.0,
+   "module_pullup_ohm": [
+    4700.0,
+    10000.0,
+    null
+   ],
+   "module_pullup_warn_ohm": 2200.0
+  },
+  "esc": {
+   "v_bus_max": 16.8,
+   "overshoot_frac": 0.3,
+   "dvdt_design_V_per_ns": 5.0,
+   "didt_design_A_per_ns": 3.5,
+   "plane_pair_mm": 0.35,
+   "hot_loop_half_width_mm": 2.0
+  },
+  "noise_budget": {
+   "total_frac_of_VnH": 0.5,
+   "ind_frac_of_VnL": 0.5,
+   "ground_bounce_max_V": 0.1,
+   "note": "no credit taken for the 50 ns spike filters; they are extra margin"
+  },
+  "timing_margins": {
+   "tLOW_ns": 65.0,
+   "tHIGH_ns": 30.0,
+   "tSU_DAT_ns": 20.0,
+   "tVD_DAT_ns": 50.0,
+   "fscl_max_hz": 400000.0
+  },
+  "timing_margins_sm": {
+   "tLOW_ns": 100.0,
+   "tHIGH_ns": 100.0,
+   "tSU_DAT_ns": 50.0,
+   "tVD_DAT_ns": 100.0,
+   "fscl_max_hz": 100000.0
+  },
+  "rise_time_design_max_sm_ns": 1000.0,
+  "rise_time_design_max_ns": 300.0,
+  "fall_time_design_max_ns": 120.0,
+  "fall_time_design_min_ns": 2.0
+ },
+ "clock": {
+  "hse_hz": 24000000.0,
+  "pll3_m": 6,
+  "pll3_n": 72,
+  "pll3_r": 9,
+  "i2c123sel": "STM32_I2C123SEL_PLL3_R_CK",
+  "f_i2cclk_hz": 32000000.0,
+  "source": "/tmp/nano_rev11_imu_wt/autopilot/libraries/AP_HAL_ChibiOS/hwdef/common/stm32h7_mcuconf.h"
+ },
+ "firmware_evidence": {
+  "checked": true,
+  "HAL_I2C_H7_400_TIMINGR": "0x00300F38",
+  "HAL_I2C_H7_100_TIMINGR": "0x00707CBB",
+  "HAL_I2C_F7_100_TIMINGR": "0x30812E3E",
+  "HAL_I2C_MAX_CLOCK": "100000",
+  "defaults_overridable_ifndef": true,
+  "max_clock_default_100k": true,
+  "cr1_only_smbhen": true,
+  "lld_cr1_from_config": true,
+  "h7_low_clock_uses_F7_100_timingr": true,
+  "h7_ctor_low_clock_body": true,
+  "drivers_requesting_100kHz": {
+   "AP_BattMonitor_INA2xx.cpp": true,
+   "AP_BattMonitor_INA3221.cpp": true,
+   "AP_BattMonitor_SMBus.cpp": true,
+   "AP_BattMonitor_LTC2946.cpp": true,
+   "AP_DAC_MCP40D1x.cpp": true
+  },
+  "clear_on_timeout": true,
+  "clear_bus_toggles": 20,
+  "clear_bus_half_period_us": 10
+ },
+ "timingr": {
+  "ardupilot_default_400": {
+   "value": "0x00300F38",
+   "worst_tr300": {
+    "T_min": 2524.3,
+    "T_max": 3625.0,
+    "tLOW_min": 1790.3,
+    "tHIGH_min": 314.0,
+    "tSU_DAT_tx_min": 1450.0,
+    "tHD_DAT_tx_min": 40.3,
+    "tVD_DAT_tx_max": 811.3,
+    "tSU_STA_min": 314.0,
+    "tSU_STO_min": 314.0,
+    "tHD_STA_min": 380.0,
+    "tBUF_min": 1661.2,
+    "tSU_DAT_rx_min": 890.3,
+    "fSCL_max_hz": 396143.8,
+    "fSCL_min_hz": 275859.3,
+    "all_pass": false,
+    "timingr": "0x00300F38",
+    "checks": {
+     "fSCL<=max": true,
+     "tLOW": true,
+     "tHIGH": false,
+     "tSU;DAT tx": true,
+     "tSU;DAT rx": true,
+     "tHD;DAT>=0": true,
+     "tVD;DAT": true,
+     "RM SCLDEL": false,
+     "RM SDADEL": true,
+     "tHD;STA": false,
+     "tBUF": true,
+     "tSU;STA": false,
+     "tSU;STO": false
+    },
+    "rm": {
+     "tSCLDEL_ns": 125.0,
+     "tSCLDEL_need_ns": 400.0,
+     "SDADEL_min": 0,
+     "SDADEL_max": 6,
+     "ok_scldel": false,
+     "ok_sdadel": true
+    },
+    "fields": {
+     "PRESC": 0,
+     "SCLDEL": 3,
+     "SDADEL": 0,
+     "SCLH": 15,
+     "SCLL": 56
+    },
+    "counters_ns": {
+     "tPRESC": 31.25,
+     "tSCLL": 1781.25,
+     "tSCLH": 500.0,
+     "tSCLDEL": 125.0,
+     "tSDADEL_total": 31.25
+    }
+   },
+   "on_this_bus": {
+    "T_min": 2524.3,
+    "T_max": 3418.0,
+    "tLOW_min": 1790.3,
+    "tHIGH_min": 459.7,
+    "tSU_DAT_tx_min": 1556.6,
+    "tHD_DAT_tx_min": 40.3,
+    "tVD_DAT_tx_max": 604.3,
+    "tSU_STA_min": 459.7,
+    "tSU_STO_min": 459.7,
+    "tHD_STA_min": 380.0,
+    "tBUF_min": 1661.2,
+    "tSU_DAT_rx_min": 890.3,
+    "fSCL_max_hz": 396143.8,
+    "fSCL_min_hz": 292568.5,
+    "all_pass": false,
+    "timingr": "0x00300F38",
+    "checks": {
+     "fSCL<=max": true,
+     "tLOW": true,
+     "tHIGH": false,
+     "tSU;DAT tx": true,
+     "tSU;DAT rx": true,
+     "tHD;DAT>=0": true,
+     "tVD;DAT": true,
+     "RM SCLDEL": false,
+     "RM SDADEL": true,
+     "tHD;STA": false,
+     "tBUF": true,
+     "tSU;STA": false,
+     "tSU;STO": false
+    },
+    "rm": {
+     "tSCLDEL_ns": 125.0,
+     "tSCLDEL_need_ns": 254.3,
+     "SDADEL_min": 0,
+     "SDADEL_max": 11,
+     "ok_scldel": false,
+     "ok_sdadel": true
+    },
+    "fields": {
+     "PRESC": 0,
+     "SCLDEL": 3,
+     "SDADEL": 0,
+     "SCLH": 15,
+     "SCLL": 56
+    },
+    "counters_ns": {
+     "tPRESC": 31.25,
+     "tSCLL": 1781.25,
+     "tSCLH": 500.0,
+     "tSCLDEL": 125.0,
+     "tSDADEL_total": 31.25
+    }
+   },
+   "typical": {
+    "tr_ns": 71.5,
+    "fSCL_kHz": 354.8,
+    "tLOW_ns": 2039.5,
+    "tHIGH_ns": 697.5
+   },
+   "tr_sweep": [
+    {
+     "tr_max_ns": 39.4,
+     "fSCL_min_kHz": 307.2,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 574.6,
+     "tSU_DAT_min_ns": 1556.6,
+     "tVD_DAT_max_ns": 595.0,
+     "fail": [
+      "tHIGH",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 50.0,
+     "fSCL_min_kHz": 305.8,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 564.0,
+     "tSU_DAT_min_ns": 1556.6,
+     "tVD_DAT_max_ns": 595.0,
+     "fail": [
+      "tHIGH",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 75.0,
+     "fSCL_min_kHz": 302.5,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 539.0,
+     "tSU_DAT_min_ns": 1556.6,
+     "tVD_DAT_max_ns": 595.0,
+     "fail": [
+      "tHIGH",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 100.0,
+     "fSCL_min_kHz": 299.3,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 514.0,
+     "tSU_DAT_min_ns": 1556.6,
+     "tVD_DAT_max_ns": 595.0,
+     "fail": [
+      "tHIGH",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 125.0,
+     "fSCL_min_kHz": 296.2,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 489.0,
+     "tSU_DAT_min_ns": 1556.6,
+     "tVD_DAT_max_ns": 595.0,
+     "fail": [
+      "tHIGH",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 150.0,
+     "fSCL_min_kHz": 293.1,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 464.0,
+     "tSU_DAT_min_ns": 1556.6,
+     "tVD_DAT_max_ns": 598.1,
+     "fail": [
+      "tHIGH",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 175.0,
+     "fSCL_min_kHz": 290.1,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 439.0,
+     "tSU_DAT_min_ns": 1556.6,
+     "tVD_DAT_max_ns": 633.7,
+     "fail": [
+      "tHIGH",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 200.0,
+     "fSCL_min_kHz": 287.1,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 414.0,
+     "tSU_DAT_min_ns": 1550.0,
+     "tVD_DAT_max_ns": 669.2,
+     "fail": [
+      "tHIGH",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 225.0,
+     "fSCL_min_kHz": 284.2,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 389.0,
+     "tSU_DAT_min_ns": 1525.0,
+     "tVD_DAT_max_ns": 704.7,
+     "fail": [
+      "tHIGH",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 250.0,
+     "fSCL_min_kHz": 281.4,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 364.0,
+     "tSU_DAT_min_ns": 1500.0,
+     "tVD_DAT_max_ns": 740.2,
+     "fail": [
+      "tHIGH",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 275.0,
+     "fSCL_min_kHz": 278.6,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 339.0,
+     "tSU_DAT_min_ns": 1475.0,
+     "tVD_DAT_max_ns": 775.8,
+     "fail": [
+      "tHIGH",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 300.0,
+     "fSCL_min_kHz": 275.9,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 314.0,
+     "tSU_DAT_min_ns": 1450.0,
+     "tVD_DAT_max_ns": 811.3,
+     "fail": [
+      "tHIGH",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 325.0,
+     "fSCL_min_kHz": 273.2,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 289.0,
+     "tSU_DAT_min_ns": 1425.0,
+     "tVD_DAT_max_ns": 846.8,
+     "fail": [
+      "tHIGH",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 350.0,
+     "fSCL_min_kHz": 270.6,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 264.0,
+     "tSU_DAT_min_ns": 1400.0,
+     "tVD_DAT_max_ns": 882.3,
+     "fail": [
+      "tHIGH",
+      "tVD;DAT",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 375.0,
+     "fSCL_min_kHz": 268.0,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 239.0,
+     "tSU_DAT_min_ns": 1375.0,
+     "tVD_DAT_max_ns": 917.9,
+     "fail": [
+      "tHIGH",
+      "tVD;DAT",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 400.0,
+     "fSCL_min_kHz": 265.5,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 214.0,
+     "tSU_DAT_min_ns": 1350.0,
+     "tVD_DAT_max_ns": 953.4,
+     "fail": [
+      "tHIGH",
+      "tVD;DAT",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 425.0,
+     "fSCL_min_kHz": 263.0,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 189.0,
+     "tSU_DAT_min_ns": 1325.0,
+     "tVD_DAT_max_ns": 988.9,
+     "fail": [
+      "tHIGH",
+      "tVD;DAT",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 450.0,
+     "fSCL_min_kHz": 260.5,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1790.3,
+     "tHIGH_min_ns": 164.0,
+     "tSU_DAT_min_ns": 1300.0,
+     "tVD_DAT_max_ns": 1024.4,
+     "fail": [
+      "tHIGH",
+      "tVD;DAT",
+      "RM SCLDEL",
+      "tHD;STA",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    }
+   ],
+   "max_tr_passing_ns": null
+  },
+  "ardupilot_100k_path_used_without_MAX_CLOCK": {
+   "T_min": 10024.3,
+   "T_max": 12119.7,
+   "tLOW_min": 5884.1,
+   "tHIGH_min": 3020.2,
+   "tSU_DAT_tx_min": 4843.8,
+   "tHD_DAT_tx_min": 40.3,
+   "tVD_DAT_tx_max": 1806.0,
+   "tSU_STA_min": 3020.2,
+   "tSU_STO_min": 3020.2,
+   "tHD_STA_min": 3786.2,
+   "tBUF_min": 5755.0,
+   "tSU_DAT_rx_min": 2434.1,
+   "fSCL_max_hz": 99757.2,
+   "fSCL_min_hz": 82510.3,
+   "all_pass": false,
+   "timingr": "0x00707CBB",
+   "checks": {
+    "fSCL<=max": true,
+    "tLOW": true,
+    "tHIGH": false,
+    "tSU;DAT tx": true,
+    "tSU;DAT rx": true,
+    "tHD;DAT>=0": true,
+    "tVD;DAT": true,
+    "RM SCLDEL": false,
+    "RM SDADEL": true,
+    "tHD;STA": false,
+    "tBUF": true,
+    "tSU;STA": false,
+    "tSU;STO": false
+   },
+   "rm": {
+    "tSCLDEL_ns": 250.0,
+    "tSCLDEL_need_ns": 1250.0,
+    "SDADEL_min": 0,
+    "SDADEL_max": 15,
+    "ok_scldel": false,
+    "ok_sdadel": true
+   },
+   "fields": {
+    "PRESC": 0,
+    "SCLDEL": 7,
+    "SDADEL": 0,
+    "SCLH": 124,
+    "SCLL": 187
+   },
+   "counters_ns": {
+    "tPRESC": 31.25,
+    "tSCLL": 5875.0,
+    "tSCLH": 3906.25,
+    "tSCLDEL": 250.0,
+    "tSDADEL_total": 31.25
+   }
+  },
+  "ardupilot_F7_100_used_by_H7_ctor_lowering": {
+   "T_min": 13993.1,
+   "T_max": 16088.5,
+   "tLOW_min": 7884.1,
+   "tHIGH_min": 4989.0,
+   "tSU_DAT_tx_min": 6718.8,
+   "tHD_DAT_tx_min": 165.3,
+   "tVD_DAT_tx_max": 1931.0,
+   "tSU_STA_min": 4989.0,
+   "tSU_STO_min": 4989.0,
+   "tHD_STA_min": 5755.0,
+   "tBUF_min": 7755.0,
+   "tSU_DAT_rx_min": 4434.1,
+   "fSCL_max_hz": 71463.9,
+   "fSCL_min_hz": 62156.4,
+   "all_pass": false,
+   "timingr": "0x30812E3E",
+   "checks": {
+    "fSCL<=max": true,
+    "tLOW": true,
+    "tHIGH": true,
+    "tSU;DAT tx": true,
+    "tSU;DAT rx": true,
+    "tHD;DAT>=0": true,
+    "tVD;DAT": true,
+    "RM SCLDEL": false,
+    "RM SDADEL": true,
+    "tHD;STA": true,
+    "tBUF": true,
+    "tSU;STA": true,
+    "tSU;STO": true
+   },
+   "rm": {
+    "tSCLDEL_ns": 1125.0,
+    "tSCLDEL_need_ns": 1250.0,
+    "SDADEL_min": 0,
+    "SDADEL_max": 15,
+    "ok_scldel": false,
+    "ok_sdadel": true
+   },
+   "fields": {
+    "PRESC": 3,
+    "SCLDEL": 8,
+    "SDADEL": 1,
+    "SCLH": 46,
+    "SCLL": 62
+   },
+   "counters_ns": {
+    "tPRESC": 125.0,
+    "tSCLL": 7875.0,
+    "tSCLH": 5875.0,
+    "tSCLDEL": 1125.0,
+    "tSDADEL_total": 156.25
+   }
+  },
+  "chosen_100k": {
+   "value": "0x4080231E",
+   "hwdef_macros": [
+    "HAL_I2C_F7_100_TIMINGR",
+    "HAL_I2C_H7_100_TIMINGR"
+   ],
+   "worst_tr1000": {
+    "T_min": 10711.8,
+    "T_max": 12807.2,
+    "tLOW_min": 4852.8,
+    "tHIGH_min": 4739.0,
+    "tSU_DAT_tx_min": 3812.5,
+    "tHD_DAT_tx_min": 40.3,
+    "tVD_DAT_tx_max": 1806.0,
+    "tSU_STA_min": 4739.0,
+    "tSU_STO_min": 4739.0,
+    "tHD_STA_min": 5505.0,
+    "tBUF_min": 4723.8,
+    "tSU_DAT_rx_min": 1402.8,
+    "fSCL_max_hz": 93354.7,
+    "fSCL_min_hz": 78081.0,
+    "all_pass": true,
+    "timingr": "0x4080231E",
+    "checks": {
+     "fSCL<=max": true,
+     "tLOW": true,
+     "tHIGH": true,
+     "tSU;DAT tx": true,
+     "tSU;DAT rx": true,
+     "tHD;DAT>=0": true,
+     "tVD;DAT": true,
+     "RM SCLDEL": true,
+     "RM SDADEL": true,
+     "tHD;STA": true,
+     "tBUF": true,
+     "tSU;STA": true,
+     "tSU;STO": true
+    },
+    "rm": {
+     "tSCLDEL_ns": 1406.25,
+     "tSCLDEL_need_ns": 1250.0,
+     "SDADEL_min": 0,
+     "SDADEL_max": 13,
+     "ok_scldel": true,
+     "ok_sdadel": true
+    },
+    "fields": {
+     "PRESC": 4,
+     "SCLDEL": 8,
+     "SDADEL": 0,
+     "SCLH": 35,
+     "SCLL": 30
+    },
+    "counters_ns": {
+     "tPRESC": 156.25,
+     "tSCLL": 4843.75,
+     "tSCLH": 5625.0,
+     "tSCLDEL": 1406.25,
+     "tSDADEL_total": 31.25
+    }
+   },
+   "tr_sweep": [
+    {
+     "tr_max_ns": 39.4,
+     "fSCL_min_kHz": 87.4,
+     "fSCL_max_kHz": 93.4,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 100.0,
+     "fSCL_min_kHz": 86.7,
+     "fSCL_max_kHz": 93.4,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 200.0,
+     "fSCL_min_kHz": 85.7,
+     "fSCL_max_kHz": 93.4,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 300.0,
+     "fSCL_min_kHz": 84.7,
+     "fSCL_max_kHz": 93.4,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 400.0,
+     "fSCL_min_kHz": 83.6,
+     "fSCL_max_kHz": 93.4,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 500.0,
+     "fSCL_min_kHz": 82.7,
+     "fSCL_max_kHz": 93.4,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 600.0,
+     "fSCL_min_kHz": 81.7,
+     "fSCL_max_kHz": 93.4,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 700.0,
+     "fSCL_min_kHz": 80.8,
+     "fSCL_max_kHz": 93.4,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 800.0,
+     "fSCL_min_kHz": 79.9,
+     "fSCL_max_kHz": 93.4,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 900.0,
+     "fSCL_min_kHz": 79.0,
+     "fSCL_max_kHz": 93.4,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 1000.0,
+     "fSCL_min_kHz": 78.1,
+     "fSCL_max_kHz": 93.4,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 1100.0,
+     "fSCL_min_kHz": 77.2,
+     "fSCL_max_kHz": 93.4,
+     "fail": [
+      "tSU;STA"
+     ]
+    }
+   ],
+   "search": "PRESC 0..15, SCLDEL = min for tr 1000 ns + tSU;DAT 250 ns + 50 ns, smallest passing SDADEL, (SCLH, SCLL) minimising worst-case period; UM10204 Sm + timing_margins_sm, tSU;STA/tSU;STO/tHD;STA/tBUF checked"
+  },
+  "chosen": {
+   "value": "0x00D01A2D",
+   "worst_tr300": {
+    "T_min": 2524.3,
+    "T_max": 3625.0,
+    "tLOW_min": 1446.6,
+    "tHIGH_min": 657.7,
+    "tSU_DAT_tx_min": 1106.2,
+    "tHD_DAT_tx_min": 40.3,
+    "tVD_DAT_tx_max": 811.3,
+    "tSU_STA_min": 657.7,
+    "tSU_STO_min": 657.7,
+    "tHD_STA_min": 723.8,
+    "tBUF_min": 1317.5,
+    "tSU_DAT_rx_min": 546.6,
+    "fSCL_max_hz": 396143.8,
+    "fSCL_min_hz": 275859.3,
+    "all_pass": true,
+    "timingr": "0x00D01A2D",
+    "checks": {
+     "fSCL<=max": true,
+     "tLOW": true,
+     "tHIGH": true,
+     "tSU;DAT tx": true,
+     "tSU;DAT rx": true,
+     "tHD;DAT>=0": true,
+     "tVD;DAT": true,
+     "RM SCLDEL": true,
+     "RM SDADEL": true,
+     "tHD;STA": true,
+     "tBUF": true,
+     "tSU;STA": true,
+     "tSU;STO": true
+    },
+    "rm": {
+     "tSCLDEL_ns": 437.5,
+     "tSCLDEL_need_ns": 400.0,
+     "SDADEL_min": 0,
+     "SDADEL_max": 6,
+     "ok_scldel": true,
+     "ok_sdadel": true
+    },
+    "fields": {
+     "PRESC": 0,
+     "SCLDEL": 13,
+     "SDADEL": 0,
+     "SCLH": 26,
+     "SCLL": 45
+    },
+    "counters_ns": {
+     "tPRESC": 31.25,
+     "tSCLL": 1437.5,
+     "tSCLH": 843.75,
+     "tSCLDEL": 437.5,
+     "tSDADEL_total": 31.25
+    }
+   },
+   "on_this_bus": {
+    "T_min": 2524.3,
+    "T_max": 3418.0,
+    "tLOW_min": 1446.6,
+    "tHIGH_min": 803.5,
+    "tSU_DAT_tx_min": 1212.8,
+    "tHD_DAT_tx_min": 40.3,
+    "tVD_DAT_tx_max": 604.3,
+    "tSU_STA_min": 803.5,
+    "tSU_STO_min": 803.5,
+    "tHD_STA_min": 723.8,
+    "tBUF_min": 1317.5,
+    "tSU_DAT_rx_min": 546.6,
+    "fSCL_max_hz": 396143.8,
+    "fSCL_min_hz": 292568.5,
+    "all_pass": true,
+    "timingr": "0x00D01A2D",
+    "checks": {
+     "fSCL<=max": true,
+     "tLOW": true,
+     "tHIGH": true,
+     "tSU;DAT tx": true,
+     "tSU;DAT rx": true,
+     "tHD;DAT>=0": true,
+     "tVD;DAT": true,
+     "RM SCLDEL": true,
+     "RM SDADEL": true,
+     "tHD;STA": true,
+     "tBUF": true,
+     "tSU;STA": true,
+     "tSU;STO": true
+    },
+    "rm": {
+     "tSCLDEL_ns": 437.5,
+     "tSCLDEL_need_ns": 254.3,
+     "SDADEL_min": 0,
+     "SDADEL_max": 11,
+     "ok_scldel": true,
+     "ok_sdadel": true
+    },
+    "fields": {
+     "PRESC": 0,
+     "SCLDEL": 13,
+     "SDADEL": 0,
+     "SCLH": 26,
+     "SCLL": 45
+    },
+    "counters_ns": {
+     "tPRESC": 31.25,
+     "tSCLL": 1437.5,
+     "tSCLH": 843.75,
+     "tSCLDEL": 437.5,
+     "tSDADEL_total": 31.25
+    }
+   },
+   "typical": {
+    "tr_ns": 71.5,
+    "fSCL_kHz": 354.8,
+    "tLOW_ns": 1695.7,
+    "tHIGH_ns": 1041.3
+   },
+   "tr_sweep": [
+    {
+     "tr_max_ns": 39.4,
+     "fSCL_min_kHz": 307.2,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 918.3,
+     "tSU_DAT_min_ns": 1212.8,
+     "tVD_DAT_max_ns": 595.0,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 50.0,
+     "fSCL_min_kHz": 305.8,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 907.7,
+     "tSU_DAT_min_ns": 1212.8,
+     "tVD_DAT_max_ns": 595.0,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 75.0,
+     "fSCL_min_kHz": 302.5,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 882.7,
+     "tSU_DAT_min_ns": 1212.8,
+     "tVD_DAT_max_ns": 595.0,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 100.0,
+     "fSCL_min_kHz": 299.3,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 857.8,
+     "tSU_DAT_min_ns": 1212.8,
+     "tVD_DAT_max_ns": 595.0,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 125.0,
+     "fSCL_min_kHz": 296.2,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 832.8,
+     "tSU_DAT_min_ns": 1212.8,
+     "tVD_DAT_max_ns": 595.0,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 150.0,
+     "fSCL_min_kHz": 293.1,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 807.8,
+     "tSU_DAT_min_ns": 1212.8,
+     "tVD_DAT_max_ns": 598.1,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 175.0,
+     "fSCL_min_kHz": 290.1,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 782.8,
+     "tSU_DAT_min_ns": 1212.8,
+     "tVD_DAT_max_ns": 633.7,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 200.0,
+     "fSCL_min_kHz": 287.1,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 757.8,
+     "tSU_DAT_min_ns": 1206.2,
+     "tVD_DAT_max_ns": 669.2,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 225.0,
+     "fSCL_min_kHz": 284.2,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 732.8,
+     "tSU_DAT_min_ns": 1181.2,
+     "tVD_DAT_max_ns": 704.7,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 250.0,
+     "fSCL_min_kHz": 281.4,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 707.8,
+     "tSU_DAT_min_ns": 1156.2,
+     "tVD_DAT_max_ns": 740.2,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 275.0,
+     "fSCL_min_kHz": 278.6,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 682.8,
+     "tSU_DAT_min_ns": 1131.2,
+     "tVD_DAT_max_ns": 775.8,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 300.0,
+     "fSCL_min_kHz": 275.9,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 657.7,
+     "tSU_DAT_min_ns": 1106.2,
+     "tVD_DAT_max_ns": 811.3,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 325.0,
+     "fSCL_min_kHz": 273.2,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 632.8,
+     "tSU_DAT_min_ns": 1081.2,
+     "tVD_DAT_max_ns": 846.8,
+     "fail": []
+    },
+    {
+     "tr_max_ns": 350.0,
+     "fSCL_min_kHz": 270.6,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 607.8,
+     "tSU_DAT_min_ns": 1056.2,
+     "tVD_DAT_max_ns": 882.3,
+     "fail": [
+      "tHIGH",
+      "tVD;DAT",
+      "RM SCLDEL"
+     ]
+    },
+    {
+     "tr_max_ns": 375.0,
+     "fSCL_min_kHz": 268.0,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 582.8,
+     "tSU_DAT_min_ns": 1031.2,
+     "tVD_DAT_max_ns": 917.9,
+     "fail": [
+      "tHIGH",
+      "tVD;DAT",
+      "RM SCLDEL",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 400.0,
+     "fSCL_min_kHz": 265.5,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 557.8,
+     "tSU_DAT_min_ns": 1006.2,
+     "tVD_DAT_max_ns": 953.4,
+     "fail": [
+      "tHIGH",
+      "tVD;DAT",
+      "RM SCLDEL",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 425.0,
+     "fSCL_min_kHz": 263.0,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 532.8,
+     "tSU_DAT_min_ns": 981.2,
+     "tVD_DAT_max_ns": 988.9,
+     "fail": [
+      "tHIGH",
+      "tVD;DAT",
+      "RM SCLDEL",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    },
+    {
+     "tr_max_ns": 450.0,
+     "fSCL_min_kHz": 260.5,
+     "fSCL_max_kHz": 396.1,
+     "tLOW_min_ns": 1446.6,
+     "tHIGH_min_ns": 507.8,
+     "tSU_DAT_min_ns": 956.2,
+     "tVD_DAT_max_ns": 1024.4,
+     "fail": [
+      "tHIGH",
+      "tVD;DAT",
+      "RM SCLDEL",
+      "tSU;STA",
+      "tSU;STO"
+     ]
+    }
+   ],
+   "max_tr_passing_ns": 325.0,
+   "search": "PRESC 0..3, SCLDEL = min for tr 300 ns + tSU;DAT 100 ns + 20 ns, smallest passing SDADEL, (SCLH, SCLL) minimising worst-case period; DNF 0, analog filter on",
+   "DNF_note": "ArduPilot passes I2CConfig.cr1 (only SMBHEN ever set) to CR1, so DNF=0 and ANFOFF=0 are fixed; changing them needs an I2CDevice.cpp patch."
+  },
+  "model": "tLOW/tHIGH measured per UM10204 at 0.3/0.7 VDD; the H7 detects SCL edges anywhere in 0.3..0.7 VDD (only VIL/VIH are guaranteed), so tHIGH can lose a full tr and tLOW a full tf. tSYNC = tAF(50..260) + DNF + 2..3 tI2CCLK; SCL low extended to SDADEL+SCLDEL if larger."
+ },
+ "bus": {
+  "microstrip_L1_over_In1": {
+   "z0_ohm": 75.78199716300101,
+   "eeff": 2.853948298564633,
+   "C_pF_per_mm": 0.07435947266060203,
+   "L_nH_per_mm": 0.4270398404875346,
+   "tpd_ps_per_mm": 5.635109346207993
+  },
+  "Cbus_onboard_pF": {
+   "mcu_pin": 5.0,
+   "dps310_pin": 10.0,
+   "rs_pad": 0.3,
+   "pullup_pad": 0.3,
+   "trace": 3.346176269727091,
+   "connector": 2.0
+  },
+  "Cbus_onboard_total_pF": 20.94617626972709,
+  "Cbus_pF": {
+   "min_no_gps": 20.94617626972709,
+   "typ_20cm": 55.94617626972709,
+   "max_30cm": 81.94617626972709,
+   "abuse_50cm": 105.94617626972709
+  },
+  "cases": [
+   {
+    "module_pullup_ohm": 4700.0,
+    "case": "typ_20cm",
+    "Cbus_pF": 55.9,
+    "Rp_eff_ohm": 1508.7,
+    "tr_ns": 71.5,
+    "I_sink_mA": 2.328,
+    "VOL_weak_driver_V": 0.284,
+    "tau_ns": 84.4
+   },
+   {
+    "module_pullup_ohm": 4700.0,
+    "case": "max_30cm",
+    "Cbus_pF": 81.9,
+    "Rp_eff_ohm": 1508.7,
+    "tr_ns": 104.8,
+    "I_sink_mA": 2.328,
+    "VOL_weak_driver_V": 0.284,
+    "tau_ns": 123.6
+   },
+   {
+    "module_pullup_ohm": 4700.0,
+    "case": "abuse_50cm",
+    "Cbus_pF": 105.9,
+    "Rp_eff_ohm": 1508.7,
+    "tr_ns": 135.4,
+    "I_sink_mA": 2.328,
+    "VOL_weak_driver_V": 0.284,
+    "tau_ns": 159.8
+   },
+   {
+    "module_pullup_ohm": 10000.0,
+    "case": "typ_20cm",
+    "Cbus_pF": 55.9,
+    "Rp_eff_ohm": 1818.0,
+    "tr_ns": 86.2,
+    "I_sink_mA": 1.937,
+    "VOL_weak_driver_V": 0.24,
+    "tau_ns": 101.7
+   },
+   {
+    "module_pullup_ohm": 10000.0,
+    "case": "max_30cm",
+    "Cbus_pF": 81.9,
+    "Rp_eff_ohm": 1818.0,
+    "tr_ns": 126.2,
+    "I_sink_mA": 1.937,
+    "VOL_weak_driver_V": 0.24,
+    "tau_ns": 149.0
+   },
+   {
+    "module_pullup_ohm": 10000.0,
+    "case": "abuse_50cm",
+    "Cbus_pF": 105.9,
+    "Rp_eff_ohm": 1818.0,
+    "tr_ns": 163.2,
+    "I_sink_mA": 1.937,
+    "VOL_weak_driver_V": 0.24,
+    "tau_ns": 192.6
+   },
+   {
+    "module_pullup_ohm": null,
+    "case": "min_no_gps",
+    "Cbus_pF": 20.9,
+    "Rp_eff_ohm": 2222.0,
+    "tr_ns": 39.4,
+    "I_sink_mA": 1.591,
+    "VOL_weak_driver_V": 0.199,
+    "tau_ns": 46.5
+   },
+   {
+    "module_pullup_ohm": null,
+    "case": "typ_20cm",
+    "Cbus_pF": 55.9,
+    "Rp_eff_ohm": 2222.0,
+    "tr_ns": 105.3,
+    "I_sink_mA": 1.591,
+    "VOL_weak_driver_V": 0.199,
+    "tau_ns": 124.3
+   },
+   {
+    "module_pullup_ohm": null,
+    "case": "max_30cm",
+    "Cbus_pF": 81.9,
+    "Rp_eff_ohm": 2222.0,
+    "tr_ns": 154.3,
+    "I_sink_mA": 1.591,
+    "VOL_weak_driver_V": 0.199,
+    "tau_ns": 182.1
+   },
+   {
+    "module_pullup_ohm": null,
+    "case": "abuse_50cm",
+    "Cbus_pF": 105.9,
+    "Rp_eff_ohm": 2222.0,
+    "tr_ns": 199.5,
+    "I_sink_mA": 1.591,
+    "VOL_weak_driver_V": 0.199,
+    "tau_ns": 235.4
+   },
+   {
+    "module_pullup_ohm": 2200.0,
+    "case": "typ_20cm",
+    "Cbus_pF": 55.9,
+    "Rp_eff_ohm": 1105.5,
+    "tr_ns": 52.4,
+    "I_sink_mA": 3.166,
+    "VOL_weak_driver_V": 0.375,
+    "tau_ns": 61.8
+   },
+   {
+    "module_pullup_ohm": 2200.0,
+    "case": "max_30cm",
+    "Cbus_pF": 81.9,
+    "Rp_eff_ohm": 1105.5,
+    "tr_ns": 76.8,
+    "I_sink_mA": 3.166,
+    "VOL_weak_driver_V": 0.375,
+    "tau_ns": 90.6
+   },
+   {
+    "module_pullup_ohm": 2200.0,
+    "case": "abuse_50cm",
+    "Cbus_pF": 105.9,
+    "Rp_eff_ohm": 1105.5,
+    "tr_ns": 99.2,
+    "I_sink_mA": 3.166,
+    "VOL_weak_driver_V": 0.375,
+    "tau_ns": 117.1
+   }
+  ],
+  "Rp_window": {
+   "Rp_min_ohm_VOL_0V4_3mA": 1021.6666666666666,
+   "Rp_max_ohm_tr300_at_Cmax": 4320.7123549468515,
+   "Rp_min_ohm_with_4k7_module": 1305.4372451291345,
+   "baseline_Rp_ohm": 2200.0
+  },
+  "series_R": {
+   "Rs_ohm": 33.0,
+   "I_max_mA": 2.328143133462282,
+   "Rs_drop_mV": 76.82872340425531,
+   "VIL_V": 0.9404999999999999,
+   "VOL_mcu_V": 0.1126235527621568,
+   "VOL_dps310_V": 0.2842422745394424,
+   "low_margin_at_dps310_V": 0.7510477238335878,
+   "low_margin_at_mcu_V": 0.5794290020563022,
+   "low_margin_at_module_V": 0.6562577254605575,
+   "Rs_Cin_tau_ns": 0.33,
+   "trace_tpd_ns": 0.11270218692415987,
+   "fastest_edge_ns": 2.0,
+   "lumped": true,
+   "ringing_note": "MCU-U4 trace is electrically short (tpd 0.11 ns vs >= 2 ns edges): no transmission-line ringing on board, Rs vs Z0 matching is irrelevant. 33 R sets a 0.33 ns pole with the DPS310 pin: no noise filtering, only fault/ESD current limiting and branch isolation."
+  },
+  "hysteresis": {
+   "um10204_fm_min_V": 0.15675,
+   "note": "STM32H7 FT I/O and DPS310 are Schmitt inputs; only the Fm minimum 0.05 VDD is relied on"
+  },
+  "noise_margin": {
+   "VnL_V": 0.3135,
+   "VnH_V": 0.627
+  },
+  "tf_min_fm_ns": 11.399999999999999
+ },
+ "bus_warnings": {
+  "module_pullup_2k2": [
+   {
+    "module_pullup_ohm": 2200.0,
+    "case": "typ_20cm",
+    "Cbus_pF": 55.9,
+    "Rp_eff_ohm": 1105.5,
+    "tr_ns": 52.4,
+    "I_sink_mA": 3.166,
+    "VOL_weak_driver_V": 0.375,
+    "tau_ns": 61.8
+   },
+   {
+    "module_pullup_ohm": 2200.0,
+    "case": "max_30cm",
+    "Cbus_pF": 81.9,
+    "Rp_eff_ohm": 1105.5,
+    "tr_ns": 76.8,
+    "I_sink_mA": 3.166,
+    "VOL_weak_driver_V": 0.375,
+    "tau_ns": 90.6
+   },
+   {
+    "module_pullup_ohm": 2200.0,
+    "case": "abuse_50cm",
+    "Cbus_pF": 105.9,
+    "Rp_eff_ohm": 1105.5,
+    "tr_ns": 99.2,
+    "I_sink_mA": 3.166,
+    "VOL_weak_driver_V": 0.375,
+    "tau_ns": 117.1
+   }
+  ],
+  "abuse_50cm_cable": [
+   {
+    "module_pullup_ohm": 4700.0,
+    "case": "abuse_50cm",
+    "Cbus_pF": 105.9,
+    "Rp_eff_ohm": 1508.7,
+    "tr_ns": 135.4,
+    "I_sink_mA": 2.328,
+    "VOL_weak_driver_V": 0.284,
+    "tau_ns": 159.8
+   },
+   {
+    "module_pullup_ohm": 10000.0,
+    "case": "abuse_50cm",
+    "Cbus_pF": 105.9,
+    "Rp_eff_ohm": 1818.0,
+    "tr_ns": 163.2,
+    "I_sink_mA": 1.937,
+    "VOL_weak_driver_V": 0.24,
+    "tau_ns": 192.6
+   },
+   {
+    "module_pullup_ohm": null,
+    "case": "abuse_50cm",
+    "Cbus_pF": 105.9,
+    "Rp_eff_ohm": 2222.0,
+    "tr_ns": 199.5,
+    "I_sink_mA": 1.591,
+    "VOL_weak_driver_V": 0.199,
+    "tau_ns": 235.4
+   },
+   {
+    "module_pullup_ohm": 2200.0,
+    "case": "abuse_50cm",
+    "Cbus_pF": 105.9,
+    "Rp_eff_ohm": 1105.5,
+    "tr_ns": 99.2,
+    "I_sink_mA": 3.166,
+    "VOL_weak_driver_V": 0.375,
+    "tau_ns": 117.1
+   }
+  ],
+  "fall_time": "MCU open-drain at OSPEED MEDIUM gives tf of a few ns at low Cbus, below the Fm tf(min) 11.4 ns (an EMI 'should'); measure on hardware."
+ },
+ "crosstalk": {
+  "inputs": {
+   "dvdt_V_per_ns": 5.0,
+   "v_step_V": 21.840000000000003,
+   "edge_ns": 4.368,
+   "didt_A_per_ns": 3.5,
+   "Cbus_victim_pF": 20.94617626972709,
+   "Rp_ohm": 2200.0,
+   "tau_high_ns": 46.08158779339959,
+   "VnH_V": 0.627,
+   "VnL_V": 0.3135,
+   "source": "/workspace/projects/nano-h743-aio-flight-controller/am32_esc/gate_drive_report.json",
+   "selected_network_dvdt_V_per_ns": 2.852459016393417,
+   "selected_network_didt_A_per_ns": 1.17845117845109
+  },
+  "model": "Victim: 0.1 mm L1 microstrip over In1 GND (h 0.1375 mm). Coupling k = 1/(1+(D/h)^2) to the switch-node/hot-loop copper edge, Cm = k C, M = mu0/4pi ln(1+(2h/D)^2). Capacitive glitch decays with Rp*Cbus (tau 46 ns, comparable to the 50 ns filters, so how long it stays above threshold depends on its amplitude); no filter credit is taken. Inductive glitch lasts ~the current edge (10 ns) and sees the full EMF in the LOW state. Ground bounce: plane-pair inductance 0.44 nH/sq x di/dt, dipole decay (a/(a+D))^2 outside the hot loop.",
+  "ground_bounce": {
+   "V_if_path_crosses_hot_loop_V": 1.5393804002589986,
+   "keepout_mm": 5.899999999999995,
+   "V_at_keepout_V": 0.098662419500657
+  },
+  "spacing_rules": [
+   {
+    "parallel_len_mm": 5.0,
+    "min_edge_gap_mm": 1.5,
+    "Cm_pF": 0.002902979993525472,
+    "Lm_nH": 0.015496181989382612,
+    "V_cap_V": 0.0028878288926438398,
+    "V_ind_V": 0.05423663696283914,
+    "V_gb_V": 0.098662419500657,
+    "V_total_high_V": 0.15578688535614
+   },
+   {
+    "parallel_len_mm": 10.0,
+    "min_edge_gap_mm": 2.1,
+    "Cm_pF": 0.003028950073029068,
+    "Lm_nH": 0.016227808670453404,
+    "V_cap_V": 0.0030131415148494586,
+    "V_ind_V": 0.056797330346586926,
+    "V_gb_V": 0.098662419500657,
+    "V_total_high_V": 0.1584728913620934
+   },
+   {
+    "parallel_len_mm": 20.0,
+    "min_edge_gap_mm": 3.0,
+    "Cm_pF": 0.0030164092032562307,
+    "Lm_nH": 0.016193336815908694,
+    "V_cap_V": 0.0030006660978126013,
+    "V_ind_V": 0.05667667885568043,
+    "V_gb_V": 0.098662419500657,
+    "V_total_high_V": 0.15833976445415004
+   },
+   {
+    "parallel_len_mm": 40.0,
+    "min_edge_gap_mm": 4.3,
+    "Cm_pF": 0.0029688583021432375,
+    "Lm_nH": 0.015954399540486386,
+    "V_cap_V": 0.0029533633721956095,
+    "V_ind_V": 0.055840398391702344,
+    "V_gb_V": 0.098662419500657,
+    "V_total_high_V": 0.15745618126455496
+   }
+  ],
+  "reference_violation_0p2mm_20mm": {
+   "V_cap_V": 0.3435906667892635,
+   "V_ind_V": 5.550947608707631,
+   "half_VnH_V": 0.3135,
+   "cap_width_above_half_VnH_ns": 4.2234543234542805,
+   "filter_verdict": "capacitive glitch 0.344 V exceeds half VnH (0.314 V) for 4 ns, shorter than the 50 ns STM32 analog filter / DPS310 tSP: filtered, but only by the filters -> not allowed by the rules",
+   "ind_verdict": "inductive glitch lasts ~the 10 ns current edge, inside the 50 ns analog filter / DPS310 tSP, but its amplitude would rely on the filters (and on ESD diode clamping) -> not allowed by the rules"
+  },
+  "filters": {
+   "stm32_analog_ns": 50.0,
+   "stm32_DNF": 0,
+   "dps310_tSP_ns": 50.0
+  }
+ },
+ "routing_rules": {
+  "layer": "I2C1_SCL/SDA, BARO_SCL/SDA on L1 F.Cu over unbroken In1 GND only (L6 over In4 is the other option); no inner signal layers exist (In1..In4 are planes). Never cross a plane split or a via-antipad field.",
+  "min_gap_to_switch_node_or_hot_loop_copper_mm": 3.0,
+  "max_parallel_run_alongside_ESC_copper_mm": 20.0,
+  "gap_table": [
+   {
+    "parallel_len_mm": 5.0,
+    "min_gap_mm": 1.5
+   },
+   {
+    "parallel_len_mm": 10.0,
+    "min_gap_mm": 2.1
+   },
+   {
+    "parallel_len_mm": 20.0,
+    "min_gap_mm": 3.0
+   },
+   {
+    "parallel_len_mm": 40.0,
+    "min_gap_mm": 4.3
+   }
+  ],
+  "hot_loop_keepout_mm": 5.899999999999995,
+  "u4_and_i2c_ground_path": "U4 GND pins and U1 VSS must connect through In1 without the straight path between them crossing any FET-pair + input-cap hot loop (1.54 V bounce if it does).",
+  "max_onboard_length_mm": {
+   "mcu_to_u4": 20.0,
+   "mcu_to_gps_connector": 25.0
+  },
+  "guard": "GND pour between I2C pair and any ESC copper, stitched to In1 every <= 3 mm; SCL and SDA may run together (same-bus crosstalk is harmless at 400 kHz).",
+  "placement": "R23/R24 within 5 mm of U1 PB6/PB7; R25/R26 within 2 mm of U4 pins 4/3; C25/C26 at U4 pins 8/6 with own GND vias."
+ },
+ "hwdef": {
+  "HAL_I2C_MAX_CLOCK": [
+   "400000"
+  ],
+  "HAL_I2C_H7_400_TIMINGR": [
+   "0x00D01A2D"
+  ],
+  "HAL_I2C_F7_100_TIMINGR": [
+   "0x4080231E"
+  ],
+  "HAL_I2C_H7_100_TIMINGR": [
+   "0x4080231E"
+  ]
+ },
+ "generated_hwdef_h": {
+  "rc": 0,
+  "HAL_I2C_MAX_CLOCK": [
+   "400000"
+  ],
+  "HAL_I2C_H7_400_TIMINGR": [
+   "0x00D01A2D"
+  ],
+  "HAL_I2C_F7_100_TIMINGR": [
+   "0x4080231E"
+  ],
+  "HAL_I2C_H7_100_TIMINGR": [
+   "0x4080231E"
+  ],
+  "i2c_order": [
+   "\\"
+  ],
+  "baro_probe": [
+   "HAL_BARO_PROBE1"
+  ]
+ },
+ "baseline_confirmation": {
+  "U4": "DPS310 LGA-8: 1 GND, 2 CSB, 3 SDI, 4 SCK, 5 SDO, 6 VDDIO, 7 GND, 8 VDD (high (DPS310 datasheet v1.1 pin table; CSB high selects I2C, SDO low -> 0x76, SDO high -> 0x77))",
+  "Rp_2k2": "confirmed: window 1305..4321 ohm",
+  "Rs_33R": "confirmed (harmless: 77 mV low-level cost, 0.33 ns pole; not a noise filter)",
+  "fSCL": "400 kHz class confirmed only with both hwdef defines; worst-case fSCL 276 kHz"
+ },
+ "bus_clear": {
+  "boot": "HAL_ChibiOS_Class.cpp calls I2CBus::clear_all() at start-up",
+  "timeout": "I2CDevice::transfer: on MSG_TIMEOUT with SDA read low -> clear_bus()",
+  "action": "SCL driven PUSH-PULL, 20 toggles x 10 us (= 10 clocks at ~50 kHz), no STOP generated",
+  "note": "Push-pull SCL can fight a clock-stretching external module for <=200 us; DPS310 does not stretch. Default HAL_I2C_CLEAR_ON_TIMEOUT 1 kept."
+ },
+ "upstream_note": "AP_HAL_ChibiOS I2CDevice ctor: on H7, a device asking <=100 kHz lowers the whole bus to HAL_I2C_F7_100_TIMINGR (default 0x30812E3E, an F7/54 MHz value) instead of the H7 one. At 32 MHz that default is 62.2..71.5 kHz and Sm-NON-compliant (RM SCLDEL). I2C1 is the external bus (HAL_I2C_INTERNAL_MASK 0), so external-bus probes/drivers that request 100 kHz (AP_BattMonitor_INA2xx.cpp, AP_BattMonitor_INA3221.cpp, AP_BattMonitor_LTC2946.cpp, AP_BattMonitor_SMBus.cpp, AP_DAC_MCP40D1x.cpp) can trigger this path; hwdef.dat therefore overrides HAL_I2C_F7_100_TIMINGR (and HAL_I2C_H7_100_TIMINGR for consistency) with 0x4080231E, Sm-compliant for tr <= 1000 ns. Once lowered, the bus stays in Standard mode (78..93 kHz worst case) for all devices including the DPS310."
+}

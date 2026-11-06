@@ -193,7 +193,7 @@ struct ImuSample {
 struct PairedSample {
     ImuSample imu1;
     ImuSample imu2;
-    int64_t   offset_ns;   // t2 - t1, in (-T/2, +T/2]
+    int64_t   offset_ns;   // t2 - t1; |offset| <= 5/8 T (phase-tracked window, see pop_pair)
 };
 
 enum class SyncState : uint8_t { Acquiring = 0, Shared = 1, NotShared = 2 };
@@ -215,7 +215,9 @@ public:
     bool pop_pair(PairedSample& out);
 
     SyncState state() const { return _state; }
-    double    drift_ppm() const { return _drift_ppm; }        // last completed window
+    // relative drift of IMU2 vs IMU1, last completed window.  Positive = IMU2
+    // sample period longer (IMU2 clock slower), i.e. t2 - t1 grows.
+    double    drift_ppm() const { return _drift_ppm; }
     double    phase_offset_ns() const { return _phase_ns; }   // last completed window, wrapped
     uint32_t  windows() const { return _windows; }
     uint64_t  pairs() const { return _pairs; }
@@ -233,6 +235,7 @@ private:
     Queue    _q[2];
     uint64_t _pairs = 0, _orphans[2] = {0, 0}, _overflow[2] = {0, 0};
     // continuous (unwrapped) offset for regression
+    int64_t  _center_ns = 0;   // tracked phase used to centre the pairing window
     bool     _have_prev = false;
     double   _prev_u = 0.0;
     // window sums (x in s relative to window start, y in ns)

@@ -60,7 +60,9 @@ ASSUME = {
     #   r_drv_source/sink  FD6288Q slow corner from VOH/VOL max @ 100 mA (9.0 / 4.5 ohm)
     #   rg_on / rg_off     selected network (15 ohm on, Schottky bypass off)
     #   dead_time_s        worst-case body-diode conduction per edge (outgoing channel off -> incoming on)
-    #   st_frac            shoot-through energy as a fraction of HS turn-on energy
+    #   switching energy   e_on + e_off + Miller shoot-through vs (I, Vbus) from the same simulator
+    #                      (Rev 9 review: the Qsw/I_plateau formula was optimistic on turn-off);
+    #                      switching_times() is kept only for the reported t_on/t_off
     "duty_at_rated": 0.90,
     "solder_bond_um": 50.0, "solder_void_frac": 0.30, "k_sac305": 58.0,
     "via_plating_um": 18.0,       # IPC-6012 class 2 minimum average hole-wall Cu
@@ -113,9 +115,36 @@ def load_gate_drive(path=GATE_REPORT):
                   1.0 / (1.0 / net["rg_on_ohm"] + 1.0 / (r_off + 0.5)),
         "dead_time_s": g["dead_time"]["body_diode_per_edge_ns"]["max"] * 1e-9,
         "am32_dead_time_code": g["dead_time"]["DEAD_TIME"],
-        "st_frac": net["stress_4S_HV_35A"]["est_frac"],
+        "cgs_ext_F": net["cgs_ext_nF"] * 1e-9,
     })
+    ESW.clear()
+    ESW.update(g["switching_energy_table"])
     return g
+
+
+ESW = {}
+
+
+def _interp(xs, ys, x):
+    if x <= xs[0]:
+        return ys[0] * x / xs[0]                  # energies -> 0 with current
+    for x0, x1, y0, y1 in zip(xs, xs[1:], ys, ys[1:]):
+        if x <= x1:
+            return y0 + (y1 - y0) * (x - x0) / (x1 - x0)
+    return ys[-2] + (ys[-1] - ys[-2]) * (x - xs[-2]) / (xs[-1] - xs[-2])
+
+
+def switching_energy(i, vbat):
+    """Rev 9: HS turn-on + turn-off + Miller shoot-through energy (J) from the calibrated
+    gate-charge simulator in am32_esc/gate_drive_design.py (slow driver corner, plateau at the
+    load current), interpolated in current and linearly in bus voltage."""
+    rows = sorted(ESW["rows"], key=lambda r: r["vbus"])
+    per_v = []
+    for r in rows:
+        tot = [a + b + c for a, b, c in zip(r["e_on_uJ"], r["e_off_uJ"], r["e_st_uJ"])]
+        per_v.append((r["vbus"], _interp(ESW["i_A"], tot, i)))
+    (v0, e0), (v1, e1) = per_v[0], per_v[-1]
+    return 1e-6 * (e0 + (e1 - e0) * (vbat - v0) / (v1 - v0))
 
 
 LIMITS = {"tj_cont": 125.0, "tj_burst": 150.0, "t_board_cont": 105.0}
@@ -164,7 +193,7 @@ def switching_times(v_drive):
 def fet_losses(i, vbat, fsw, duty, tj_hs, tj_ls, vgs_class, v_drive):
     t_on, t_off = switching_times(v_drive)
     hs = {"cond": i * i * rds(tj_hs, vgs_class) * duty / 3.0,
-          "sw": 0.5 * vbat * i * (t_on * (1.0 + ASSUME["st_frac"]) + t_off) * fsw / 3.0,
+          "sw": switching_energy(i, vbat) * fsw / 3.0,
           "coss_qrr": (0.5 * FET["qoss"] + FET["qrr"]) * vbat * fsw / 3.0}
     ls = {"cond": i * i * rds(tj_ls, vgs_class) * (2.0 - duty) / 3.0,
           "deadtime": FET["vf_diode"] * i * 2 * ASSUME["dead_time_s"] * fsw / 3.0}
@@ -278,7 +307,7 @@ def solve(g, net, i, vbat, fsw, h, vgs_class, v_drive, duty=None, t_board_overri
         p_shunt = i_bat ** 2 * ASSUME["shunt_ohm"]
         # gate drive: 2 FETs switch per ESC (PWM HS + complementary LS), energy Qg*V
         # dissipated in driver + Rg on this board
-        p_gate = 4 * 2 * qg_at(v_drive) * v_drive * fsw
+        p_gate = 4 * 2 * (qg_at(v_drive) + ASSUME.get("cgs_ext_F", 0.0) * v_drive) * v_drive * fsw
         rbt, rbb, *_ = bridge_resistance(t_board)
         p_bridge = 6 * i * i * duty / 3.0 * (rbt + rbb)   # 6 phases per face, HS conduction only
         p_total = p_fets + p_planes + p_shunt + p_gate + p_bridge + ASSUME["p_misc_w"]

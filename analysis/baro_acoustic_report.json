@@ -1,0 +1,435 @@
+{
+ "revision": "12.0",
+ "assumptions": {
+  "env": {
+   "T_C": [
+    -20.0,
+    25.0,
+    85.0
+   ],
+   "p_amb_Pa": [
+    70000.0,
+    101325.0,
+    105000.0
+   ],
+   "p_sealevel_band_Pa": [
+    95000.0,
+    105000.0
+   ],
+   "note": "C ~ 1/p, so low p maximises lag; high p minimises attenuation"
+  },
+  "air": {
+   "alpha_thermal_m2_s": 2.2e-05,
+   "note": "thermal diffusivity of air at 25 C"
+  },
+  "foam_sigma_factor": [
+   0.5,
+   1.0,
+   2.0
+  ],
+  "inertance_profile": [
+   1.0,
+   1.3333333333333333
+  ],
+  "prop": {
+   "band_Hz": [
+    100.0,
+    800.0
+   ],
+   "band_note": "5-inch class blade-pass B*rpm/60: 2-blade 3000 rpm (idle) = 100 Hz .. 3-blade 16000 rpm = 800 Hz",
+   "check_to_Hz": 2000.0,
+   "spl_dB": 114.0,
+   "spl_note": "~95 dB at 1 m for a 5-inch quad at high throttle, +20 dB spherical spreading to ~0.1 m from the disc edge; taken flat over the band (conservative)"
+  },
+  "residual_frac_of_gate_margin": 0.25,
+  "climb_mps": [
+   30.0,
+   10.0
+  ],
+  "lag_err_max_m_at_30mps": 0.5,
+  "tau_max_s": 0.02,
+  "gain_max": 1.02,
+  "leak": {
+   "len_note": "pinhole through the bond bead across the wall foot (length = wall_t)",
+   "spec_factor": 0.5,
+   "slot_w_mm": 1.0
+  },
+  "water": {
+   "gamma_N_m": 0.072,
+   "rho_w": 1000.0,
+   "v_forward_mps": 30.0,
+   "v_propwash_mps": 25.0,
+   "dive_m": 150.0,
+   "max_penetration_frac": 0.5
+  },
+  "foam": {
+   "cut_tol_mm": 0.1,
+   "compression_set": 0.5,
+   "sigma_comp_exponent": 2.0,
+   "max_comp": 0.25,
+   "note": "die-cut tolerance +-0.1 mm on each dimension; 50 % compression set (hot, long term); sigma ~ sigma0/(1-eps)^2 per compressed axis [AL]"
+  },
+  "thermal": {
+   "hdt_margin_C": 5.0,
+   "scenarios_prefix": "R",
+   "dps310_max_C": 85.0,
+   "foam_pu_cont_C": 100.0
+  }
+ },
+ "scad": {
+  "part": "assembly",
+  "$fn": 48.0,
+  "board_size": 36.0,
+  "board_t": 1.614,
+  "mount_pitch": 30.5,
+  "grommet_keepout_r": 3.25,
+  "stack_clear": 0.25,
+  "stack_free_h": 8.5,
+  "stack_clear_z": 0.5,
+  "q4_cx_k": 26.45,
+  "q4_cy_k": 5.675,
+  "q4_w": 5.2,
+  "q4_l": 7.45,
+  "q11_cx_k": 30.325,
+  "q11_cy_k": 15.65,
+  "q11_w": 7.45,
+  "q11_l": 5.2,
+  "court_h": 1.0,
+  "court_clear": 0.2,
+  "cap_cx_k": 32.55,
+  "cap_cy_k": 9.55,
+  "u4_dx": -0.98,
+  "u4_dy": 0.0,
+  "u4_w": 2.0,
+  "u4_l": 2.5,
+  "u4_h": 1.0,
+  "pass_w": 0.5,
+  "pass_l": 1.0,
+  "pass_h": 0.55,
+  "n_pass": 3.0,
+  "cap_w": 6.2,
+  "cap_l": 6.5,
+  "cap_h": 8.0,
+  "wall_t": 0.8,
+  "vent_wall_t": 2.1,
+  "roof_t": 0.8,
+  "corner_r": 0.6,
+  "foot_relief_h": 0.15,
+  "air_gap": 0.8,
+  "ledge_w": 0.4,
+  "ledge_h": 0.4,
+  "foam_fit": 0.2,
+  "foam_fit_z": 0.2,
+  "foam_ppi": 45.0,
+  "foam_density": 28.0,
+  "foam_sigma": 4000.0,
+  "foam_solid_density": 1100.0,
+  "resin_hdt": 120.0,
+  "coat_theta": 100.0,
+  "vent_a": 0.35,
+  "vent_tol": 0.03,
+  "vent_lanes": 17.0,
+  "vent_plane_sep": 0.85,
+  "vent_skin": 0.5,
+  "vent_z_in": 6.8,
+  "vent_z_out": 0.6,
+  "cav_x0": -2.3,
+  "cav_x1": 1.0,
+  "cav_y0": -2.45,
+  "cav_y1": 2.45,
+  "cav_h": 7.2,
+  "foam_z0": 1.8,
+  "foam_t": 5.4,
+  "vent_xc": 2.05,
+  "vent_xa": 1.6249999999999998,
+  "vent_xb": 2.4749999999999996,
+  "vent_y_end": 1.9749999999999999,
+  "vent_pitch": 0.3647058823529412,
+  "vent_web": 0.37941176470588245,
+  "vent_xweb": 0.5,
+  "vent_skin_x": 0.44999999999999973,
+  "vent_lane_len": 3.9668010260943056,
+  "vent_slope_deg": 5.27519755731322,
+  "vent_stub_in": 0.6249999999999998,
+  "vent_stub_out": 1.4750000000000003,
+  "vent_n_cross": 16.0,
+  "vent_len": 83.13561744360318,
+  "u4_x0": -1.98,
+  "u4_x1": 0.020000000000000018,
+  "cap_x0_k": 29.449999999999996,
+  "cap_x1_k": 35.65,
+  "cap_y0_k": 6.300000000000001,
+  "cap_y1_k": 12.8,
+  "hole_k": 2.75
+ },
+ "echo": {
+  "cav": [
+   3.3,
+   4.9,
+   7.2
+  ],
+  "foam_t": [
+   5.4
+  ],
+  "vent_len": [
+   83.1356
+  ],
+  "vent_pitch": [
+   0.364706
+  ],
+  "vent_slope_deg": [
+   5.2752
+  ]
+ },
+ "sampling": {
+  "pm_rate_code": 5,
+  "pm_prc_code": 4,
+  "tmp_rate_code": 2,
+  "tmp_prc_code": 0,
+  "fs_Hz": 32.0,
+  "oversampling": 16,
+  "t_meas_s": 0.0276,
+  "t_sub_s": 0.0015999999999999999,
+  "comb_lobe_Hz": 625.0,
+  "gate_margin_pa": 8.0,
+  "max_vz_mps": 40.0,
+  "hwdef_baro": "DPS310 I2C:0:0x76",
+  "defaults_parm_baro_lines": [],
+  "budget_ms_per_s": 897.6
+ },
+ "acoustic": {
+  "volumes_mm3": {
+   "air_analytic_mm3": 109.54300000000002,
+   "air_used_mm3": 109.54300000000002,
+   "gap_mm3": 22.225000000000005,
+   "foam_region_mm3": 87.31800000000001,
+   "foam_solid_mm3": 2.7953163636363643,
+   "foam_pore_air_mm3": 84.52268363636365,
+   "vent_mm3": 10.184113136841388,
+   "porosity": 0.9745454545454545
+  },
+  "foam_compression": {
+   "eps_x": 0.10810810810810813,
+   "eps_y": 0.07547169811320754,
+   "eps_z": 0.03571428571428571,
+   "sigma_factor": 1.1651304719768463
+  },
+  "nominal": {
+   "R_vent": 2902778721.6260314,
+   "M_vent": 1074551.5644922082,
+   "R_foam": 1441101.3877264643,
+   "C1": 5.958385931857436e-13,
+   "C2": 1.5667406859116706e-13,
+   "tau_adiabatic_ms": 2.18460352557785,
+   "tau_isothermal_ms": 3.2043231835872055,
+   "fc_Hz": 87.0,
+   "f0_Hz": 176.9903529644507,
+   "zeta": 1.215186021804131,
+   "attenuation_dB": {
+    "16": 0.13657603709404775,
+    "32": 0.5253674781230441,
+    "100": 3.7055877554143892,
+    "200": 8.814910839644241,
+    "400": 16.72222620888398,
+    "625": 23.120568970145932,
+    "800": 26.97326088044679
+   }
+  },
+  "thermal_boundary_layer_mm": {
+   "10": 0.8368283871884005,
+   "100": 0.26462837142006135,
+   "625": 0.10585134856802454
+  },
+  "pore_mm": 0.5644444444444444,
+  "worst": {
+   "max_gain": 0.9999967708607304,
+   "max_gain_corner": "a=0.38 mm sigma x0.5 T=-20 C p=105 kPa adiabatic M-profile 1.33",
+   "residual_Pa": 1.7028810345356191,
+   "residual_f_Hz": 100.0,
+   "residual_corner": "a=0.38 mm sigma x0.5 T=-20 C p=105 kPa adiabatic M-profile 1.33",
+   "residual_limit_Pa": 2.0,
+   "input_peak_Pa": 14.175715661678836,
+   "attenuation_dB": {
+    "100": 0.6683133339297536,
+    "200": 4.490657700514058,
+    "400": 12.847908667108271,
+    "625": 18.937944168751116,
+    "800": 22.390734509873983
+   },
+   "tau_ms": 7.618669857635116,
+   "tau_corner": "a=0.32 mm sigma x2.0 T=85 C p=70 kPa isothermal M-profile 1.00",
+   "tau_sealevel_ms": 5.2633297807496495,
+   "lag_30mps_m": 0.1578998934224895,
+   "lag_10mps_m": 0.052633297807496496,
+   "lag_30mps_3000m_m": 0.2285600957290535,
+   "min_zeta": 0.7423027458239634
+  },
+  "leak": {
+   "d_half_um": 111.14799283105941,
+   "d_A2_um": 104.35811605702779,
+   "d_spec_um": 55.573996415529706,
+   "slot_h_spec_um": 13.922914008777173,
+   "slot_w_mm": 1.0,
+   "leakdown_tau_min_s": 0.07212815389878396
+  },
+  "corners": 324
+ },
+ "water": {
+  "p_entry_Pa": 142.88764333735978,
+  "q_forward_Pa": 551.25,
+  "q_propwash_Pa": 382.8125,
+  "dp_dive_Pa": 1801.9719375,
+  "penetration_mm": 20.822740362512747,
+  "vent_len_mm": 83.13561744360318
+ },
+ "thermal": {
+  "t_site_max_C": 110.65890897645468,
+  "t_board_max_C": 109.40901745385958,
+  "tj_hs_max_C": 113.01221948257046,
+  "scenarios": [
+   "R1_4S_cont_conservative",
+   "R2_2S_cont_conservative",
+   "R3_4S_burst10s_conservative",
+   "R4_4S_cont_typical",
+   "R5_4S_burst10s_typical"
+  ]
+ },
+ "gates": [
+  {
+   "gate": "P1 SCAD top-level assignments parsed and evaluated",
+   "pass": true,
+   "detail": "84 assignments (83 numeric), part='assembly'"
+  },
+  {
+   "gate": "P2 SCAD asserts re-evaluated in Python",
+   "pass": true,
+   "detail": "23 asserts, failing: none"
+  },
+  {
+   "gate": "P3 Python evaluation == OpenSCAD ECHO (cav, foam_t, vent_len, pitch, slope)",
+   "pass": true,
+   "detail": "max rel diff 4.6e-07 (OpenSCAD prints 6 significant digits); vent_len 83.1356 mm; openscad errors: none"
+  },
+  {
+   "gate": "S1 sampling plan read from the driver and consistent",
+   "pass": true,
+   "detail": "32 Hz x 16x, background budget 898 ms/s, t_meas 27.6 ms < period 31.25 ms"
+  },
+  {
+   "gate": "A1 no resonant amplification |H| <= 1.02, all corners",
+   "pass": true,
+   "detail": "max |H| 1.0000 (a=0.38 mm sigma x0.5 T=-20 C p=105 kPa adiabatic M-profile 1.33); min zeta 0.74 at f0 177 Hz"
+  },
+  {
+   "gate": "A2 prop band 100..2000 Hz residual after chamber x DPS310 16x comb <= 2.0 Pa, all corners",
+   "pass": true,
+   "detail": "worst 1.70 Pa at 100 Hz (a=0.38 mm sigma x0.5 T=-20 C p=105 kPa adiabatic M-profile 1.33); input 114.0 dB SPL = 14.2 Pa peak; limit = 25 % of driver gate_margin_pa 8 Pa"
+  },
+  {
+   "gate": "A3 quasi-static lag tau <= 20 ms, all corners (incl. 3000 m, 85 C, iso)",
+   "pass": true,
+   "detail": "worst tau 7.62 ms (a=0.32 mm sigma x2.0 T=85 C p=70 kPa isothermal M-profile 1.00) vs period 31.25 ms, EK3_HGT_DELAY 60 ms"
+  },
+  {
+   "gate": "A4 altitude lag error at 30 m/s <= 0.5 m (sea-level band)",
+   "pass": true,
+   "detail": "0.158 m at 30 m/s, 0.053 m at 10 m/s (tau 5.26 ms, a=0.32 mm sigma x2.0 T=85 C p=101 kPa isothermal M-profile 1.00); at 3000 m worst 0.229 m at 30 m/s; nominal 0.096 m"
+  },
+  {
+   "gate": "A5 chamber sits between EKF-scale lag and blade-pass band (fc > 2 x fs, f0 > fc)",
+   "pass": true,
+   "detail": "fc 87.0 Hz, fs 32 Hz, f0 177 Hz, prop band from 100 Hz"
+  },
+  {
+   "gate": "A2b the chamber is load-bearing (same residual without it fails)",
+   "pass": true,
+   "detail": "bare sensor residual 14.2 Pa at the 625 Hz comb lobe vs limit 2.0 Pa"
+  },
+  {
+   "gate": "A6 bond-leak spec derived (leak at spec keeps A2 and costs < 1 dB at the comb lobe)",
+   "pass": true,
+   "detail": "pinhole halving attenuation at 625 Hz: d = 111.1 um; A2 limit at worst corner: d = 104.4 um; SPEC d_eq <= 55.6 um (0.40 dB at spec) == bond slot h <= 13.92 um over 1 mm; acceptance: outer port sealed, leak-down tau >= 0.072 s"
+  },
+  {
+   "gate": "W1 hydrophobic channel (theta > 90 deg -> capillary force expels water)",
+   "pass": true,
+   "detail": "theta 100 deg, Young-Laplace entry pressure 143 Pa"
+  },
+  {
+   "gate": "W2 closed-volume penetration <= 50 % of the labyrinth",
+   "pass": true,
+   "detail": "drive 2210 Pa (max dyn. pressure + 150 m dive - entry), air 116.9 mm^3 -> 2.55 mm^3 -> 20.8 mm of 83.1 mm"
+  },
+  {
+   "gate": "W3 labyrinth descends monotonically to the outer port (self-draining)",
+   "pass": true,
+   "detail": "every lane 5.28 deg down, inner 6.80 mm -> outer 0.60 mm (lowest point)"
+  },
+  {
+   "gate": "L1 no line of sight through the labyrinth",
+   "pass": true,
+   "detail": "ports offset 3.95 mm in Y and 6.20 mm in Z (channel 0.35 mm), 34 right-angle turns"
+  },
+  {
+   "gate": "L2 opaque foam covers the full cavity plan with interference (no edge gap)",
+   "pass": true,
+   "detail": "foam oversize 0.20 mm/side > cut tol 0.05 mm/side; inner port opens into the foam (z >= 1.80 mm)"
+  },
+  {
+   "gate": "L3 cap opacity requirement recorded in the SCAD material notes",
+   "pass": true,
+   "detail": "U4 lid port sees the side walls up to 68 deg elevation through the 0.8 mm gap -> walls must be opaque"
+  },
+  {
+   "gate": "T1 cap foot (board at the FET site) <= HDT - 5 C",
+   "pass": true,
+   "detail": "max t_site 110.7 C (R5_4S_burst10s_typical) vs HDT 120 C"
+  },
+  {
+   "gate": "T2 Q11 junction bound <= HDT (cap never hotter than the nearest FET junction)",
+   "pass": true,
+   "detail": "max Tj(HS) 113.0 C over ['R1_4S_cont_conservative', 'R2_2S_cont_conservative', 'R3_4S_burst10s_conservative', 'R4_4S_cont_typical', 'R5_4S_burst10s_typical'], Q11 courtyard 0.25 mm from the cap"
+  },
+  {
+   "gate": "M1 foam retention after 50 % compression set and cut tolerance",
+   "pass": true,
+   "detail": "residual interference 0.075 mm/side (X/Y), 0.050 mm (Z)"
+  },
+  {
+   "gate": "M2 foam compression <= 25 % and sigma rise within the x2 sweep",
+   "pass": true,
+   "detail": "eps x 10.8 % y 7.5 % z 3.6 %, sigma x1.17"
+  },
+  {
+   "gate": "M3 stack height",
+   "pass": true,
+   "detail": "cap 8.00 + 0.50 mm <= free 8.50 mm"
+  },
+  {
+   "gate": "M4 cap clear of the NE grommet keep-out",
+   "pass": true,
+   "detail": "nearest footprint point 3.550 mm from hole (33.25, 2.75) >= 3.25 + 0.25"
+  },
+  {
+   "gate": "M5 board edge and Q4/Q11 courtyards",
+   "pass": true,
+   "detail": "edge 0.35 mm, Q4 gap 0.40 mm, Q11 gap 0.25 mm (min 0.20)"
+  },
+  {
+   "gate": "M6 sensor clearances (U4 / passives / foam)",
+   "pass": true,
+   "detail": "air gap 0.80 mm, passives-to-vent-wall 0.23 mm, foam 5.40 mm"
+  }
+ ],
+ "warnings": [
+  {
+   "warn": "DPS310 operating range",
+   "detail": "board reaches 109.4 C at the rating scenarios > DPS310 85 C max: baro site temperature is a board-level open item (not fixed by the cap)"
+  },
+  {
+   "warn": "PU foam temperature",
+   "detail": "foam bottom face may reach 110.7 C (burst) vs ~100 C continuous for polyether PU; consider black melamine or silicone open-cell foam with the same sigma"
+  }
+ ],
+ "result": "PASS"
+}

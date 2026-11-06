@@ -58,7 +58,7 @@ DRV = {
     "toff_typ": 100e-9, "toff_max": 160e-9,                           # turn-off propagation
     "mt_max": 30e-9,                                                  # HO/LO delay matching
     "dt_int": (100e-9, 200e-9, 300e-9),                               # internal dead time min/typ/max
-    "io_src_min": 1.1, "io_snk_min": 1.3,                             # A, PW <= 10 us
+    "io_src": (1.1, 1.5, 1.9), "io_snk": (1.3, 1.8, 2.3),             # A min/typ/max, VCC 15 V, PW <= 10 us
     "voh_typ": 0.6, "voh_max": 0.9, "vol_typ": 0.3, "vol_max": 0.45,  # at 100 mA
     "iqbs_max": 270e-6, "iqcc_max": 500e-6,
     "vs_neg_op": -4.0, "dvs_dt_max": 50e9,                            # V, V/s
@@ -72,18 +72,25 @@ ASSUME = {
     "r_drv_fast_factor": 0.6,        # fast-corner driver R = 0.6 x typ (no min in datasheet)
     "toff_prop_min": 50e-9,          # no min in datasheet: 0.5 x typ
     "dt_guard": 25e-9,               # added on top of the computed requirement
+    "l_gate_nH": 10.0,               # driver -> gate -> source -> driver COM loop, <= 5 mm routing
     "l_loop_nH": 3.0,                # HS-LS-ceramic commutation loop, swept 1.5..5 nH below
     "dvdt_emi_max": 5e9,             # V/s design target (FD6288Q abs max is 50 V/ns)
     "est_frac_max": 0.10,            # shoot-through energy <= 10 % of HS turn-on energy
     "vds_derate": 0.80,              # peak VDS <= 80 % VDSS
     "schottky_vf": 0.30,             # gate turn-off Schottky (RB521S30 class) knee
     "qgd_scaling": "sqrt",           # Qgd(V) = Qgd(20 V) * sqrt(V/20), capped at Qgd(20 V)
-    "c_bs_eff_uF": 0.50,             # 1 uF 25 V X5R 0402 at ~17 V DC bias
+    "c_bs_eff_uF": 1.10,             # 2.2 uF 25 V X5R 0603 at ~17 V DC bias (Rev 9 review: was 1 uF)
     "vf_bs": 0.45,                   # bootstrap Schottky at refresh current
+    "i_bs_leak": 100e-6,             # bootstrap Schottky reverse leakage at VR 20 V, 105 C (part requirement)
+    "r_pd_hs": 100e3,                # HS gate-source pull-down (loads C_BS while HS is on)
+    "r_pd_ls": 10e3,                 # LS gate-source pull-down
+    "i_plateau_A": (10.0, 20.0, 35.0),  # hard-switched currents evaluated for the outgoing plateau;
+                                     # below ~10 A turn-off is Coss/load-current limited, not gate limited
+    "tj_loss_C": 100.0,              # junction temperature for switching-energy export (thermal model)
     "pole_pairs": 7,                 # 14-pole whoop/toothpick motor (defaults.parm)
     "tj_board_C": 105.0,             # board limit from analysis/thermal_power_analysis.py
     "tj_fd6288_max_C": 125.0,
-    "loss_band": 0.10,               # selection: candidates within +10 % of the minimum feasible loss        # 25 K below FD6288Q Tj max at the 24 kHz design point
+    "loss_band": 0.10,               # selection: candidates within +10 % of the minimum feasible loss
 }
 
 # ---------------------------------------------------------------- MOSFET data
@@ -94,12 +101,34 @@ FET = {
     "vth_typ_25": 1.95, "vth_tc": -8.5e-3,        # Fig. 8.8 (typical), read: 1.95 V @25 C -> ~1.0 V @140 C
     "ciss": 7370e-12, "crss": 58e-12, "coss": 1930e-12,   # VDS 20 V
     "qg_10v": 103e-9, "qg_4v5": 49e-9, "qgs1": 25e-9, "qgd": 12.4e-9, "qsw": 23e-9,
-    "v_plateau": 3.3,                              # Fig. 8.10 @ 50 A, Fig. 8.1 @ 20-35 A
+    "v_plateau": 3.3,                              # Fig. 8.10 @ 50 A: reference point of the Qg curve
+    # Miller plateau vs drain current at 25 C, typical Vth (Fig. 8.1 transfer curve; 10 A extrapolated
+    # with the square-law fit through the 20 A / 35 A points). Shifted by the Vth tempco and by
+    # (vth_min - vth_typ) for the min corner; the mobility drop with temperature, which raises the
+    # plateau, is ignored (conservative for turn-off).
+    "v_plateau_vs_I": ((10.0, 3.07), (20.0, 3.20), (35.0, 3.35), (50.0, 3.40)),
     "rg_int": (0.6, 1.1),                          # typ / max
     "k_sat": 12.8,                                 # A/V^2, square-law fit of Fig. 8.1 (20 A @ 3.2 V, Vth 1.95)
     "test": {"vgs": 10.0, "rgg": 4.7, "id": 50.0, "vdd": 20.0, "ton": 26e-9, "toff": 63e-9},
 }
 TJ_HOT = 125.0
+
+
+def v_plateau(i_load, tj=25.0, corner="typ"):
+    tab = FET["v_plateau_vs_I"]
+    if i_load <= tab[0][0]:
+        v = tab[0][1]
+    elif i_load >= tab[-1][0]:
+        v = tab[-1][1]
+    else:
+        for (i0, v0), (i1, v1) in zip(tab, tab[1:]):
+            if i0 <= i_load <= i1:
+                v = v0 + (v1 - v0) * (i_load - i0) / (i1 - i0)
+                break
+    v += FET["vth_tc"] * (tj - 25.0)
+    if corner == "min":
+        v += FET["vth_min"] - FET["vth_typ_25"]
+    return v
 VTH_HOT_MIN = FET["vth_min"] + FET["vth_tc"] * (TJ_HOT - 25.0)          # 0.55 V
 VTH_HOT_TYP = FET["vth_typ_25"] + FET["vth_tc"] * (TJ_HOT - 25.0)
 
@@ -122,13 +151,18 @@ def qgd_at(vbus):
 
 
 class Gate:
-    """Piecewise gate-charge curve with optional external Cgs (in parallel with Cgs)."""
+    """Piecewise gate-charge curve with optional external Cgs (in parallel with Cgs).
+    Hard-switched: C_low = Qgs1/3.3 V up to the plateau vpl (current/temperature/corner
+    dependent), Qgd(Vbus) on the plateau, C_high above it.  Soft-switched (VDS ~ 0 throughout):
+    no plateau and Ciss(VDS~0) ~ C_high everywhere."""
 
-    def __init__(self, vbus, cgs_ext=0.0, switching=True):
-        self.vpl = FET["v_plateau"]
-        self.c1 = FET["qgs1"] / self.vpl + cgs_ext
+    def __init__(self, vbus, cgs_ext=0.0, switching=True, vpl=None):
+        self.vpl = FET["v_plateau"] if vpl is None else vpl
+        c_low = FET["qgs1"] / FET["v_plateau"]
+        c_high = (FET["qg_10v"] - FET["qgs1"] - FET["qgd"]) / (10.0 - FET["v_plateau"])
+        self.c1 = (c_low if switching else c_high) + cgs_ext
         self.qgd = qgd_at(vbus) if switching else 0.0
-        self.c3 = (FET["qg_10v"] - FET["qgs1"] - FET["qgd"]) / (10.0 - self.vpl) + cgs_ext
+        self.c3 = c_high + cgs_ext
         self.q1 = self.c1 * self.vpl
         self.q2 = self.q1 + self.qgd
 
@@ -145,24 +179,25 @@ class Gate:
         return self.q2 + (v - self.vpl) * self.c3
 
 
-def off_current(v, r_drv, rg_int, rg_on, r_off):
+def off_current(v, r_drv, rg_int, rg_on, r_off, i_cap=float("inf")):
     """Gate discharge current at gate voltage v through driver sink -> (Rg_on || D+R_off) -> rg_int.
-    The Schottky branch is a knee at Vf followed by R_off (closed-form piecewise-linear solve)."""
+    The Schottky branch is a knee at Vf followed by R_off (closed-form piecewise-linear solve).
+    The driver sink saturates at i_cap (FD6288Q IOL, Rev 9 review)."""
     if v <= 0.0:
         return 0.0
     rs = r_drv + rg_int
     if r_off is None or rg_on <= 0.0:
-        return v / (rs + rg_on)
+        return min(i_cap, v / (rs + rg_on))
     ro, vf = max(r_off, 0.05), ASSUME["schottky_vf"]
     i = v / (rs + rg_on)                       # diode off
     if i * rg_on <= vf:
-        return i
+        return min(i_cap, i)
     vb = (v + rs * vf / ro) / (1.0 + rs * (1.0 / rg_on + 1.0 / ro))
-    return (v - vb) / rs
+    return min(i_cap, (v - vb) / rs)
 
 
-def simulate_on(vd, vbus, r_src, rg_int, rg_on, cgs_ext, dt=0.05e-9):
-    g = Gate(vbus, cgs_ext)
+def simulate_on(vd, vbus, r_src, rg_int, rg_on, cgs_ext, dt=0.05e-9, i_cap=float("inf"), vpl=None, switching=True):
+    g = Gate(vbus, cgs_ext, switching, vpl)
     q, t = 0.0, 0.0
     ev = {}
     r = r_src + rg_int + rg_on
@@ -182,17 +217,19 @@ def simulate_on(vd, vbus, r_src, rg_int, rg_on, cgs_ext, dt=0.05e-9):
         if v >= 0.9 * vd:
             ev["v90"] = t
             break
-        q += (vd - v) / r * dt
+        q += min(i_cap, (vd - v) / r) * dt
         t += dt
         if t > 5e-6:
             raise RuntimeError("turn-on did not converge")
+    ev.setdefault("vth", ev["pl_start"])
     ev["t_ri"] = ev["pl_start"] - ev["vth"]
     ev["t_vf"] = ev["pl_end"] - ev["pl_start"]
     return ev
 
 
-def simulate_off(vd, vbus, r_snk, rg_int, rg_on, r_off, cgs_ext, v_stop, switching=True, dt=0.05e-9):
-    g = Gate(vbus, cgs_ext, switching)
+def simulate_off(vd, vbus, r_snk, rg_int, rg_on, r_off, cgs_ext, v_stop, switching=True, dt=0.05e-9,
+                 i_cap=float("inf"), vpl=None):
+    g = Gate(vbus, cgs_ext, switching, vpl)
     q, t = g.q(vd), 0.0
     ev = {}
     while True:
@@ -204,7 +241,7 @@ def simulate_off(vd, vbus, r_snk, rg_int, rg_on, r_off, cgs_ext, v_stop, switchi
         if v <= v_stop:
             ev["v_stop"] = t
             break
-        q -= off_current(v, r_snk, rg_int, rg_on, r_off) * dt
+        q -= off_current(v, r_snk, rg_int, rg_on, r_off, i_cap) * dt
         t += dt
         if t > 5e-6:
             raise RuntimeError("turn-off did not converge")
@@ -212,7 +249,7 @@ def simulate_off(vd, vbus, r_snk, rg_int, rg_on, r_off, cgs_ext, v_stop, switchi
     return ev
 
 
-def induced(vbus, t_vf, r_snk, rg_int, rg_on, r_off, cgs_ext, dt=0.05e-9):
+def induced(vbus, t_vf, r_snk, rg_int, rg_on, r_off, cgs_ext, dt=0.05e-9, i_cap=float("inf")):
     """Cdv/dt charge injected into the held-off complementary gate during the
     switch-node transition; returns peak Vgs and shoot-through charge."""
     q_inj = qgd_at(vbus)
@@ -221,7 +258,7 @@ def induced(vbus, t_vf, r_snk, rg_int, rg_on, r_off, cgs_ext, dt=0.05e-9):
     v, t, vpk, qst, ipk = 0.0, 0.0, 0.0, 0.0, 0.0
     while t < t_vf + 400e-9:
         inj = i_inj if t < t_vf else 0.0
-        v += (inj - off_current(v, r_snk, rg_int, rg_on, r_off)) / c * dt
+        v += (inj - off_current(v, r_snk, rg_int, rg_on, r_off, i_cap)) / c * dt
         vpk = max(vpk, v)
         if v > VTH_HOT_MIN:
             ist = FET["k_sat"] * (v - VTH_HOT_MIN) ** 2
@@ -236,7 +273,17 @@ def corner_r(corner):
     if corner == "fast":
         return (DRV["r_src"]["typ"] * ASSUME["r_drv_fast_factor"],
                 DRV["r_snk"]["typ"] * ASSUME["r_drv_fast_factor"], FET["rg_int"][0])
+    if corner == "typ":
+        return DRV["r_src"]["typ"], DRV["r_snk"]["typ"], FET["rg_int"][0]
     return DRV["r_src"]["slow"], DRV["r_snk"]["slow"], FET["rg_int"][1]
+
+
+def corner_caps(corner, vcc):
+    """FD6288Q output current limits (IOH/IOL, specified at VCC 15 V).  The slow corner uses the
+    minimum and scales it down with VCC below 15 V; fast uses the maximum unscaled."""
+    k = {"slow": 0, "typ": 1, "fast": 2}[corner]
+    scale = min(1.0, vcc / 15.0) if corner != "fast" else 1.0
+    return DRV["io_src"][k] * scale, DRV["io_snk"][k] * scale
 
 
 def qg_total(v, cgs=0.0):
@@ -260,36 +307,55 @@ def fd6288_tj(rg_on, r_off, cgs, f_pwm, vbus=None, t_board=None):
     return {"p_gate_total_W": p_gate, "p_fd6288_W": p_ic, "tj_fd6288_C": t_board + p_ic * DRV["rth_ja"]}
 
 
-def evaluate(rg_on, r_off, cgs, vbus, i_load, fsw):
-    vd = vbus                         # FD6288Q VCC = VBAT (filtered); HS gets VCC - Vf_bs
+def switching_energy(rg_on, r_off, cgs, vbus, i_load, vd=None):
+    """HS hard-switching energies for the loss model: slow driver (R max, IOH/IOL min), typical
+    Vth at ASSUME['tj_loss_C'], plateau at the load current.  Shoot-through energy from the
+    fast-corner Miller turn-on of the complementary FET (see stress())."""
+    vd = vbus if vd is None else vd
+    rs, rk, rgi = corner_r("slow")
+    i_src, i_snk = corner_caps("slow", vd)
+    vpl = v_plateau(i_load, ASSUME["tj_loss_C"], "typ")
+    vth = FET["vth_typ_25"] + FET["vth_tc"] * (ASSUME["tj_loss_C"] - 25.0)
+    on = simulate_on(vd, vbus, rs, rgi, rg_on, cgs, i_cap=i_src, vpl=vpl)
+    off = simulate_off(vd, vbus, rk, rgi, rg_on, r_off, cgs, vth, i_cap=i_snk, vpl=vpl)
+    # current rise: Vth -> plateau; voltage fall: plateau.  Turn-off mirrors it.
+    t_on_ev = simulate_on(vd, vbus, rs, rgi, rg_on, cgs, i_cap=i_src, vpl=vpl)
+    t_ri = t_on_ev["pl_start"] - (t_on_ev.get("vth_hot_typ") if ASSUME["tj_loss_C"] >= 100 else t_on_ev["vth"])
+    e_on = 0.5 * vbus * i_load * (max(t_ri, 0.0) + on["t_vf"])
+    t_fi = off["v_stop"] - off["pl_end"]
+    e_off = 0.5 * vbus * i_load * (off["t_vr"] + t_fi)
+    return e_on, e_off
+
+
+def stress(rg_on, r_off, cgs, vbus, i_load):
+    """Fast corner (driver R 0.6 x typ, IOH/IOL max, rg_int typ on the switching FET, hot Vth min)
+    for dv/dt, Miller turn-on and di/dt overshoot.  The victim (held-off) FET is on the same
+    FD6288Q die (fast sink) but is a separate MOSFET, so it gets the datasheet max rg_int."""
+    vd = vbus
     rs_f, rk_f, rgi_f = corner_r("fast")
-    rs_s, rk_s, rgi_s = corner_r("slow")
-    on_f = simulate_on(vd, vbus, rs_f, rgi_f, rg_on, cgs)
-    on_s = simulate_on(vd, vbus, rs_s, rgi_s, rg_on, cgs)
-    off_f = simulate_off(vd, vbus, rk_f, rgi_f, rg_on, r_off, cgs, VTH_HOT_TYP)
-    off_s = simulate_off(vd, vbus, rk_s, rgi_s, rg_on, r_off, cgs, VTH_HOT_MIN)
-    # energies (slow corner, typ conservative for loss)
-    e_on = 0.5 * vbus * i_load * (on_s["t_ri"] + on_s["t_vf"])
-    off_s_typ = simulate_off(vd, vbus, rk_s, rgi_s, rg_on, r_off, cgs, VTH_HOT_TYP)
-    t_fi_s = off_s_typ["v_stop"] - off_s_typ["pl_end"]
-    e_off = 0.5 * vbus * i_load * (off_s_typ["t_vr"] + t_fi_s)
-    # fast-corner stress
-    dvdt = vbus / on_f["t_vf"]
-    vpk, qst, ipk = induced(vbus, on_f["t_vf"], rk_f, rgi_f, rg_on, r_off, cgs)
-    e_st = vbus * qst
-    t_fi_f = off_f["v_stop"] - off_f["pl_end"]
-    v_os = ASSUME["l_loop_nH"] * 1e-9 * i_load / max(t_fi_f, 1e-12)
-    p_sw = (e_on + e_off + e_st) * fsw / 3.0           # 120-degree PWM window, as the thermal model
+    i_src, i_snk = corner_caps("fast", vd)
+    vpl = v_plateau(i_load, TJ_HOT, "min")
+    on_f = simulate_on(vd, vbus, rs_f, rgi_f, rg_on, cgs, i_cap=i_src, vpl=vpl)
+    off_f = simulate_off(vd, vbus, rk_f, rgi_f, rg_on, r_off, cgs, VTH_HOT_MIN, i_cap=i_snk, vpl=vpl)
+    vpk, qst, ipk = induced(vbus, on_f["t_vf"], rk_f, FET["rg_int"][1], rg_on, r_off, cgs, i_cap=i_snk)
+    t_fi_f = max(off_f["v_stop"] - off_f["pl_end"], 1e-12)
+    return {"dvdt": vbus / on_f["t_vf"], "vpk": vpk, "e_st": vbus * qst, "ipk": ipk, "t_fi": t_fi_f,
+            "v_os": ASSUME["l_loop_nH"] * 1e-9 * i_load / t_fi_f}
+
+
+def evaluate(rg_on, r_off, cgs, vbus, i_load, fsw):
+    e_on, e_off = switching_energy(rg_on, r_off, cgs, vbus, i_load)
+    st = stress(rg_on, r_off, cgs, vbus, i_load)
+    p_sw = (e_on + e_off + st["e_st"]) * fsw / 3.0     # 120-degree PWM window, as the thermal model
     return {
         "rg_on": rg_on, "r_off": r_off, "cgs_ext_nF": cgs * 1e9, "vbus": vbus, "i": i_load,
-        "dvdt_V_per_ns": dvdt * 1e-9, "induced_vgs_pk_V": vpk, "shoot_through_pk_A": ipk,
-        "e_on_uJ": e_on * 1e6, "e_off_uJ": e_off * 1e6, "e_st_uJ": e_st * 1e6,
-        "est_frac": e_st / e_on if e_on > 0 else 0.0,
-        "t_fall_fast_ns": t_fi_f * 1e9, "v_overshoot_V": v_os, "vds_peak_V": vbus + v_os,
+        "dvdt_V_per_ns": st["dvdt"] * 1e-9, "induced_vgs_pk_V": st["vpk"], "shoot_through_pk_A": st["ipk"],
+        "e_on_uJ": e_on * 1e6, "e_off_uJ": e_off * 1e6, "e_st_uJ": st["e_st"] * 1e6,
+        "est_frac": st["e_st"] / e_on if e_on > 0 else 0.0,
+        "t_fall_fast_ns": st["t_fi"] * 1e9, "v_overshoot_V": st["v_os"], "vds_peak_V": vbus + st["v_os"],
         "p_sw_W": p_sw,
         "tj_fd6288_24k_C": fd6288_tj(rg_on, r_off, cgs, 24e3)["tj_fd6288_C"],
         "tj_fd6288_48k_C": fd6288_tj(rg_on, r_off, cgs, 48e3)["tj_fd6288_C"],
-        "_on_f": on_f, "_off_s": off_s,
     }
 
 
@@ -367,11 +433,11 @@ def main():
                     pass
                 if roff is not None and rg == 0.0:
                     continue            # diode in parallel with 0 ohm is pointless
-                stress = evaluate(rg, roff, cgs, BUS["4S_HV"], 35.0, fsw)
+                st_pt = evaluate(rg, roff, cgs, BUS["4S_HV"], 35.0, fsw)
                 loss = evaluate(rg, roff, cgs, BUS["4S_full"], 20.0, fsw)
-                ok = feasible(stress)
+                ok = feasible(st_pt)
                 sweep.append({"rg_on": rg, "r_off": roff, "cgs_ext_nF": cgs * 1e9, "feasible": ok,
-                              "stress_4S_HV_35A": {k: v for k, v in stress.items() if not k.startswith("_")},
+                              "stress_4S_HV_35A": st_pt,
                               "p_sw_4S_20A_24kHz_W": loss["p_sw_W"]})
     feas = [s for s in sweep if s["feasible"]]
     check("C1_feasible_gate_network_exists", bool(feas), f"{len(feas)}/{len(sweep)} candidates meet dv/dt, shoot-through and VDS limits")
@@ -382,7 +448,9 @@ def main():
     # LOSS_BAND of the minimum loss pick the fewest parts per FET, then the lowest dv/dt
     # (EMI next to the IMUs on an AIO board), then the lowest loss.
     def parts(s_):
-        return (s_["rg_on"] > 0) + (0 if s_["r_off"] is None else 1 + (s_["r_off"] > 0)) + (s_["cgs_ext_nF"] > 0)
+        # every gate keeps a series-resistor footprint (fitted 0 ohm if Rg_on = 0) so slew rate can
+        # be re-tuned at bring-up; the turn-off Schottky (+ R_off) and Cgs_ext add parts
+        return 1 + (0 if s_["r_off"] is None else 1 + (s_["r_off"] > 0)) + (s_["cgs_ext_nF"] > 0)
 
     def cost(s_):
         return (parts(s_), round(s_["stress_4S_HV_35A"]["dvdt_V_per_ns"], 2), s_["p_sw_4S_20A_24kHz_W"])
@@ -402,47 +470,75 @@ def main():
     check("C3_dvdt_vs_FD6288_abs", sel["dvdt_V_per_ns"] * 1e9 <= DRV["dvs_dt_max"],
           f"{sel['dvdt_V_per_ns']:.2f} V/ns vs FD6288Q dVS/dt 50 V/ns")
 
-    # ---- dead time (both transitions, both bus corners; take the worst)
+    # ---- gate-loop damping: with a small or 0 ohm Rg the gate loop (driver -> trace -> Cgs) must
+    # not ring: zeta = R/2 * sqrt(C/L) >= 1 on the fast source and fast sink paths.
+    c_g = FET["qgs1"] / FET["v_plateau"] + cgs
+    zeta = {}
+    for path, r_drv in (("source", corner_r("fast")[0]), ("sink", corner_r("fast")[1])):
+        r_path = r_drv + FET["rg_int"][0] + (rg_on if (path == "source" or r_off is None) else min(rg_on, r_off))
+        zeta[path] = r_path / 2.0 * math.sqrt(c_g / (ASSUME["l_gate_nH"] * 1e-9))
+    check("C9_gate_loop_damping", min(zeta.values()) >= 1.0,
+          f"zeta source {zeta['source']:.2f}, sink {zeta['sink']:.2f} (L_gate {ASSUME['l_gate_nH']} nH, "
+          f"C {c_g*1e9:.1f} nF, fast driver R + rg_int typ + external path)")
+
+    # ---- dead time.  For each transition the OUTGOING device may be hard-switched (its own
+    # current commutates: HS for positive phase current, LS for negative phase current during
+    # deceleration / braking / ripple below zero) or soft.  All four combinations, both bus
+    # corners and the gate-limited currents are evaluated; the worst sets DEAD_TIME.
+    # Outgoing: slow driver (R max, IOL min scaled by VCC/15), rg_int max, plateau at Tj 125 C /
+    # Vth min, declared off at Vth,min(125 C).  Incoming: fast driver, reaches Vth,min(125 C).
     dt_rows = []
+    rs_f, rk_f, rgi_f = corner_r("fast")
+    rs_s, rk_s, rgi_s = corner_r("slow")
     for name, vb in (("4S_HV", BUS["4S_HV"]), ("2S_min", BUS["2S_min"])):
-        for trans, hard in (("HS_off->LS_on", True), ("LS_off->HS_on", False)):
-            rs_f, rk_f, rgi_f = corner_r("fast")
-            rs_s, rk_s, rgi_s = corner_r("slow")
+        for trans in ("HS_off->LS_on", "LS_off->HS_on"):
             vd_out = vb if trans.startswith("LS") else vb - ASSUME["vf_bs"]
             vd_in = vb - ASSUME["vf_bs"] if trans.endswith("HS_on") else vb
-            out = simulate_off(vd_out, vb, rk_s, rgi_s, rg_on, r_off, cgs, VTH_HOT_MIN, switching=hard)
-            inn = simulate_on(vd_in, vb, rs_f, rgi_f, rg_on, cgs)
-            t_out = DRV["toff_max"] + out["v_stop"]
+            _, isnk_s = corner_caps("slow", vd_out)
+            isrc_f, _ = corner_caps("fast", vd_in)
+            inn = simulate_on(vd_in, vb, rs_f, rgi_f, rg_on, cgs, i_cap=isrc_f)
             t_in = ASSUME["toff_prop_min"] + DRV["dt_int"][0] + inn["vth_hot"]
-            need = t_out - t_in + DRV["mt_max"] + ASSUME["dt_guard"]
-            dt_rows.append({"bus": name, "transition": trans, "t_outgoing_below_vth_ns": t_out * 1e9,
-                            "t_incoming_at_vth_ns_without_mcu_dt": t_in * 1e9, "dt_mcu_required_ns": max(0.0, need) * 1e9})
-    dt_need = max(r["dt_mcu_required_ns"] for r in dt_rows) * 1e-9
+            cases = [("soft", None)] + [("hard", i_) for i_ in ASSUME["i_plateau_A"]]
+            for kind, i_l in cases:
+                vpl = None if i_l is None else v_plateau(i_l, TJ_HOT, "min")
+                out = simulate_off(vd_out, vb, rk_s, rgi_s, rg_on, r_off, cgs, VTH_HOT_MIN,
+                                   switching=(kind == "hard"), i_cap=isnk_s, vpl=vpl)
+                t_out = DRV["toff_max"] + out["v_stop"]
+                need = t_out - t_in + DRV["mt_max"] + ASSUME["dt_guard"]
+                dt_rows.append({"bus": name, "transition": trans, "outgoing": kind, "i_A": i_l,
+                                "v_plateau_V": vpl, "t_outgoing_below_vth_ns": t_out * 1e9,
+                                "t_incoming_at_vth_ns_without_mcu_dt": t_in * 1e9,
+                                "dt_mcu_required_ns": max(0.0, need) * 1e9})
+    worst = max(dt_rows, key=lambda r: r["dt_mcu_required_ns"])
+    dt_need = worst["dt_mcu_required_ns"] * 1e-9
     tick = 1.0 / MCU["tim_clk_hz"]
     ticks = math.ceil(dt_need / tick - 1e-9)
     dtg = dtg_encode(ticks)
     dt_mcu = dtg_decode(dtg) * tick
-    check("C4_dtg_linear_range", dtg < 0x80, f"DEAD_TIME = {dtg} (0x{dtg:02X}) -> {dt_mcu*1e9:.1f} ns, need {dt_need*1e9:.1f} ns")
-    # Body-diode conduction per edge (what the thermal model needs) = time from the outgoing
-    # channel actually turning off to the incoming channel turning on, both measured from the
-    # MCU edge.  The MCU + FD6288Q dead time only *starts* that window; the outgoing turn-off
-    # time is subtracted.  typ: typical delays/R at Vth,hot,typ.  max: outgoing fastest
-    # (toff_prop_min, fast R) vs incoming slowest (ton_max, slow R) -> longest conduction.
+    check("C4_dtg_linear_range", dtg < 0x80,
+          f"DEAD_TIME = {dtg} (0x{dtg:02X}) -> {dt_mcu*1e9:.1f} ns, need {dt_need*1e9:.1f} ns "
+          f"(worst: {worst['bus']} {worst['transition']} {worst['outgoing']} {worst['i_A'] or ''} A)")
+
+    # Body-diode conduction per edge (thermal model input) = outgoing channel off -> incoming
+    # channel on, both from the MCU edge.  typ: typical delays, R, caps, Vth(125 C) typ.
+    # max: outgoing fastest (toff_prop_min, fast driver) vs incoming slowest (ton_max + MT,
+    # slow driver, Vth typ at 25 C) -> the longest conduction.
     def diode_window(vb, corner):
-        rs_f, rk_f, rgi_f = corner_r("fast")
-        rs_s, rk_s, rgi_s = corner_r("slow")
-        rs_t, rk_t, rgi_t = DRV["r_src"]["typ"], DRV["r_snk"]["typ"], FET["rg_int"][0]
         if corner == "typ":
-            out = DRV["toff_typ"] + simulate_off(vb, vb, rk_t, rgi_t, rg_on, r_off, cgs, VTH_HOT_TYP)["v_stop"]
-            inn = dt_mcu + DRV["ton_typ"] + simulate_on(vb, vb, rs_t, rgi_t, rg_on, cgs)["vth_hot_typ"]
+            rs, rk, rgi = corner_r("typ")
+            isrc, isnk = corner_caps("typ", vb)
+            out = DRV["toff_typ"] + simulate_off(vb, vb, rk, rgi, rg_on, r_off, cgs, VTH_HOT_TYP, i_cap=isnk,
+                                                 vpl=v_plateau(20.0, TJ_HOT, "typ"))["v_stop"]
+            inn = dt_mcu + DRV["ton_typ"] + simulate_on(vb, vb, rs, rgi, rg_on, cgs, i_cap=isrc)["vth_hot_typ"]
         else:
-            out = ASSUME["toff_prop_min"] + simulate_off(vb, vb, rk_f, rgi_f, rg_on, r_off, cgs, VTH_HOT_TYP)["v_stop"]
-            on_s = simulate_on(vb, vb, rs_s, rgi_s, rg_on, cgs)
-            inn = dt_mcu + DRV["ton_max"] + DRV["mt_max"] + on_s["vth"]
+            _, isnk = corner_caps("fast", vb)
+            isrc, _ = corner_caps("slow", vb)
+            out = ASSUME["toff_prop_min"] + simulate_off(vb, vb, rk_f, rgi_f, rg_on, r_off, cgs, VTH_HOT_TYP,
+                                                         i_cap=isnk, vpl=v_plateau(35.0, TJ_HOT, "typ"))["v_stop"]
+            inn = dt_mcu + DRV["ton_max"] + DRV["mt_max"] + simulate_on(vb, vb, rs_s, rgi_s, rg_on, cgs, i_cap=isrc)["vth"]
         return max(0.0, inn - out)
     dt_diode_typ = max(diode_window(v, "typ") for v in (BUS["4S_full"], BUS["2S_full"]))
     dt_diode_max = max(diode_window(v, "max") for v in (BUS["4S_full"], BUS["2S_full"]))
-    # minimum on-time AM32 can command: minimum_duty_cycle starts at DEAD_TIME ARR ticks
     arr = int(MCU["tim_clk_hz"] / MCU["nominal_pwm_hz"]) - 1
 
     # driving-brake override: dead_time_override = DEAD_TIME + (150 - 10*s), capped 200, then BDTR |= override
@@ -469,18 +565,25 @@ def main():
           f"FD6288Q Tj at board {ASSUME['tj_board_C']:.0f} C: 24 kHz {drv_rows['24kHz']['tj_fd6288_C']:.1f} C, "
           f"48 kHz {drv_rows['48kHz']['tj_fd6288_C']:.1f} C (limit {ASSUME['tj_fd6288_max_C']:.0f} C at 24 kHz; "
           f"48 kHz {'allowed' if drv_rows['48kHz']['tj_fd6288_C'] <= DRV['tj_max'] - 10 else 'NOT allowed'} vs 140 C)")
-    # bootstrap: HS held on with no refresh for 1/3 electrical period at 100 % duty
+    # bootstrap: HS held on with no refresh for 1/3 electrical period at 100 % duty.  C_BS
+    # supplies IQBS + the bootstrap Schottky leakage + the HS gate pull-down (Rev 9 review):
+    # dV/dt = -(I_q + V/R_pd)/C  ->  t = R C ln((V0 + I_q R)/(V_min + I_q R)).
     c_bs = ASSUME["c_bs_eff_uF"] * 1e-6
+    i_q = DRV["iqbs_max"] + ASSUME["i_bs_leak"]
+    r_pd = ASSUME["r_pd_hs"]
+    v_floor = max(DRV["uvlo_on_max"], 4.5 + 0.5)          # keep VGS >= 5 V (RDS(on) spec at 4.5 V + 0.5)
     bs = {}
     for name, vb in (("2S_min", BUS["2S_min"]), ("3S_nom", 11.1), ("4S_full", BUS["4S_full"])):
-        dv_allow = (vb - ASSUME["vf_bs"]) - max(DRV["uvlo_on_max"], 4.5 + 0.5)   # keep VGS >= 5 V (RDS(on) spec at 4.5 V + 0.5)
         dv_step = qg(vb) / c_bs
-        t_hold = (dv_allow - dv_step) * c_bs / DRV["iqbs_max"] if dv_allow > dv_step else 0.0
+        v0 = vb - ASSUME["vf_bs"] - dv_step
+        t_hold = r_pd * c_bs * math.log((v0 + i_q * r_pd) / (v_floor + i_q * r_pd)) if v0 > v_floor else 0.0
         erpm_min = (1.0 / (3.0 * t_hold)) * 60.0 if t_hold > 0 else float("inf")
-        bs[name] = {"dv_allowed_V": dv_allow, "dv_charge_share_V": dv_step, "max_hs_on_ms": t_hold * 1e3,
+        bs[name] = {"v_after_turn_on_V": v0, "v_floor_V": v_floor, "dv_charge_share_V": dv_step,
+                    "i_static_uA": (i_q + v0 / r_pd) * 1e6, "max_hs_on_ms": t_hold * 1e3,
                     "min_erpm_at_100pct_duty": erpm_min,
                     "min_mech_rpm_at_100pct_duty": erpm_min / ASSUME["pole_pairs"]}
     check("C8_bootstrap_hold", bs["2S_min"]["max_hs_on_ms"] > 0.5 and bs["4S_full"]["max_hs_on_ms"] > 10,
+          f"C_BS {ASSUME['c_bs_eff_uF']} uF eff, IQBS+leak {i_q*1e6:.0f} uA, HS pull-down {r_pd/1e3:.0f} k; "
           "max HS on-time without refresh: " + ", ".join(f"{k} {v['max_hs_on_ms']:.2f} ms" for k, v in bs.items()))
 
     # ---- header consistency
@@ -503,30 +606,65 @@ def main():
         vd = defs.get("TARGET_VOLTAGE_DIVIDER")
         check("H5_header_voltage_divider", vd == "110",
               f"TARGET_VOLTAGE_DIVIDER {vd}: 100k/10k divider -> ratio 11 -> AM32 units x10 = 110; full scale 36.3 V")
+        txt = open(HEADER).read()
+        m7 = re.search(r"Body-diode conduction per edge: (\d+) ns typ / (\d+) ns max", txt)
+        m8 = re.search(r"\b%d -> ([0-9.]+) ns MCU dead time" % dtg, txt)
+        ok7 = (m7 is not None and int(m7.group(1)) == round(dt_diode_typ * 1e9) and int(m7.group(2)) == round(dt_diode_max * 1e9)
+               and m8 is not None and abs(float(m8.group(1)) - dt_mcu * 1e9) < 0.05)
+        check("H7_header_comments", ok7,
+              f"header comment must quote '{dtg} -> {dt_mcu*1e9:.1f} ns MCU dead time' and body-diode "
+              f"{round(dt_diode_typ*1e9)} ns typ / {round(dt_diode_max*1e9)} ns max")
         bad = [m for m in ("DEAD_TIME_NS", "PWM_FREQ_KHZ", "TEMPERATURE_CUTOFF_C", "BIDIRECTIONAL_DSHOT",
                            "SENSE_SHUNT_MILLIOHM", "OVER_CURRENT_LIMIT_AMPS", "DSHOT_TELEMETRY") if m in defs]
         check("H6_no_dead_macros", not bad, f"macros AM32 never reads: {bad or 'none'}")
 
     # ---- EEPROM settings the analysis depends on
     ee = {e["field"]: e["value"] for e in json.load(open(EEPROM))["settings"]}
-    cell_cut = (ee.get("low_cell_volt_cutoff", 0) + 250) / 100.0
-    vbs_cut = 2 * cell_cut - ASSUME["vf_bs"]
-    poles_parm = None
+    parm = {}
     for line in open(PARM):
-        m = re.match(r"\s*SERVO_BLH_POLES\s+(\d+)", line)
+        m = re.match(r"\s*([A-Z0-9_]+)\s+(-?[0-9.]+)", line)
         if m:
-            poles_parm = int(m.group(1))
+            parm[m.group(1)] = float(m.group(2))
+    poles_parm = parm.get("SERVO_BLH_POLES")
     e_ok = (ee.get("comp_pwm") == 1 and ee.get("variable_pwm") == 0
             and ee.get("pwm_frequency") == int(MCU["nominal_pwm_hz"] / 1e3)
             and ee.get("driving_brake_strength") == 10
-            and ee.get("low_voltage_cut_off") == 1 and 2 * cell_cut >= BUS["2S_min"] and vbs_cut > DRV["uvlo_on_max"]
+            and ee.get("low_voltage_cut_off") == 0
             and 70 <= ee.get("limits.temperature", 0) <= 140
-            and ee.get("motor_poles") == poles_parm == 2 * ASSUME["pole_pairs"])
+            and poles_parm is not None and ee.get("motor_poles") == int(poles_parm) == 2 * ASSUME["pole_pairs"])
     check("E1_eeprom_settings", e_ok,
           f"comp_pwm {ee.get('comp_pwm')}, variable_pwm {ee.get('variable_pwm')}, pwm {ee.get('pwm_frequency')} kHz, "
-          f"driving_brake {ee.get('driving_brake_strength')}, cutoff {cell_cut:.2f} V/cell -> 2S VBS {vbs_cut:.2f} V "
-          f"(UVLO+ max {DRV['uvlo_on_max']}), temp limit {ee.get('limits.temperature')} C, poles {ee.get('motor_poles')} "
-          f"(defaults.parm {poles_parm})")
+          f"driving_brake {ee.get('driving_brake_strength')}, low_voltage_cut_off {ee.get('low_voltage_cut_off')} "
+          f"(AM32 cutoff latches allOff() per ESC until power cycle -> must be 0), temp limit "
+          f"{ee.get('limits.temperature')} C, poles {ee.get('motor_poles')} (defaults.parm {poles_parm})")
+    # Minimum on-time: AM32 duty is 0..2000 of ARR (main.c:1517 adjusted = duty*arr/2000 + 1); the
+    # floor is EEPROM byte 6 x 10 (main.c:645).  A commanded pulse shorter than DT_mcu + the FD6288Q
+    # internal dead time (max) is swallowed whole, so the floor must exceed it.
+    md = ee.get("minimum_duty_cycle", 0)
+    t_min_on = (md * 10 * (arr + 1) / 2000 + 1) * tick
+    t_swallow = dt_mcu + DRV["dt_int"][2] + DRV["mt_max"]
+    md_need = math.ceil((t_swallow / tick - 1) * 2000 / (arr + 1) / 10)
+    check("E2_min_on_time", t_min_on > t_swallow,
+          f"minimum_duty_cycle {md} -> {md*10}/2000 -> {t_min_on*1e9:.0f} ns on-time vs DT_mcu + DT_int,max + MT "
+          f"{t_swallow*1e9:.0f} ns (needs >= {md_need})")
+    # FD6288Q UVLO floor enforced by the FC (the ESC-level cutoff is off): BATT_CRT_VOLT must keep
+    # VBS = VBAT - Vf_bs above UVLO+ max with sag margin, and the critical failsafe must act.
+    v_floor_bat = DRV["uvlo_on_max"] + ASSUME["vf_bs"] + 0.5
+    crt = parm.get("BATT_CRT_VOLT", 0.0)
+    check("E3_fc_uvlo_failsafe", crt >= v_floor_bat and parm.get("BATT_FS_CRT_ACT", 0) > 0,
+          f"defaults.parm BATT_CRT_VOLT {crt} V >= {v_floor_bat:.2f} V (UVLO+ max {DRV['uvlo_on_max']} + Vf_bs "
+          f"{ASSUME['vf_bs']} + 0.5 V sag), BATT_FS_CRT_ACT {parm.get('BATT_FS_CRT_ACT')} != 0")
+
+    # ---- switching-energy table for analysis/thermal_power_analysis.py (selected network)
+    e_table = {"i_A": [5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0], "rows": []}
+    for vb in (BUS["2S_full"], BUS["4S_full"]):
+        row = {"vbus": vb, "e_on_uJ": [], "e_off_uJ": [], "e_st_uJ": []}
+        for i_ in e_table["i_A"]:
+            e_on, e_off = switching_energy(rg_on, r_off, cgs, vb, i_)
+            row["e_on_uJ"].append(e_on * 1e6)
+            row["e_off_uJ"].append(e_off * 1e6)
+            row["e_st_uJ"].append(stress(rg_on, r_off, cgs, vb, i_)["e_st"] * 1e6)
+        e_table["rows"].append(row)
 
     report = {
         "revision": "9.0",
@@ -553,19 +691,23 @@ def main():
             "rows": dt_rows, "dt_mcu_required_ns": dt_need * 1e9, "tick_ns": tick * 1e9,
             "DEAD_TIME": dtg, "dt_mcu_ns": dt_mcu * 1e9,
             "body_diode_per_edge_ns": {"typ": dt_diode_typ * 1e9, "max": dt_diode_max * 1e9},
-            "arr_at_24kHz": arr, "min_duty_from_dead_time_pct": 100.0 * dtg / (arr + 1),
+            "arr_at_24kHz": arr, "min_on_time_ns": t_min_on * 1e9, "swallowed_pulse_below_ns": t_swallow * 1e9,
+            "minimum_duty_cycle_eeprom_needed": md_need,
+            "gate_drive_offset_note": f"DEAD_TIME also seeds gate_drive_offset = {dtg}/2000 of ARR "
+                                      f"({dtg*(arr+1)/2000*tick*1e9:.0f} ns, sine start-up only); "
+                                      "minimum_duty_cycle is overwritten from EEPROM byte 6 (main.c:645)",
             "driving_brake_override": brake,
         },
-        "fd6288_dissipation": drv_rows, "bootstrap": bs,
+        "fd6288_dissipation": drv_rows, "bootstrap": bs, "switching_energy_table": e_table,
         "requirements": [
             "FD6288Q VCC = VBAT via 10 ohm + 10 uF/25 V X5R (datasheet C1), clamped by an 18 V Zener (BZT52C18) at VCC",
             f"Gate network per FET: Rg_on {rg_on} ohm 0402" + ("" if r_off is None else f", Schottky (RB521S30) + {r_off} ohm in parallel for turn-off")
             + ("" if cgs == 0 else f", Cgs_ext {cgs*1e9:.1f} nF C0G at the FET"),
-            "10 kohm gate-source pull-down on every FET (holds off while VCC < UVLO; FD6288Q outputs are undriven below UVLO)",
-            "Bootstrap: Schottky (B5819WS class, 40 V) + 2.2 ohm series + 1 uF/25 V X5R per phase, cap within 2 mm of VB/VS",
+            "Gate-source pull-down: 10 kohm on each LS, 100 kohm on each HS (HS value loads C_BS; holds off while VCC < UVLO)",
+            "Bootstrap: 40 V Schottky with IR <= 100 uA at 20 V / 105 C + 2.2 ohm series + 2.2 uF/25 V X5R 0603 per phase, cap within 2 mm of VB/VS",
             f"HS-LS-ceramic commutation loop <= {ASSUME['l_loop_nH']:.0f} nH: >= 2 x 10 uF/25 V 0805 across each half-bridge on the FET layer",
             "FD6288Q HIN1..3 <- AT32F421 PA10/PA9/PA8 (TMR1_CH3/2/1), LIN1..3 <- PB1/PB0/PA7 (TMR1_CH3N/2N/1N); no inverters",
-            "AM32 EEPROM: pwm_frequency 24, driving_brake_strength 10 (override off), limits.temperature 115, limits.current 0",
+            "AM32 EEPROM per am32_esc/eeprom_settings.json; FC battery failsafe BATT_CRT_VOLT >= 6.4 V protects the FD6288Q UVLO",
         ],
         "sweep_feasible_by_loss": [
             {"rg_on": s_["rg_on"], "r_off": s_["r_off"], "cgs_ext_nF": s_["cgs_ext_nF"],

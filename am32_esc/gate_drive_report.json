@@ -9,14 +9,24 @@
   "r_drv_fast_factor": 0.6,
   "toff_prop_min": 5e-08,
   "dt_guard": 2.5e-08,
+  "l_gate_nH": 10.0,
   "l_loop_nH": 3.0,
   "dvdt_emi_max": 5000000000.0,
   "est_frac_max": 0.1,
   "vds_derate": 0.8,
   "schottky_vf": 0.3,
   "qgd_scaling": "sqrt",
-  "c_bs_eff_uF": 0.5,
+  "c_bs_eff_uF": 1.1,
   "vf_bs": 0.45,
+  "i_bs_leak": 0.0001,
+  "r_pd_hs": 100000.0,
+  "r_pd_ls": 10000.0,
+  "i_plateau_A": [
+   10.0,
+   20.0,
+   35.0
+  ],
+  "tj_loss_C": 100.0,
   "pole_pairs": 7,
   "tj_board_C": 105.0,
   "tj_fd6288_max_C": 125.0,
@@ -46,8 +56,16 @@
    2e-07,
    3e-07
   ],
-  "io_src_min": 1.1,
-  "io_snk_min": 1.3,
+  "io_src": [
+   1.1,
+   1.5,
+   1.9
+  ],
+  "io_snk": [
+   1.3,
+   1.8,
+   2.3
+  ],
   "voh_typ": 0.6,
   "voh_max": 0.9,
   "vol_typ": 0.3,
@@ -84,6 +102,24 @@
   "qgd": 1.24e-08,
   "qsw": 2.3e-08,
   "v_plateau": 3.3,
+  "v_plateau_vs_I": [
+   [
+    10.0,
+    3.07
+   ],
+   [
+    20.0,
+    3.2
+   ],
+   [
+    35.0,
+    3.35
+   ],
+   [
+    50.0,
+    3.4
+   ]
+  ],
   "rg_int": [
    0.6,
    1.1
@@ -105,64 +141,64 @@
   "toff_model_ns": 98.55000000000139
  },
  "selected_gate_network": {
-  "rg_on_ohm": 15.0,
-  "turn_off": "Schottky + 0.0 ohm in parallel with Rg_on",
-  "r_off_ohm": 0.0,
-  "cgs_ext_nF": 0.0,
+  "rg_on_ohm": 0.0,
+  "turn_off": "single resistor",
+  "r_off_ohm": null,
+  "cgs_ext_nF": 2.1999999999999997,
   "stress_4S_HV_35A": {
-   "rg_on": 15.0,
-   "r_off": 0.0,
-   "cgs_ext_nF": 0.0,
+   "rg_on": 0.0,
+   "r_off": null,
+   "cgs_ext_nF": 2.1999999999999997,
    "vbus": 17.4,
    "i": 35.0,
-   "dvdt_V_per_ns": 1.104761904761968,
-   "induced_vgs_pk_V": 1.1875577093786216,
-   "shoot_through_pk_A": 5.202941859687874,
-   "e_on_uJ": 11.570999999999524,
-   "e_off_uJ": 23.827125000001793,
-   "e_st_uJ": 0.8446093955767727,
-   "est_frac": 0.0729936388883249,
-   "t_fall_fast_ns": 24.50000000000072,
-   "v_overshoot_V": 4.28571428571416,
-   "vds_peak_V": 21.68571428571416,
-   "p_sw_W": 0.2899418751646247,
-   "tj_fd6288_24k_C": 109.55604096934837,
-   "tj_fd6288_48k_C": 113.15473393869676
+   "dvdt_V_per_ns": 2.852459016393417,
+   "induced_vgs_pk_V": 1.073159004221029,
+   "shoot_through_pk_A": 3.503300399328498,
+   "e_on_uJ": 7.5668249999999695,
+   "e_off_uJ": 19.366200000001456,
+   "e_st_uJ": 0.3898420645357788,
+   "est_frac": 0.051519899632379546,
+   "t_fall_fast_ns": 29.70000000000223,
+   "v_overshoot_V": 3.5353535353532703,
+   "vds_peak_V": 20.93535353535327,
+   "p_sw_W": 0.21858293651629765,
+   "tj_fd6288_24k_C": 112.77946468045654,
+   "tj_fd6288_48k_C": 119.60158136091307
   },
-  "p_sw_per_HS_4S_20A_24kHz_W": 0.16345696509417826,
-  "min_feasible_loss_W": 0.15253838811225917,
+  "p_sw_per_HS_4S_20A_24kHz_W": 0.11674100168211422,
+  "min_feasible_loss_W": 0.11024508501958187,
   "selection_rule": "within +10 % of min feasible loss -> fewest parts/FET -> lowest dv/dt -> lowest loss",
   "unconstrained_loss_optimum": {
    "rg_on": 0.0,
    "r_off": null,
    "cgs_ext_nF": 0.0,
    "feasible": false,
-   "p_sw_W": 0.1159725734429356,
+   "p_sw_W": 0.10551714973543014,
    "stress": {
     "rg_on": 0.0,
     "r_off": null,
     "cgs_ext_nF": 0.0,
     "vbus": 17.4,
     "i": 35.0,
-    "dvdt_V_per_ns": 5.043478260869538,
-    "induced_vgs_pk_V": 1.410638726416568,
-    "shoot_through_pk_A": 9.480947422821538,
-    "e_on_uJ": 4.658850000000042,
-    "e_off_uJ": 20.157900000001515,
-    "e_st_uJ": 0.8611951099509013,
-    "est_frac": 0.18485143542953597,
-    "t_fall_fast_ns": 19.94999999999989,
-    "v_overshoot_V": 5.263157894736872,
-    "vds_peak_V": 22.66315789473687,
-    "p_sw_W": 0.20542356087961966,
+    "dvdt_V_per_ns": 2.852459016393417,
+    "induced_vgs_pk_V": 1.3438783695941021,
+    "shoot_through_pk_A": 8.067108681080192,
+    "e_on_uJ": 6.577200000000059,
+    "e_off_uJ": 16.64092500000125,
+    "e_st_uJ": 0.9144710446475117,
+    "est_frac": 0.13903652688796198,
+    "t_fall_fast_ns": 23.000000000001727,
+    "v_overshoot_V": 4.565217391304006,
+    "vds_peak_V": 21.965217391304005,
+    "p_sw_W": 0.19306076835719058,
     "tj_fd6288_24k_C": 111.55761436751536,
     "tj_fd6288_48k_C": 117.15788073503073
    }
   },
   "vds_peak_vs_loop_inductance_V": {
-   "1.5nH": 19.54285714285708,
-   "3.0nH": 21.68571428571416,
-   "5.0nH": 24.54285714285693
+   "1.5nH": 19.167676767676635,
+   "3.0nH": 20.93535353535327,
+   "5.0nH": 23.292255892255447
   }
  },
  "dead_time": {
@@ -170,283 +206,504 @@
    {
     "bus": "4S_HV",
     "transition": "HS_off->LS_on",
-    "t_outgoing_below_vth_ns": 382.70000000001073,
-    "t_incoming_at_vth_ns_without_mcu_dt": 154.7,
-    "dt_mcu_required_ns": 283.0000000000108
+    "outgoing": "soft",
+    "i_A": null,
+    "v_plateau_V": null,
+    "t_outgoing_below_vth_ns": 422.6000000000137,
+    "t_incoming_at_vth_ns_without_mcu_dt": 152.85,
+    "dt_mcu_required_ns": 324.7500000000137
+   },
+   {
+    "bus": "4S_HV",
+    "transition": "HS_off->LS_on",
+    "outgoing": "hard",
+    "i_A": 10.0,
+    "v_plateau_V": 1.6699999999999997,
+    "t_outgoing_below_vth_ns": 447.6000000000156,
+    "t_incoming_at_vth_ns_without_mcu_dt": 152.85,
+    "dt_mcu_required_ns": 349.7500000000156
+   },
+   {
+    "bus": "4S_HV",
+    "transition": "HS_off->LS_on",
+    "outgoing": "hard",
+    "i_A": 20.0,
+    "v_plateau_V": 1.8,
+    "t_outgoing_below_vth_ns": 443.9000000000153,
+    "t_incoming_at_vth_ns_without_mcu_dt": 152.85,
+    "dt_mcu_required_ns": 346.0500000000153
+   },
+   {
+    "bus": "4S_HV",
+    "transition": "HS_off->LS_on",
+    "outgoing": "hard",
+    "i_A": 35.0,
+    "v_plateau_V": 1.95,
+    "t_outgoing_below_vth_ns": 440.10000000001503,
+    "t_incoming_at_vth_ns_without_mcu_dt": 152.85,
+    "dt_mcu_required_ns": 342.250000000015
    },
    {
     "bus": "4S_HV",
     "transition": "LS_off->HS_on",
-    "t_outgoing_below_vth_ns": 362.40000000000924,
-    "t_incoming_at_vth_ns_without_mcu_dt": 154.79999999999998,
-    "dt_mcu_required_ns": 262.60000000000923
+    "outgoing": "soft",
+    "i_A": null,
+    "v_plateau_V": null,
+    "t_outgoing_below_vth_ns": 426.750000000014,
+    "t_incoming_at_vth_ns_without_mcu_dt": 152.85,
+    "dt_mcu_required_ns": 328.900000000014
+   },
+   {
+    "bus": "4S_HV",
+    "transition": "LS_off->HS_on",
+    "outgoing": "hard",
+    "i_A": 10.0,
+    "v_plateau_V": 1.6699999999999997,
+    "t_outgoing_below_vth_ns": 451.75000000001586,
+    "t_incoming_at_vth_ns_without_mcu_dt": 152.85,
+    "dt_mcu_required_ns": 353.9000000000159
+   },
+   {
+    "bus": "4S_HV",
+    "transition": "LS_off->HS_on",
+    "outgoing": "hard",
+    "i_A": 20.0,
+    "v_plateau_V": 1.8,
+    "t_outgoing_below_vth_ns": 448.0500000000156,
+    "t_incoming_at_vth_ns_without_mcu_dt": 152.85,
+    "dt_mcu_required_ns": 350.2000000000156
+   },
+   {
+    "bus": "4S_HV",
+    "transition": "LS_off->HS_on",
+    "outgoing": "hard",
+    "i_A": 35.0,
+    "v_plateau_V": 1.95,
+    "t_outgoing_below_vth_ns": 444.25000000001535,
+    "t_incoming_at_vth_ns_without_mcu_dt": 152.85,
+    "dt_mcu_required_ns": 346.4000000000153
    },
    {
     "bus": "2S_min",
     "transition": "HS_off->LS_on",
-    "t_outgoing_below_vth_ns": 309.90000000000526,
-    "t_incoming_at_vth_ns_without_mcu_dt": 164.00000000000003,
-    "dt_mcu_required_ns": 200.90000000000524
+    "outgoing": "soft",
+    "i_A": null,
+    "v_plateau_V": null,
+    "t_outgoing_below_vth_ns": 337.90000000000737,
+    "t_incoming_at_vth_ns_without_mcu_dt": 153.95,
+    "dt_mcu_required_ns": 238.95000000000738
+   },
+   {
+    "bus": "2S_min",
+    "transition": "HS_off->LS_on",
+    "outgoing": "hard",
+    "i_A": 10.0,
+    "v_plateau_V": 1.6699999999999997,
+    "t_outgoing_below_vth_ns": 346.85000000000804,
+    "t_incoming_at_vth_ns_without_mcu_dt": 153.95,
+    "dt_mcu_required_ns": 247.90000000000805
+   },
+   {
+    "bus": "2S_min",
+    "transition": "HS_off->LS_on",
+    "outgoing": "hard",
+    "i_A": 20.0,
+    "v_plateau_V": 1.8,
+    "t_outgoing_below_vth_ns": 344.30000000000786,
+    "t_incoming_at_vth_ns_without_mcu_dt": 153.95,
+    "dt_mcu_required_ns": 245.35000000000784
+   },
+   {
+    "bus": "2S_min",
+    "transition": "HS_off->LS_on",
+    "outgoing": "hard",
+    "i_A": 35.0,
+    "v_plateau_V": 1.95,
+    "t_outgoing_below_vth_ns": 341.70000000000766,
+    "t_incoming_at_vth_ns_without_mcu_dt": 153.95,
+    "dt_mcu_required_ns": 242.75000000000765
    },
    {
     "bus": "2S_min",
     "transition": "LS_off->HS_on",
-    "t_outgoing_below_vth_ns": 301.65000000000464,
-    "t_incoming_at_vth_ns_without_mcu_dt": 165.20000000000002,
-    "dt_mcu_required_ns": 191.45000000000465
+    "outgoing": "soft",
+    "i_A": null,
+    "v_plateau_V": null,
+    "t_outgoing_below_vth_ns": 343.10000000000775,
+    "t_incoming_at_vth_ns_without_mcu_dt": 154.3,
+    "dt_mcu_required_ns": 243.80000000000777
+   },
+   {
+    "bus": "2S_min",
+    "transition": "LS_off->HS_on",
+    "outgoing": "hard",
+    "i_A": 10.0,
+    "v_plateau_V": 1.6699999999999997,
+    "t_outgoing_below_vth_ns": 352.10000000000844,
+    "t_incoming_at_vth_ns_without_mcu_dt": 154.3,
+    "dt_mcu_required_ns": 252.80000000000845
+   },
+   {
+    "bus": "2S_min",
+    "transition": "LS_off->HS_on",
+    "outgoing": "hard",
+    "i_A": 20.0,
+    "v_plateau_V": 1.8,
+    "t_outgoing_below_vth_ns": 349.55000000000825,
+    "t_incoming_at_vth_ns_without_mcu_dt": 154.3,
+    "dt_mcu_required_ns": 250.25000000000827
+   },
+   {
+    "bus": "2S_min",
+    "transition": "LS_off->HS_on",
+    "outgoing": "hard",
+    "i_A": 35.0,
+    "v_plateau_V": 1.95,
+    "t_outgoing_below_vth_ns": 346.90000000000805,
+    "t_incoming_at_vth_ns_without_mcu_dt": 154.3,
+    "dt_mcu_required_ns": 247.60000000000807
    }
   ],
-  "dt_mcu_required_ns": 283.00000000001086,
+  "dt_mcu_required_ns": 353.9000000000159,
   "tick_ns": 8.333333333333334,
-  "DEAD_TIME": 34,
-  "dt_mcu_ns": 283.33333333333337,
+  "DEAD_TIME": 43,
+  "dt_mcu_ns": 358.3333333333333,
   "body_diode_per_edge_ns": {
-   "typ": 424.5833333333334,
-   "max": 708.7333333333336
+   "typ": 456.63333333333077,
+   "max": 754.5333333333347
   },
   "arr_at_24kHz": 4999,
-  "min_duty_from_dead_time_pct": 0.68,
+  "min_on_time_ns": 841.6666666666667,
+  "swallowed_pulse_below_ns": 688.3333333333334,
+  "minimum_duty_cycle_eeprom_needed": 4,
+  "gate_drive_offset_note": "DEAD_TIME also seeds gate_drive_offset = 43/2000 of ARR (896 ns, sine start-up only); minimum_duty_cycle is overwritten from EEPROM byte 6 (main.c:645)",
   "driving_brake_override": [
    {
     "driving_brake_strength": 1,
-    "override": 174,
-    "register": 174,
-    "dead_time_ns": 1833.3333333333333
+    "override": 183,
+    "register": 191,
+    "dead_time_ns": 2116.6666666666665
    },
    {
     "driving_brake_strength": 2,
-    "override": 164,
-    "register": 166,
-    "dead_time_ns": 1700.0
+    "override": 173,
+    "register": 175,
+    "dead_time_ns": 1850.0
    },
    {
     "driving_brake_strength": 3,
-    "override": 154,
-    "register": 186,
-    "dead_time_ns": 2033.3333333333335
+    "override": 163,
+    "register": 171,
+    "dead_time_ns": 1783.3333333333333
    },
    {
     "driving_brake_strength": 4,
-    "override": 144,
-    "register": 178,
-    "dead_time_ns": 1900.0
+    "override": 153,
+    "register": 187,
+    "dead_time_ns": 2050.0
    },
    {
     "driving_brake_strength": 5,
-    "override": 134,
-    "register": 166,
-    "dead_time_ns": 1700.0
+    "override": 143,
+    "register": 175,
+    "dead_time_ns": 1850.0
    },
    {
     "driving_brake_strength": 6,
-    "override": 124,
-    "register": 126,
-    "dead_time_ns": 1050.0
+    "override": 133,
+    "register": 175,
+    "dead_time_ns": 1850.0
    },
    {
     "driving_brake_strength": 7,
-    "override": 114,
-    "register": 114,
-    "dead_time_ns": 950.0
+    "override": 123,
+    "register": 123,
+    "dead_time_ns": 1025.0
    },
    {
     "driving_brake_strength": 8,
-    "override": 104,
-    "register": 106,
-    "dead_time_ns": 883.3333333333334
+    "override": 113,
+    "register": 123,
+    "dead_time_ns": 1025.0
    },
    {
     "driving_brake_strength": 9,
-    "override": 94,
-    "register": 126,
-    "dead_time_ns": 1050.0
+    "override": 103,
+    "register": 111,
+    "dead_time_ns": 925.0
    }
   ]
  },
  "fd6288_dissipation": {
   "24kHz": {
-   "p_gate_total_W": 0.14653895641791043,
-   "p_fd6288_W": 0.10847716593686618,
-   "tj_fd6288_C": 109.55604096934837
+   "p_gate_total_W": 0.1785104124179104,
+   "p_fd6288_W": 0.1852253495346795,
+   "tj_fd6288_C": 112.77946468045654
   },
   "48kHz": {
-   "p_gate_total_W": 0.29307791283582085,
-   "p_fd6288_W": 0.19416033187373238,
-   "tj_fd6288_C": 113.15473393869676
+   "p_gate_total_W": 0.3570208248358208,
+   "p_fd6288_W": 0.347656699069359,
+   "tj_fd6288_C": 119.60158136091307
   }
  },
  "bootstrap": {
   "2S_min": {
-   "dv_allowed_V": 0.5499999999999998,
-   "dv_charge_share_V": 0.1276716417910448,
-   "max_hs_on_ms": 0.7820895522388056,
-   "min_erpm_at_100pct_duty": 25572.51908396948,
-   "min_mech_rpm_at_100pct_duty": 3653.21701199564
+   "v_after_turn_on_V": 5.479967435549525,
+   "v_floor_V": 5.0,
+   "dv_charge_share_V": 0.0700325644504749,
+   "i_static_uA": 424.79967435549526,
+   "max_hs_on_ms": 1.2499291273603488,
+   "min_erpm_at_100pct_duty": 16000.907221225265,
+   "min_mech_rpm_at_100pct_duty": 2285.8438887464663
   },
   "3S_nom": {
-   "dv_allowed_V": 5.65,
-   "dv_charge_share_V": 0.22754029850746266,
-   "max_hs_on_ms": 10.041592039800994,
-   "min_erpm_at_100pct_duty": 1991.7160466913733,
-   "min_mech_rpm_at_100pct_duty": 284.5308638130533
+   "v_after_turn_on_V": 10.524372591587518,
+   "v_floor_V": 5.0,
+   "dv_charge_share_V": 0.12562740841248302,
+   "i_static_uA": 475.2437259158752,
+   "max_hs_on_ms": 13.593037518946746,
+   "min_erpm_at_100pct_duty": 1471.341484353506,
+   "min_mech_rpm_at_100pct_duty": 210.19164062192945
   },
   "4S_full": {
-   "dv_allowed_V": 11.350000000000001,
-   "dv_charge_share_V": 0.33915820895522386,
-   "max_hs_on_ms": 20.390447761194032,
-   "min_erpm_at_100pct_duty": 980.851437606137,
-   "min_mech_rpm_at_100pct_duty": 140.12163394373385
+   "v_after_turn_on_V": 16.162237177747627,
+   "v_floor_V": 5.0,
+   "dv_charge_share_V": 0.18776282225237448,
+   "i_static_uA": 531.6223717774762,
+   "max_hs_on_ms": 25.924656838462074,
+   "min_erpm_at_100pct_duty": 771.4663351041085,
+   "min_mech_rpm_at_100pct_duty": 110.20947644344406
   }
+ },
+ "switching_energy_table": {
+  "i_A": [
+   5.0,
+   10.0,
+   15.0,
+   20.0,
+   25.0,
+   30.0,
+   35.0,
+   40.0
+  ],
+  "rows": [
+   {
+    "vbus": 8.4,
+    "e_on_uJ": [
+     0.7307999999999752,
+     1.4615999999999505,
+     2.2711499999999214,
+     3.133199999999889,
+     4.0162499999998555,
+     4.94549999999982,
+     5.916749999999781,
+     6.812399999999747
+    ],
+    "e_off_uJ": [
+     1.0972500000000824,
+     2.194500000000165,
+     3.3516000000002517,
+     4.5486000000003415,
+     5.764500000000433,
+     7.005600000000526,
+     8.276100000000621,
+     9.500400000000713
+    ],
+    "e_st_uJ": [
+     0.015954915415118093,
+     0.015954915415118093,
+     0.01570374329262285,
+     0.01570374329262285,
+     0.015579562023451224,
+     0.015456289595017027,
+     0.015333906303581531,
+     0.015456289595017027
+    ]
+   },
+   {
+    "vbus": 16.8,
+    "e_on_uJ": [
+     0.9303000000000023,
+     1.8606000000000047,
+     2.8665000000000025,
+     3.9227999999999983,
+     4.987499999999993,
+     6.098399999999985,
+     7.247099999999974,
+     8.332799999999969
+    ],
+    "e_off_uJ": [
+     2.5179000000001888,
+     5.0358000000003775,
+     7.648200000000575,
+     10.323600000000777,
+     13.020000000000978,
+     15.775200000001183,
+     18.580800000001396,
+     21.285600000001597
+    ],
+    "e_st_uJ": [
+     0.34502355766520393,
+     0.34502355766520393,
+     0.34502355766520393,
+     0.3462252102635034,
+     0.3462252102635034,
+     0.34502355766520393,
+     0.34502355766520393,
+     0.34502355766520393
+    ]
+   }
+  ]
  },
  "requirements": [
   "FD6288Q VCC = VBAT via 10 ohm + 10 uF/25 V X5R (datasheet C1), clamped by an 18 V Zener (BZT52C18) at VCC",
-  "Gate network per FET: Rg_on 15.0 ohm 0402, Schottky (RB521S30) + 0.0 ohm in parallel for turn-off",
-  "10 kohm gate-source pull-down on every FET (holds off while VCC < UVLO; FD6288Q outputs are undriven below UVLO)",
-  "Bootstrap: Schottky (B5819WS class, 40 V) + 2.2 ohm series + 1 uF/25 V X5R per phase, cap within 2 mm of VB/VS",
+  "Gate network per FET: Rg_on 0.0 ohm 0402, Cgs_ext 2.2 nF C0G at the FET",
+  "Gate-source pull-down: 10 kohm on each LS, 100 kohm on each HS (HS value loads C_BS; holds off while VCC < UVLO)",
+  "Bootstrap: 40 V Schottky with IR <= 100 uA at 20 V / 105 C + 2.2 ohm series + 2.2 uF/25 V X5R 0603 per phase, cap within 2 mm of VB/VS",
   "HS-LS-ceramic commutation loop <= 3 nH: >= 2 x 10 uF/25 V 0805 across each half-bridge on the FET layer",
   "FD6288Q HIN1..3 <- AT32F421 PA10/PA9/PA8 (TMR1_CH3/2/1), LIN1..3 <- PB1/PB0/PA7 (TMR1_CH3N/2N/1N); no inverters",
-  "AM32 EEPROM: pwm_frequency 24, driving_brake_strength 10 (override off), limits.temperature 115, limits.current 0"
+  "AM32 EEPROM per am32_esc/eeprom_settings.json; FC battery failsafe BATT_CRT_VOLT >= 6.4 V protects the FD6288Q UVLO"
  ],
  "sweep_feasible_by_loss": [
+  {
+   "rg_on": 0.0,
+   "r_off": null,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1102,
+   "dvdt": 2.88,
+   "est_pct": 8.9,
+   "tj_fd6288_24k": 112.1,
+   "parts_per_fet": 2,
+   "in_loss_band": true
+  },
+  {
+   "rg_on": 0.0,
+   "r_off": null,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1167,
+   "dvdt": 2.85,
+   "est_pct": 5.2,
+   "tj_fd6288_24k": 112.8,
+   "parts_per_fet": 2,
+   "in_loss_band": true
+  },
   {
    "rg_on": 1.0,
    "r_off": 0.0,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1525,
-   "dvdt": 4.05,
-   "est_pct": 9.2,
+   "p_sw_W": 0.1309,
+   "dvdt": 2.85,
+   "est_pct": 7.6,
    "tj_fd6288_24k": 112.2,
    "parts_per_fet": 3,
-   "in_loss_band": true
+   "in_loss_band": false
   },
   {
    "rg_on": 1.0,
    "r_off": 1.0,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1543,
-   "dvdt": 4.05,
-   "est_pct": 9.2,
+   "p_sw_W": 0.1319,
+   "dvdt": 2.85,
+   "est_pct": 7.6,
    "tj_fd6288_24k": 111.9,
    "parts_per_fet": 4,
-   "in_loss_band": true
+   "in_loss_band": false
   },
   {
    "rg_on": 1.0,
    "r_off": 2.2,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.155,
-   "dvdt": 4.05,
-   "est_pct": 9.2,
+   "p_sw_W": 0.1322,
+   "dvdt": 2.85,
+   "est_pct": 7.6,
    "tj_fd6288_24k": 111.9,
    "parts_per_fet": 4,
-   "in_loss_band": true
+   "in_loss_band": false
   },
   {
    "rg_on": 1.0,
    "r_off": null,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.156,
-   "dvdt": 4.05,
-   "est_pct": 9.2,
+   "p_sw_W": 0.1328,
+   "dvdt": 2.85,
+   "est_pct": 7.6,
    "tj_fd6288_24k": 111.9,
    "parts_per_fet": 2,
-   "in_loss_band": true
-  },
-  {
-   "rg_on": 6.8,
-   "r_off": 0.0,
-   "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1577,
-   "dvdt": 1.92,
-   "est_pct": 9.2,
-   "tj_fd6288_24k": 110.5,
-   "parts_per_fet": 3,
-   "in_loss_band": true
+   "in_loss_band": false
   },
   {
    "rg_on": 2.2,
    "r_off": 0.0,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1595,
-   "dvdt": 3.31,
-   "est_pct": 8.7,
+   "p_sw_W": 0.1336,
+   "dvdt": 2.85,
+   "est_pct": 8.8,
    "tj_fd6288_24k": 111.8,
-   "parts_per_fet": 3,
-   "in_loss_band": true
-  },
-  {
-   "rg_on": 3.3,
-   "r_off": 0.0,
-   "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1622,
-   "dvdt": 2.83,
-   "est_pct": 7.8,
-   "tj_fd6288_24k": 111.6,
-   "parts_per_fet": 3,
-   "in_loss_band": true
-  },
-  {
-   "rg_on": 15.0,
-   "r_off": 0.0,
-   "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1635,
-   "dvdt": 1.1,
-   "est_pct": 7.3,
-   "tj_fd6288_24k": 109.6,
-   "parts_per_fet": 2,
-   "in_loss_band": true
-  },
-  {
-   "rg_on": 10.0,
-   "r_off": 0.0,
-   "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1644,
-   "dvdt": 1.49,
-   "est_pct": 7.0,
-   "tj_fd6288_24k": 110.2,
-   "parts_per_fet": 3,
-   "in_loss_band": true
-  },
-  {
-   "rg_on": 4.7,
-   "r_off": 0.0,
-   "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1656,
-   "dvdt": 2.38,
-   "est_pct": 6.8,
-   "tj_fd6288_24k": 111.3,
-   "parts_per_fet": 3,
-   "in_loss_band": true
-  },
-  {
-   "rg_on": 2.2,
-   "r_off": 1.0,
-   "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1673,
-   "dvdt": 3.31,
-   "est_pct": 9.7,
-   "tj_fd6288_24k": 111.4,
-   "parts_per_fet": 4,
-   "in_loss_band": true
-  },
-  {
-   "rg_on": 6.8,
-   "r_off": 0.0,
-   "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1704,
-   "dvdt": 1.93,
-   "est_pct": 5.6,
-   "tj_fd6288_24k": 111.0,
    "parts_per_fet": 3,
    "in_loss_band": false
   },
   {
    "rg_on": 3.3,
+   "r_off": 0.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1343,
+   "dvdt": 2.85,
+   "est_pct": 8.9,
+   "tj_fd6288_24k": 111.6,
+   "parts_per_fet": 3,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": 0.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1372,
+   "dvdt": 2.62,
+   "est_pct": 8.3,
+   "tj_fd6288_24k": 111.3,
+   "parts_per_fet": 3,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 2.2,
    "r_off": 1.0,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1737,
-   "dvdt": 2.83,
-   "est_pct": 9.3,
+   "p_sw_W": 0.1396,
+   "dvdt": 2.85,
+   "est_pct": 9.4,
+   "tj_fd6288_24k": 111.4,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 10.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1412,
+   "dvdt": 1.63,
+   "est_pct": 8.9,
+   "tj_fd6288_24k": 110.2,
+   "parts_per_fet": 3,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 6.8,
+   "r_off": 0.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1422,
+   "dvdt": 2.11,
+   "est_pct": 7.0,
+   "tj_fd6288_24k": 111.0,
+   "parts_per_fet": 3,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": 2.2,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1434,
+   "dvdt": 2.85,
+   "est_pct": 9.8,
    "tj_fd6288_24k": 111.1,
    "parts_per_fet": 4,
    "in_loss_band": false
@@ -454,109 +711,109 @@
   {
    "rg_on": 15.0,
    "r_off": 0.0,
-   "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1749,
-   "dvdt": 1.1,
-   "est_pct": 5.0,
-   "tj_fd6288_24k": 109.9,
-   "parts_per_fet": 3,
-   "in_loss_band": false
-  },
-  {
-   "rg_on": 22.0,
-   "r_off": 0.0,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1771,
-   "dvdt": 0.81,
-   "est_pct": 4.8,
-   "tj_fd6288_24k": 109.3,
+   "p_sw_W": 0.1446,
+   "dvdt": 1.21,
+   "est_pct": 9.5,
+   "tj_fd6288_24k": 109.6,
    "parts_per_fet": 2,
-   "in_loss_band": false
-  },
-  {
-   "rg_on": 10.0,
-   "r_off": 0.0,
-   "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1779,
-   "dvdt": 1.49,
-   "est_pct": 4.4,
-   "tj_fd6288_24k": 110.7,
-   "parts_per_fet": 3,
    "in_loss_band": false
   },
   {
    "rg_on": 4.7,
    "r_off": 1.0,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1797,
-   "dvdt": 2.38,
-   "est_pct": 8.6,
+   "p_sw_W": 0.1484,
+   "dvdt": 2.62,
+   "est_pct": 9.9,
    "tj_fd6288_24k": 110.9,
    "parts_per_fet": 4,
    "in_loss_band": false
   },
   {
    "rg_on": 10.0,
-   "r_off": 1.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1494,
+   "dvdt": 1.63,
+   "est_pct": 5.5,
+   "tj_fd6288_24k": 110.7,
+   "parts_per_fet": 3,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 15.0,
+   "r_off": 0.0,
    "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1818,
-   "dvdt": 1.49,
-   "est_pct": 9.8,
-   "tj_fd6288_24k": 109.8,
-   "parts_per_fet": 4,
+   "p_sw_W": 0.1516,
+   "dvdt": 1.21,
+   "est_pct": 6.4,
+   "tj_fd6288_24k": 109.9,
+   "parts_per_fet": 3,
    "in_loss_band": false
   },
   {
    "rg_on": 6.8,
    "r_off": 1.0,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1869,
-   "dvdt": 1.93,
-   "est_pct": 7.3,
+   "p_sw_W": 0.1551,
+   "dvdt": 2.11,
+   "est_pct": 8.6,
    "tj_fd6288_24k": 110.6,
    "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 22.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1579,
+   "dvdt": 0.89,
+   "est_pct": 6.5,
+   "tj_fd6288_24k": 109.3,
+   "parts_per_fet": 2,
    "in_loss_band": false
   },
   {
    "rg_on": 15.0,
    "r_off": 0.0,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1894,
-   "dvdt": 1.1,
-   "est_pct": 3.1,
+   "p_sw_W": 0.1607,
+   "dvdt": 1.21,
+   "est_pct": 4.0,
    "tj_fd6288_24k": 110.3,
    "parts_per_fet": 3,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 10.0,
+   "r_off": 1.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1639,
+   "dvdt": 1.63,
+   "est_pct": 7.1,
+   "tj_fd6288_24k": 110.2,
+   "parts_per_fet": 4,
    "in_loss_band": false
   },
   {
    "rg_on": 22.0,
    "r_off": 0.0,
    "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.19,
-   "dvdt": 0.81,
-   "est_pct": 3.3,
+   "p_sw_W": 0.1662,
+   "dvdt": 0.89,
+   "est_pct": 4.4,
    "tj_fd6288_24k": 109.6,
    "parts_per_fet": 3,
-   "in_loss_band": false
-  },
-  {
-   "rg_on": 4.7,
-   "r_off": 2.2,
-   "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1914,
-   "dvdt": 2.38,
-   "est_pct": 9.9,
-   "tj_fd6288_24k": 110.5,
-   "parts_per_fet": 4,
    "in_loss_band": false
   },
   {
    "rg_on": 15.0,
    "r_off": 1.0,
    "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1936,
-   "dvdt": 1.1,
-   "est_pct": 7.4,
+   "p_sw_W": 0.1668,
+   "dvdt": 1.21,
+   "est_pct": 8.7,
    "tj_fd6288_24k": 109.5,
    "parts_per_fet": 4,
    "in_loss_band": false
@@ -565,43 +822,10 @@
    "rg_on": 22.0,
    "r_off": 1.0,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.196,
-   "dvdt": 0.81,
-   "est_pct": 7.6,
+   "p_sw_W": 0.1739,
+   "dvdt": 0.89,
+   "est_pct": 9.3,
    "tj_fd6288_24k": 108.9,
-   "parts_per_fet": 3,
-   "in_loss_band": false
-  },
-  {
-   "rg_on": 10.0,
-   "r_off": 1.0,
-   "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1961,
-   "dvdt": 1.49,
-   "est_pct": 6.0,
-   "tj_fd6288_24k": 110.2,
-   "parts_per_fet": 4,
-   "in_loss_band": false
-  },
-  {
-   "rg_on": 6.8,
-   "r_off": 2.2,
-   "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.202,
-   "dvdt": 1.93,
-   "est_pct": 8.9,
-   "tj_fd6288_24k": 110.2,
-   "parts_per_fet": 4,
-   "in_loss_band": false
-  },
-  {
-   "rg_on": 22.0,
-   "r_off": 0.0,
-   "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.2057,
-   "dvdt": 0.81,
-   "est_pct": 2.1,
-   "tj_fd6288_24k": 110.0,
    "parts_per_fet": 3,
    "in_loss_band": false
   },
@@ -609,10 +833,32 @@
    "rg_on": 15.0,
    "r_off": 1.0,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.2091,
-   "dvdt": 1.1,
-   "est_pct": 4.6,
+   "p_sw_W": 0.1763,
+   "dvdt": 1.21,
+   "est_pct": 5.4,
    "tj_fd6288_24k": 109.9,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 22.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1769,
+   "dvdt": 0.89,
+   "est_pct": 2.7,
+   "tj_fd6288_24k": 110.0,
+   "parts_per_fet": 3,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 10.0,
+   "r_off": 2.2,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1784,
+   "dvdt": 1.63,
+   "est_pct": 8.7,
+   "tj_fd6288_24k": 109.8,
    "parts_per_fet": 4,
    "in_loss_band": false
   },
@@ -620,9 +866,9 @@
    "rg_on": 22.0,
    "r_off": 1.0,
    "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.2095,
-   "dvdt": 0.81,
-   "est_pct": 5.2,
+   "p_sw_W": 0.1822,
+   "dvdt": 0.89,
+   "est_pct": 6.3,
    "tj_fd6288_24k": 109.2,
    "parts_per_fet": 4,
    "in_loss_band": false
@@ -630,22 +876,11 @@
   {
    "rg_on": 15.0,
    "r_off": 2.2,
-   "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.2139,
-   "dvdt": 1.1,
-   "est_pct": 9.9,
-   "tj_fd6288_24k": 109.1,
-   "parts_per_fet": 4,
-   "in_loss_band": false
-  },
-  {
-   "rg_on": 10.0,
-   "r_off": 2.2,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.2145,
-   "dvdt": 1.49,
-   "est_pct": 7.7,
-   "tj_fd6288_24k": 109.8,
+   "p_sw_W": 0.1931,
+   "dvdt": 1.21,
+   "est_pct": 6.8,
+   "tj_fd6288_24k": 109.5,
    "parts_per_fet": 4,
    "in_loss_band": false
   },
@@ -653,21 +888,10 @@
    "rg_on": 22.0,
    "r_off": 1.0,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.2263,
-   "dvdt": 0.81,
-   "est_pct": 3.2,
+   "p_sw_W": 0.1932,
+   "dvdt": 0.89,
+   "est_pct": 3.9,
    "tj_fd6288_24k": 109.6,
-   "parts_per_fet": 4,
-   "in_loss_band": false
-  },
-  {
-   "rg_on": 15.0,
-   "r_off": 2.2,
-   "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.2303,
-   "dvdt": 1.1,
-   "est_pct": 6.1,
-   "tj_fd6288_24k": 109.5,
    "parts_per_fet": 4,
    "in_loss_band": false
   },
@@ -675,9 +899,9 @@
    "rg_on": 22.0,
    "r_off": 2.2,
    "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.2317,
-   "dvdt": 0.81,
-   "est_pct": 7.3,
+   "p_sw_W": 0.2003,
+   "dvdt": 0.89,
+   "est_pct": 8.4,
    "tj_fd6288_24k": 108.9,
    "parts_per_fet": 4,
    "in_loss_band": false
@@ -686,9 +910,9 @@
    "rg_on": 22.0,
    "r_off": 2.2,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.2497,
-   "dvdt": 0.81,
-   "est_pct": 4.6,
+   "p_sw_W": 0.2116,
+   "dvdt": 0.89,
+   "est_pct": 5.1,
    "tj_fd6288_24k": 109.2,
    "parts_per_fet": 4,
    "in_loss_band": false
@@ -699,19 +923,8 @@
    "rg_on": 0.0,
    "r_off": null,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.116,
+   "p_sw_W": 0.1055,
    "why": [
-    "dv/dt",
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 0.0,
-   "r_off": null,
-   "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1235,
-   "why": [
-    "dv/dt",
     "shoot-through"
    ]
   },
@@ -719,25 +932,16 @@
    "rg_on": 1.0,
    "r_off": 0.0,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.133,
+   "p_sw_W": 0.1195,
    "why": [
     "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 0.0,
-   "r_off": null,
-   "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1334,
-   "why": [
-    "dv/dt"
    ]
   },
   {
    "rg_on": 1.0,
    "r_off": 1.0,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1347,
+   "p_sw_W": 0.1204,
    "why": [
     "shoot-through"
    ]
@@ -746,7 +950,7 @@
    "rg_on": 1.0,
    "r_off": 2.2,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1354,
+   "p_sw_W": 0.1208,
    "why": [
     "shoot-through"
    ]
@@ -755,7 +959,7 @@
    "rg_on": 1.0,
    "r_off": null,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1366,
+   "p_sw_W": 0.1213,
    "why": [
     "shoot-through"
    ]
@@ -764,7 +968,7 @@
    "rg_on": 2.2,
    "r_off": 0.0,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1387,
+   "p_sw_W": 0.1218,
    "why": [
     "shoot-through"
    ]
@@ -773,7 +977,7 @@
    "rg_on": 3.3,
    "r_off": 0.0,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1409,
+   "p_sw_W": 0.1226,
    "why": [
     "shoot-through"
    ]
@@ -782,16 +986,7 @@
    "rg_on": 1.0,
    "r_off": 0.0,
    "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1414,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 1.0,
-   "r_off": 1.0,
-   "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1432,
+   "p_sw_W": 0.1242,
    "why": [
     "shoot-through"
    ]
@@ -800,7 +995,16 @@
    "rg_on": 4.7,
    "r_off": 0.0,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1436,
+   "p_sw_W": 0.1251,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 1.0,
+   "r_off": 1.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1251,
    "why": [
     "shoot-through"
    ]
@@ -809,7 +1013,7 @@
    "rg_on": 1.0,
    "r_off": 2.2,
    "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1438,
+   "p_sw_W": 0.1254,
    "why": [
     "shoot-through"
    ]
@@ -818,16 +1022,7 @@
    "rg_on": 1.0,
    "r_off": null,
    "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1449,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 2.2,
-   "r_off": 1.0,
-   "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1461,
+   "p_sw_W": 0.126,
    "why": [
     "shoot-through"
    ]
@@ -836,7 +1031,25 @@
    "rg_on": 2.2,
    "r_off": 0.0,
    "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1477,
+   "p_sw_W": 0.1266,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": 0.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1274,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": 1.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1279,
    "why": [
     "shoot-through"
    ]
@@ -845,14 +1058,194 @@
    "rg_on": 6.8,
    "r_off": 0.0,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1477,
+   "p_sw_W": 0.129,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": 0.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1301,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": 2.2,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1316,
    "why": [
     "shoot-through"
    ]
   },
   {
    "rg_on": 3.3,
+   "r_off": 1.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1316,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": 1.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1327,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 6.8,
    "r_off": 0.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1345,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 10.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1351,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": 1.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1362,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": 2.2,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1363,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": 1.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1363,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": 2.2,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1381,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": null,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1404,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": 1.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1411,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 6.8,
+   "r_off": 1.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1419,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": 2.2,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1427,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": 1.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1433,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": null,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.145,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": 2.2,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1454,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 6.8,
+   "r_off": 1.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1473,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 10.0,
+   "r_off": 1.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1493,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": 2.2,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1498,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": 2.2,
    "cgs_ext_nF": 1.0,
    "p_sw_W": 0.1502,
    "why": [
@@ -861,34 +1254,16 @@
   },
   {
    "rg_on": 2.2,
+   "r_off": null,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1521,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 6.8,
    "r_off": 2.2,
-   "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1506,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 3.3,
-   "r_off": 1.0,
-   "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1517,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 4.7,
-   "r_off": 0.0,
-   "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1533,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 10.0,
-   "r_off": 0.0,
    "cgs_ext_nF": 0.0,
    "p_sw_W": 0.1538,
    "why": [
@@ -896,136 +1271,10 @@
    ]
   },
   {
-   "rg_on": 2.2,
-   "r_off": 1.0,
-   "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1552,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 4.7,
-   "r_off": 1.0,
-   "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.157,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 3.3,
-   "r_off": 2.2,
-   "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1594,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 2.2,
-   "r_off": 2.2,
-   "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1598,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 3.3,
-   "r_off": 1.0,
-   "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1612,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 2.2,
-   "r_off": null,
-   "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1614,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 6.8,
-   "r_off": 1.0,
-   "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1631,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 4.7,
-   "r_off": 1.0,
-   "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1668,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 4.7,
-   "r_off": 2.2,
-   "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1678,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 3.3,
-   "r_off": 2.2,
-   "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1691,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 2.2,
-   "r_off": null,
-   "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1705,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
    "rg_on": 10.0,
    "r_off": 1.0,
-   "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1708,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 2.2,
-   "r_off": 2.2,
-   "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1719,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 6.8,
-   "r_off": 1.0,
    "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1735,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 6.8,
-   "r_off": 2.2,
-   "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1772,
+   "p_sw_W": 0.1554,
    "why": [
     "shoot-through"
    ]
@@ -1033,8 +1282,26 @@
   {
    "rg_on": 4.7,
    "r_off": 2.2,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1576,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": null,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1584,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 6.8,
+   "r_off": 2.2,
    "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1779,
+   "p_sw_W": 0.159,
    "why": [
     "shoot-through"
    ]
@@ -1043,25 +1310,7 @@
    "rg_on": 15.0,
    "r_off": 1.0,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1816,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 3.3,
-   "r_off": 2.2,
-   "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1819,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 2.2,
-   "r_off": null,
-   "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.1831,
+   "p_sw_W": 0.1599,
    "why": [
     "shoot-through"
    ]
@@ -1069,8 +1318,8 @@
   {
    "rg_on": 3.3,
    "r_off": null,
-   "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1839,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1629,
    "why": [
     "shoot-through"
    ]
@@ -1079,7 +1328,7 @@
    "rg_on": 10.0,
    "r_off": 2.2,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.1878,
+   "p_sw_W": 0.1637,
    "why": [
     "shoot-through"
    ]
@@ -1087,17 +1336,8 @@
   {
    "rg_on": 6.8,
    "r_off": 2.2,
-   "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1878,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 3.3,
-   "r_off": null,
-   "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.194,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1671,
    "why": [
     "shoot-through"
    ]
@@ -1106,7 +1346,16 @@
    "rg_on": 10.0,
    "r_off": 2.2,
    "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.1993,
+   "p_sw_W": 0.1697,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": null,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1703,
    "why": [
     "shoot-through"
    ]
@@ -1115,16 +1364,7 @@
    "rg_on": 15.0,
    "r_off": 2.2,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.2013,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 3.3,
-   "r_off": null,
-   "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.2079,
+   "p_sw_W": 0.1765,
    "why": [
     "shoot-through"
    ]
@@ -1133,7 +1373,25 @@
    "rg_on": 4.7,
    "r_off": null,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.2128,
+   "p_sw_W": 0.183,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 15.0,
+   "r_off": 2.2,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1833,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": null,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1875,
    "why": [
     "shoot-through"
    ]
@@ -1142,16 +1400,7 @@
    "rg_on": 22.0,
    "r_off": 2.2,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.2176,
-   "why": [
-    "shoot-through"
-   ]
-  },
-  {
-   "rg_on": 4.7,
-   "r_off": null,
-   "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.2239,
+   "p_sw_W": 0.192,
    "why": [
     "shoot-through"
    ]
@@ -1160,7 +1409,7 @@
    "rg_on": 4.7,
    "r_off": null,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.2396,
+   "p_sw_W": 0.1957,
    "why": [
     "shoot-through"
    ]
@@ -1169,7 +1418,7 @@
    "rg_on": 6.8,
    "r_off": null,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.2561,
+   "p_sw_W": 0.2197,
    "why": [
     "shoot-through"
    ]
@@ -1178,7 +1427,7 @@
    "rg_on": 6.8,
    "r_off": null,
    "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.2687,
+   "p_sw_W": 0.2247,
    "why": [
     "shoot-through"
    ]
@@ -1187,7 +1436,7 @@
    "rg_on": 6.8,
    "r_off": null,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.2868,
+   "p_sw_W": 0.234,
    "why": [
     "shoot-through"
    ]
@@ -1196,7 +1445,7 @@
    "rg_on": 10.0,
    "r_off": null,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.3214,
+   "p_sw_W": 0.2759,
    "why": [
     "shoot-through"
    ]
@@ -1205,7 +1454,7 @@
    "rg_on": 10.0,
    "r_off": null,
    "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.3366,
+   "p_sw_W": 0.2814,
    "why": [
     "shoot-through"
    ]
@@ -1214,7 +1463,7 @@
    "rg_on": 10.0,
    "r_off": null,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.359,
+   "p_sw_W": 0.2924,
    "why": [
     "shoot-through"
    ]
@@ -1223,7 +1472,7 @@
    "rg_on": 15.0,
    "r_off": null,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.4243,
+   "p_sw_W": 0.3637,
    "why": [
     "shoot-through"
    ]
@@ -1232,7 +1481,7 @@
    "rg_on": 15.0,
    "r_off": null,
    "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.4432,
+   "p_sw_W": 0.3694,
    "why": [
     "shoot-through"
    ]
@@ -1241,7 +1490,7 @@
    "rg_on": 15.0,
    "r_off": null,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.4718,
+   "p_sw_W": 0.3833,
    "why": [
     "shoot-through"
    ]
@@ -1250,7 +1499,7 @@
    "rg_on": 22.0,
    "r_off": null,
    "cgs_ext_nF": 0.0,
-   "p_sw_W": 0.5683,
+   "p_sw_W": 0.4858,
    "why": [
     "shoot-through"
    ]
@@ -1259,7 +1508,7 @@
    "rg_on": 22.0,
    "r_off": null,
    "cgs_ext_nF": 1.0,
-   "p_sw_W": 0.593,
+   "p_sw_W": 0.4934,
    "why": [
     "shoot-through"
    ]
@@ -1268,14 +1517,14 @@
    "rg_on": 22.0,
    "r_off": null,
    "cgs_ext_nF": 2.1999999999999997,
-   "p_sw_W": 0.6301,
+   "p_sw_W": 0.5112,
    "why": [
     "shoot-through"
    ]
   }
  ],
  "header": {
-  "DEAD_TIME": "34",
+  "DEAD_TIME": "43",
   "blocks": [
    "NANO_H743_AIO_F421"
   ]
@@ -1289,22 +1538,27 @@
   {
    "check": "C1_feasible_gate_network_exists",
    "pass": true,
-   "detail": "35/99 candidates meet dv/dt, shoot-through and VDS limits"
+   "detail": "32/99 candidates meet dv/dt, shoot-through and VDS limits"
   },
   {
    "check": "C2_vds_peak_5nH",
    "pass": true,
-   "detail": "VDS peak at 35 A turn-off, L_loop 1.5/3/5 nH: 1.5nH 19.5 V, 3.0nH 21.7 V, 5.0nH 24.5 V (limit 32 V)"
+   "detail": "VDS peak at 35 A turn-off, L_loop 1.5/3/5 nH: 1.5nH 19.2 V, 3.0nH 20.9 V, 5.0nH 23.3 V (limit 32 V)"
   },
   {
    "check": "C3_dvdt_vs_FD6288_abs",
    "pass": true,
-   "detail": "1.10 V/ns vs FD6288Q dVS/dt 50 V/ns"
+   "detail": "2.85 V/ns vs FD6288Q dVS/dt 50 V/ns"
+  },
+  {
+   "check": "C9_gate_loop_damping",
+   "pass": true,
+   "detail": "zeta source 2.08, sink 1.19 (L_gate 10.0 nH, C 9.8 nF, fast driver R + rg_int typ + external path)"
   },
   {
    "check": "C4_dtg_linear_range",
    "pass": true,
-   "detail": "DEAD_TIME = 34 (0x22) -> 283.3 ns, need 283.0 ns"
+   "detail": "DEAD_TIME = 43 (0x2B) -> 358.3 ns, need 353.9 ns (worst: 4S_HV LS_off->HS_on hard 10.0 A)"
   },
   {
    "check": "C5_vcc_uvlo_window",
@@ -1319,17 +1573,17 @@
   {
    "check": "C7_fd6288_tj",
    "pass": true,
-   "detail": "FD6288Q Tj at board 105 C: 24 kHz 109.6 C, 48 kHz 113.2 C (limit 125 C at 24 kHz; 48 kHz allowed vs 140 C)"
+   "detail": "FD6288Q Tj at board 105 C: 24 kHz 112.8 C, 48 kHz 119.6 C (limit 125 C at 24 kHz; 48 kHz allowed vs 140 C)"
   },
   {
    "check": "C8_bootstrap_hold",
    "pass": true,
-   "detail": "max HS on-time without refresh: 2S_min 0.78 ms, 3S_nom 10.04 ms, 4S_full 20.39 ms"
+   "detail": "C_BS 1.1 uF eff, IQBS+leak 370 uA, HS pull-down 100 k; max HS on-time without refresh: 2S_min 1.25 ms, 3S_nom 13.59 ms, 4S_full 25.92 ms"
   },
   {
    "check": "H1_header_dead_time",
    "pass": true,
-   "detail": "am32_target.h DEAD_TIME 34 vs computed 34"
+   "detail": "am32_target.h DEAD_TIME 43 vs computed 43"
   },
   {
    "check": "H2_header_hw_group",
@@ -1352,6 +1606,11 @@
    "detail": "TARGET_VOLTAGE_DIVIDER 110: 100k/10k divider -> ratio 11 -> AM32 units x10 = 110; full scale 36.3 V"
   },
   {
+   "check": "H7_header_comments",
+   "pass": true,
+   "detail": "header comment must quote '43 -> 358.3 ns MCU dead time' and body-diode 457 ns typ / 755 ns max"
+  },
+  {
    "check": "H6_no_dead_macros",
    "pass": true,
    "detail": "macros AM32 never reads: none"
@@ -1359,7 +1618,17 @@
   {
    "check": "E1_eeprom_settings",
    "pass": true,
-   "detail": "comp_pwm 1, variable_pwm 0, pwm 24 kHz, driving_brake 10, cutoff 3.20 V/cell -> 2S VBS 5.95 V (UVLO+ max 5.0), temp limit 115 C, poles 14 (defaults.parm 14)"
+   "detail": "comp_pwm 1, variable_pwm 0, pwm 24 kHz, driving_brake 10, low_voltage_cut_off 0 (AM32 cutoff latches allOff() per ESC until power cycle -> must be 0), temp limit 115 C, poles 14 (defaults.parm 14.0)"
+  },
+  {
+   "check": "E2_min_on_time",
+   "pass": true,
+   "detail": "minimum_duty_cycle 4 -> 40/2000 -> 842 ns on-time vs DT_mcu + DT_int,max + MT 688 ns (needs >= 4)"
+  },
+  {
+   "check": "E3_fc_uvlo_failsafe",
+   "pass": true,
+   "detail": "defaults.parm BATT_CRT_VOLT 6.4 V >= 5.95 V (UVLO+ max 5.0 + Vf_bs 0.45 + 0.5 V sag), BATT_FS_CRT_ACT 1.0 != 0"
   }
  ],
  "failures": [],

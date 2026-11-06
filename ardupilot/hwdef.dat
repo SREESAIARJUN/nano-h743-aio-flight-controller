@@ -134,6 +134,35 @@ define AP_COMPASS_PROBING_ENABLED 1
 define HAL_I2C_INTERNAL_MASK 0
 define HAL_COMPASS_AUTO_ROT_DEFAULT 2
 
+# Rev 12 - I2C1 timing (analysis/baro_i2c_analysis.py -> baro_i2c_report.json).
+# ArduPilot's HAL_I2C_MAX_CLOCK default is 100000, so without this I2C1 runs
+# at 100 kHz (H7_100 TIMINGR) whatever get_device() asks for.
+define HAL_I2C_MAX_CLOCK 400000
+# I2CCLK = PLL3_R = 32 MHz. Default H7_400 0x00300F38 (SCLH 15, SCLDEL 3):
+# tHIGH 500 ns + filter delay is < 600 ns once the SCL-high detection
+# threshold sits low in the 0.3..0.7 VDD window, and tSCLDEL 125 ns breaks
+# RM0433 tSCLDEL >= tr + tSU;DAT(100 ns) for any tr > 25 ns.
+# 0x00D01A2D: PRESC 0, SCLDEL 13 (437.5 ns), SDADEL 0, SCLH 26, SCLL 45.
+# Fm-compliant for any tr <= 300 ns (worst tLOW 1447, tHIGH 658 ns),
+# 276..396 kHz worst-case, ~355 kHz typical (same period as the default).
+# DNF stays 0 / analog filter on: ArduPilot writes CR1 from i2ccfg.cr1
+# (SMBHEN only), so neither is settable from hwdef.
+define HAL_I2C_H7_400_TIMINGR 0x00D01A2D
+# 100 kHz path: I2C1 is the external bus (HAL_I2C_INTERNAL_MASK 0). If any
+# driver opens it at 100 kHz (INA2xx/INA3221/SMBus/LTC2946 battery monitors,
+# MCP40D1x DAC), the I2CDevice ctor on H7 lowers the WHOLE bus to
+# HAL_I2C_F7_100_TIMINGR (not the H7 one). Default 0x30812E3E is an F7
+# 54 MHz value: at 32 MHz 62..71 kHz with tSCLDEL 1125 ns < RM0433
+# tr(1000) + tSU;DAT(250 ns). 0x4080231E: PRESC 4 (156.25 ns), SCLDEL 8
+# (1406 ns), SDADEL 0, SCLH 35, SCLL 30. UM10204 Sm-compliant for any
+# tr <= 1000 ns (worst tLOW 4853, tHIGH/tSU;STA 4739, tBUF 4724 ns),
+# 78..93 kHz worst-case. H7_100 (only used if MAX_CLOCK <= 100 kHz) is set
+# to the same value so both 100 kHz paths are compliant.
+define HAL_I2C_F7_100_TIMINGR 0x4080231E
+define HAL_I2C_H7_100_TIMINGR 0x4080231E
+# Bus clear (kept default HAL_I2C_CLEAR_ON_TIMEOUT 1): at boot and after a
+# timeout with SDA low, SCL is toggled push-pull 10 clocks at ~50 kHz.
+
 # ---------------------------------------------------------------------------
 # FDCAN1 - DroneCAN via TCAN334 (FDCAN uses its own message RAM, no DMA)
 # TCAN334 STB has an internal pull-up: it must be actively driven LOW or the

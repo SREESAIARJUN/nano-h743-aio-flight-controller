@@ -1,0 +1,16 @@
+# Nano H743 AIO - default parameters (Revision 6.0)
+# Integrated 4-in-1 ESC: bidirectional DShot600 on TIM1 CH1..CH4
+MOT_PWM_TYPE 6
+SERVO_BLH_AUTO 1
+SERVO_BLH_BDMASK 15
+SERVO_BLH_POLES 14
+SERVO_DSHOT_ESC 3
+# RPM-driven harmonic notch from bidir DShot eRPM telemetry
+INS_HNTCH_ENABLE 1
+INS_HNTCH_MODE 3
+INS_HNTCH_REF 1
+INS_HNTCH_FREQ 80
+INS_HNTCH_BW 40
+INS_HNTCH_OPTS 2
+# microSD logging on SDMMC1 (IDMA)
+LOG_BACKEND_TYPE 1

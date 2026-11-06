@@ -1,84 +1,231 @@
-# hwdef.dat for STM32H743VIT6 Nano AIO Flight Controller + 4-in-1 ESC
-# Sreesai Arjun Engineering (ArduPilot / PX4 Target)
+# hwdef.dat for the Nano H743 AIO (STM32H743VIT6 FC + integrated 4-in-1 ESC)
+# Sreesai Arjun Engineering - Revision 6.0 / 150
+#
+# Processed by libraries/AP_HAL_ChibiOS/hwdef/scripts/chibios_hwdef.py.
+# Rev 6.0 scope: deterministic DMA allocation for USART1, SPI1, SPI4 and
+# SDMMC1 (4-bit microSD) so that no latency-critical peripheral shares a
+# DMA stream. See "DMA STREAM BUDGET" below and README.md section
+# "Revision 6.0 Engineering Changelog".
 
-MCU STM32H743xx STM32H743VITx
-define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_CHIBIOS_NANO_H743_AIO
+# MCU class and specific type (format: MCU <series> <type>)
+MCU STM32H7xx STM32H743xx
 
-# 480 MHz Core Clock & 25MHz external HSE crystal
+# Board ID. PROVISIONAL - 5743 is unallocated in
+# Tools/AP_Bootloader/board_types.txt as of this revision; it MUST be
+# registered upstream (AP_HW_NANO_H743_AIO) before public release.
+APJ_BOARD_ID 5743
+
+# 25 MHz HSE crystal. ArduPilot's stm32h7_mcuconf.h derives the PLL
+# (M/N/P/Q/R) for 25 MHz -> 400 MHz SYSCLK; raw PLL values are NOT hwdef
+# keywords and must not be set here.
 OSCILLATOR_HZ 25000000
-STM32_PLLM_VALUE 5
-STM32_PLLN_VALUE 192
-STM32_PLLP_VALUE 2
-STM32_PLLQ_VALUE 4
-STM32_PLLR_VALUE 2
 
-# Flash size 2MB, RAM 1MB
+# 2 MB flash; first 128 kB sector reserved for the bootloader
 FLASH_SIZE_KB 2048
 FLASH_RESERVE_START_KB 128
 
-# IMU 1 (Primary): ICM-42688-P on SPI1
-PA5 SPI1_SCK SPI1
+# Parameter storage in the last two 128 kB flash sectors (14, 15)
+STORAGE_FLASH_PAGE 14
+define HAL_STORAGE_SIZE 32768
+
+# ---------------------------------------------------------------------------
+# USB / debug
+# ---------------------------------------------------------------------------
+PA11 OTG_FS_DM OTG1
+PA12 OTG_FS_DP OTG1
+PA8  VBUS INPUT OPENDRAIN
+
+PA13 JTMS-SWDIO SWD
+PA14 JTCK-SWCLK SWD
+
+# ---------------------------------------------------------------------------
+# SPI1 - IMU1 (primary) ICM-42688-P   [DMA: SPI1_RX + SPI1_TX, NOSHARE]
+# ---------------------------------------------------------------------------
+PA5 SPI1_SCK  SPI1
 PA6 SPI1_MISO SPI1
 PA7 SPI1_MOSI SPI1
-PA4 ICM42688_CS CS
-PC4 ICM42688_EXTI INPUT
-SPIDEV icm42688 SPI1 SPEED_LOW 2*MHZ SPEED_HIGH 20*MHZ CS_PIN PA4
-IMU Invensensev3:icm42688 ROTATION_NONE
+PA4 IMU1_CS   CS
+PC4 IMU1_DRDY INPUT
 
-# IMU 2 (Secondary Auxiliary): ICM-42688-P on SPI4
-PE2 SPI4_SCK SPI4
+# ---------------------------------------------------------------------------
+# SPI4 - IMU2 (secondary) ICM-42688-P [DMA: SPI4_RX + SPI4_TX, NOSHARE]
+# ---------------------------------------------------------------------------
+PE2 SPI4_SCK  SPI4
 PE5 SPI4_MISO SPI4
 PE6 SPI4_MOSI SPI4
-PE4 ICM42688_2_CS CS
-SPIDEV icm42688_2 SPI4 SPEED_LOW 2*MHZ SPEED_HIGH 20*MHZ CS_PIN PE4
-IMU Invensensev3:icm42688_2 ROTATION_PITCH_180
+PE4 IMU2_CS   CS
 
-# Barometer: DPS310 on I2C1
+# ---------------------------------------------------------------------------
+# SPI2 - AT7456E analog OSD          [DMA: SPI2_RX + SPI2_TX, shareable]
+# ---------------------------------------------------------------------------
+PB13 SPI2_SCK  SPI2
+PB14 SPI2_MISO SPI2
+PB15 SPI2_MOSI SPI2
+PB12 OSD1_CS   CS
+
+# SPI devices: name bus devid cs mode low_speed high_speed
+# ICM-42688-P is rated to 24 MHz; 16 MHz is the closest SPI kernel-clock
+# divisor that stays inside spec with margin on the 6-layer stackup.
+SPIDEV imu1 SPI1 DEVID1 IMU1_CS MODE3  2*MHZ 16*MHZ
+SPIDEV imu2 SPI4 DEVID1 IMU2_CS MODE3  2*MHZ 16*MHZ
+SPIDEV osd  SPI2 DEVID4 OSD1_CS MODE0 10*MHZ 10*MHZ
+
+IMU Invensensev3 SPI:imu1 ROTATION_NONE
+IMU Invensensev3 SPI:imu2 ROTATION_PITCH_180
+define HAL_DEFAULT_INS_FAST_SAMPLE 3
+
+# ---------------------------------------------------------------------------
+# I2C1 - DPS310 baro + external compass (I2C DMA is disabled by default on
+# H7 by chibios_hwdef.py, so I2C1 consumes no DMA stream)
+# ---------------------------------------------------------------------------
 PB6 I2C1_SCL I2C1
 PB7 I2C1_SDA I2C1
 I2C_ORDER I2C1
-BARO DPS310:0 I2C:0:0x76
 
-# OSD: AT7456E on SPI2
-PB13 SPI2_SCK SPI2
-PB14 SPI2_MISO SPI2
-PB15 SPI2_MOSI SPI2
-PB12 AT7456E_CS CS
-SPIDEV osd SPI2 SPEED_LOW 2*MHZ SPEED_HIGH 10*MHZ CS_PIN PB12
-OSD_ENABLED 1
+BARO DPS310 I2C:0:0x76
 
-# DroneCAN / UAVCAN on FDCAN1
+define ALLOW_ARM_NO_COMPASS
+define AP_COMPASS_PROBING_ENABLED 1
+define HAL_I2C_INTERNAL_MASK 0
+define HAL_COMPASS_AUTO_ROT_DEFAULT 2
+
+# ---------------------------------------------------------------------------
+# FDCAN1 - DroneCAN via TCAN334 (FDCAN uses its own message RAM, no DMA)
+# TCAN334 STB has an internal pull-up: it must be actively driven LOW or the
+# transceiver stays in standby and the bus is dead.
+# ---------------------------------------------------------------------------
 PD0 CAN1_RX CAN1
 PD1 CAN1_TX CAN1
-CAN_ORDER 1
+PD3 GPIO_CAN1_SILENT OUTPUT PUSHPULL SPEED_LOW LOW GPIO(70)
 
-# MicroSD Slot (SDMMC1 4-bit)
-PC8 SDMMC1_D0 SDMMC1
-PC9 SDMMC1_D1 SDMMC1
-PC10 SDMMC1_D2 SDMMC1
-PC11 SDMMC1_D3 SDMMC1
-PC12 SDMMC1_CK SDMMC1
-PD2 SDMMC1_CMD SDMMC1
+# ---------------------------------------------------------------------------
+# SDMMC1 - microSD, 4-bit bus
+# On STM32H7 SDMMC1 uses its internal IDMA master, NOT a DMA1/DMA2 stream,
+# so it is deliberately absent from the stream budget. IDMA can only reach
+# AXI SRAM / SRAM1-3 (not DTCM); ArduPilot's FATFS layer bounce-buffers
+# through DMA-safe memory, so no extra config is needed here.
+# PC10/PC11/PC12/PD2 are therefore unavailable for UART4/UART5/SPI3.
+# ---------------------------------------------------------------------------
+PC8  SDMMC1_D0  SDMMC1
+PC9  SDMMC1_D1  SDMMC1
+PC10 SDMMC1_D2  SDMMC1
+PC11 SDMMC1_D3  SDMMC1
+PC12 SDMMC1_CK  SDMMC1
+PD2  SDMMC1_CMD SDMMC1
+define HAL_OS_FATFS_IO 1
 
-# Integrated 4-in-1 ESC DShot600 outputs (TIM1 & TIM8 Bidirectional DShot)
-PE9  TIM1_CH1 TIM1 PWM(1) GPIO(50) BIDIR_DSHOT_DMA
-PE11 TIM1_CH2 TIM1 PWM(2) GPIO(51) BIDIR_DSHOT_DMA
-PE13 TIM1_CH3 TIM1 PWM(3) GPIO(52) BIDIR_DSHOT_DMA
-PE14 TIM1_CH4 TIM1 PWM(4) GPIO(53) BIDIR_DSHOT_DMA
+# ---------------------------------------------------------------------------
+# Integrated 4-in-1 ESC - bidirectional DShot on TIM1 CH1..CH4
+# BIDIR is set on CH1 and CH3 only: ArduPilot pairs CH1/CH2 and CH3/CH4 for
+# eRPM input capture, so two TIM1_CHx capture streams cover all four motors.
+# DShot output uses one TIM1_UP burst stream for all four channels.
+# ---------------------------------------------------------------------------
+PE9  TIM1_CH1 TIM1 PWM(1) GPIO(50) BIDIR
+PE11 TIM1_CH2 TIM1 PWM(2) GPIO(51)
+PE13 TIM1_CH3 TIM1 PWM(3) GPIO(52) BIDIR
+PE14 TIM1_CH4 TIM1 PWM(4) GPIO(53)
 
-# Analog Battery Voltage & Current Sense
-PC0 BATT_VOLTAGE_SENS ADC1 SCALE(10.9)
-PC1 BATT_CURRENT_SENS ADC1 SCALE(50.0)
+# Beeper (timer alarm, no DMA)
+PA15 TIM2_CH1 TIM2 GPIO(32) ALARM
 
-# Serial Ports
-# UART1: DJI O3 / Digital VTX
+# Status LED
+PE3 LED0 OUTPUT LOW GPIO(90)
+define AP_NOTIFY_GPIO_LED_1_ENABLED 1
+define AP_NOTIFY_GPIO_LED_1_PIN 90
+
+# ---------------------------------------------------------------------------
+# Battery sense (ADC1, one DMA stream)
+# PC0 = ADC123_INP10, PC1 = ADC123_INP11
+# ---------------------------------------------------------------------------
+PC0 BATT_VOLTAGE_SENS ADC1 SCALE(1)
+PC1 BATT_CURRENT_SENS ADC1 SCALE(1)
+define HAL_BATT_MONITOR_DEFAULT 4
+define HAL_BATT_VOLT_PIN 10
+define HAL_BATT_CURR_PIN 11
+define HAL_BATT_VOLT_SCALE 10.9
+define HAL_BATT_CURR_SCALE 50.0
+
+# ---------------------------------------------------------------------------
+# Serial ports
+# SERIAL0 = USB, SERIAL1 = USART1, SERIAL2 = USART2, SERIAL3 = USART3
+# ---------------------------------------------------------------------------
+SERIAL_ORDER OTG1 USART1 USART2 USART3
+
+# USART1 - high-rate full-duplex link (DJI O3 / Walksnail MSP DisplayPort,
+# or MAVLink2 to a companion at up to 2 Mbaud). Both directions on
+# dedicated, non-shared DMA streams.   [DMA: USART1_RX + USART1_TX, NOSHARE]
 PA9  USART1_TX USART1
 PA10 USART1_RX USART1
 
-# UART2: RC Receiver (CRSF / ELRS)
-PD5 USART2_TX USART2
+# USART2 - RC receiver (CRSF / ELRS @ 420 kbaud). RX on DMA so frames are
+# never lost to ISR latency; low-volume telemetry TX is interrupt-driven.
+PD5 USART2_TX USART2 NODMA
 PD6 USART2_RX USART2
 
-# UART3: GPS + Compass
-PD8  USART3_TX USART3
-PD9  USART3_RX USART3
+# USART3 - GPS (+ compass on I2C1). RX on DMA; config/RTCM-free TX is
+# interrupt-driven.
+PD8 USART3_TX USART3 NODMA
+PD9 USART3_RX USART3
+
+define DEFAULT_SERIAL1_PROTOCOL SerialProtocol_MSP_DisplayPort
+define DEFAULT_SERIAL2_PROTOCOL SerialProtocol_RCIN
+define DEFAULT_SERIAL3_PROTOCOL SerialProtocol_GPS
+
+# ---------------------------------------------------------------------------
+# OSD
+# ---------------------------------------------------------------------------
+define OSD_ENABLED 1
+define HAL_OSD_TYPE_DEFAULT 1
+ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
+
+# ---------------------------------------------------------------------------
+# DMA STREAM BUDGET (STM32H743: DMA1 + DMA2 = 16 streams via DMAMUX1)
+#
+# Resolved by dma_resolver.py and verified against the generated hwdef.h
+# (python3 tools/validate_dma.py):
+#
+#  stream  request(s)               consumer                     policy
+#  DMA1-0  TIM1_UP (+CH1,CH3 *)     DShot out + eRPM capture     NOSHARE
+#  DMA1-1  SPI1_RX                  IMU1 ICM-42688-P             NOSHARE
+#  DMA1-2  SPI1_TX                  IMU1 ICM-42688-P             NOSHARE
+#  DMA1-3  SPI4_RX                  IMU2 ICM-42688-P             NOSHARE
+#  DMA1-4  SPI4_TX                  IMU2 ICM-42688-P             NOSHARE
+#  DMA1-5  USART1_RX                DisplayPort / MAVLink        NOSHARE
+#  DMA1-6  USART1_TX                DisplayPort / MAVLink        NOSHARE
+#  DMA1-7  ADC1                     battery V/I
+#  DMA2-0  USART2_RX                CRSF / ELRS
+#  DMA2-1  USART3_RX                GPS
+#  DMA2-2  SPI2_TX                  OSD                          shareable
+#  DMA2-5  SPI2_RX                  OSD                          shareable
+#  free    DMA2-3, DMA2-4, DMA2-6, DMA2-7  (4 spare streams)
+#
+#  * On DMAMUX parts ArduPilot deliberately multiplexes TIMx_CHy input
+#    capture onto the TIMx_UP stream: bidir DShot is half-duplex in time
+#    (frame out on UP, DMAMUX re-pointed to CHy for the eRPM reply), so the
+#    whole motor group costs ONE stream. This is not inter-peripheral
+#    sharing - SHARED_DMA_MASK in hwdef.h is 0.
+#
+#  Not on any stream:
+#    SDMMC1    internal IDMA master
+#    I2C1      DMA excluded on H7 by chibios_hwdef.py
+#    FDCAN1    dedicated message RAM
+#    OTG1      USB OTG_FS internal FIFO
+#    USART2_TX, USART3_TX   NODMA (interrupt driven, low volume)
+#
+# DMA_NOSHARE pins the latency-critical set (IMUs, motors, USART1) so the
+# resolver can never share them even if future peripherals exhaust the
+# budget. DMA_PRIORITY only sets dma_resolver.py's allocation/sharing order
+# (highest first); it does NOT set hardware arbitration priority. Hardware
+# stream priority is fixed by ArduPilot (not overridable from hwdef):
+#   TIM1 DShot/eRPM  PL3 very-high (RCOutput.cpp / RCOutput_bdshot.cpp)
+#   SDMMC1           3  (IDMA, separate AXI master - no stream arbitration)
+#   ADC1             2  (stm32h7_mcuconf.h STM32_ADC_ADC12_DMA_PRIORITY)
+#   SPI1/SPI2/SPI4   1  (STM32_SPI_SPIn_DMA_PRIORITY)
+#   USARTn           0  (STM32_UART_USARTn_DMA_PRIORITY)
+# Validate with: python3 tools/validate_dma.py --ardupilot <tree>
+# ---------------------------------------------------------------------------
+DMA_PRIORITY TIM1* SPI1* SPI4* USART1* ADC1* USART2* USART3* SPI2*
+DMA_NOSHARE  TIM1* SPI1* SPI4* USART1*
+
+# build ABIN for flash-from-bootloader support
+env BUILD_ABIN True

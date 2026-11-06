@@ -5,13 +5,13 @@
       "Application": "Pcbnew",
       "Version": "8.0.9-8.0.9-0~ubuntu24.04.1"
     },
-    "CreationDate": "2026-11-05T22:02:00+00:00"
+    "CreationDate": "2026-11-06T05:41:22+00:00"
   },
   "GeneralSpecs": {
     "ProjectId": {
       "Name": "nano-h743-aio",
       "GUID": "6e616e6f-2d68-4373-9433-2d61696f2e6b",
-      "Revision": "1.0"
+      "Revision": "6.0"
     },
     "Size": {
       "X": 25.65,

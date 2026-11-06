@@ -192,6 +192,7 @@ struct BitSlave {
     enum Mode : uint8_t { IDLE = 0, TX, RX, ADDR };
     Mode mode = IDLE;
     uint8_t byte = 0, sr = 0, pos = 0;
+    uint8_t rd_data = 0x5A;     // first byte it transmits after an addr+R ACK
     bool in_txn = false;        // a STOP is still owed to this slave
     uint32_t starts = 0, stops = 0, nacks = 0, acks = 0;
     void reset() { *this = BitSlave(); }
@@ -219,7 +220,7 @@ struct BitSlave {
         pos = 0;
         if (mode == TX) byte = uint8_t(byte * 37u + 11u);       // next register byte (any pattern)
         else if (mode == ADDR) {
-            if ((sr >> 1) == I2C_ADDR_SDO_GND) { mode = (sr & 1u) ? TX : RX; byte = 0x5A; }
+            if ((sr >> 1) == I2C_ADDR_SDO_GND) { mode = (sr & 1u) ? TX : RX; byte = rd_data; }
             else mode = IDLE;
         }
         sr = 0;
@@ -335,15 +336,17 @@ struct SimBus : I2cTransport, I2cBusGpio {
     void delay_us(uint32_t us) override { d.now += us; }
 
     // Put the bit-level slave in a hung state: the master died in `mode` at bit
-    // `pos` (0..7 data, 8 = ACK slot) of `byte`. scl_low: died right after the
+    // `pos` (0..7 data, 8 = ACK slot) of `byte` (ADDR: the address byte, and
+    // rd_data is what it will transmit if that address is its own + R). scl_low: died right after the
     // falling edge into that bit; else after the following rising edge (the
     // slave has already sampled it). master_sda_low: the master was driving
     // SDA low (its ACK of a read byte) when it died.
-    void hang(BitSlave::Mode mode, uint8_t pos, uint8_t byte, bool scl_low, bool master_sda_low)
+    void hang(BitSlave::Mode mode, uint8_t pos, uint8_t byte, bool scl_low, bool master_sda_low,
+              uint8_t rd_data = 0x5A)
     {
         bs.reset();
-        bs.mode = mode; bs.pos = pos; bs.byte = byte; bs.in_txn = true;
-        if (mode != BitSlave::TX) bs.sr = pos ? uint8_t(byte >> (8 - pos)) : 0;
+        bs.mode = mode; bs.pos = pos; bs.byte = byte; bs.rd_data = rd_data; bs.in_txn = true;
+        if (mode != BitSlave::TX) bs.sr = pos ? uint8_t(byte >> (8 - pos)) : uint8_t(0);
         m_sda = !master_sda_low;
         m_scl = true;
         if (scl_low) m_scl = false;
@@ -864,6 +867,7 @@ static void test_stuck_bitlevel()
         uint32_t clk = 0;
         const uint32_t st0 = g.bus.stops;
         const bool r = legacy_recover(g.bus, clk);
+        const uint32_t lst = g.bus.stops - st0;
         CHECK(!r && clk == 2 && g.bus.stops - st0 == 0 && g.bus.bs.in_txn,
               "legacy repro r=%d clocks=%u stops=%u", int(r), unsigned(clk), unsigned(g.bus.stops - st0));
         g.bus.hang(BitSlave::TX, 4, 0x02, true, false);
@@ -871,8 +875,8 @@ static void test_stuck_bitlevel()
         const bool n = g.drv.recover_bus();
         CHECK(n && g.drv.health().last_clear_clocks == 2 && g.bus.clock_pulses - p0 == 2 && g.bus.stops - s0 == 1 &&
               !g.bus.bs.in_txn && g.bus.bs.mode == BitSlave::IDLE, "new repro");
-        std::printf("      bits 0,0,1,0 left (TX pos 4, 0x02): legacy %s after %u clocks, %u STOP; new %s, %u clocks, 1 STOP\n",
-                    r ? "OK" : "FAILS", unsigned(clk), unsigned(g.bus.stops - st0 > 0), n ? "OK" : "FAIL",
+        std::printf("      bits 0,0,1,0 left (TX pos 4, 0x02): legacy %s after %u clocks, %u STOP, SDA held low; new %s, %u clocks, 1 STOP\n",
+                    r ? "OK" : "FAILS", unsigned(clk), unsigned(lst), n ? "OK" : "FAIL",
                     unsigned(g.drv.health().last_clear_clocks));
     }
     Rig g;
@@ -881,14 +885,21 @@ static void test_stuck_bitlevel()
     for (int m = BitSlave::TX; m <= BitSlave::ADDR; m++) {
         const BitSlave::Mode mode = BitSlave::Mode(m);
         for (uint8_t pos = 0; pos <= 8; pos++) {
+            // TX/RX: b = the byte in flight. ADDR: b = first read-data byte, swept
+            // under 4 address bytes (own W, own R, compass 0x1E W, other R).
+            static const uint8_t addrs[4] = {0xEC, 0xED, 0x3C, 0x1B};
+            const int na = mode == BitSlave::ADDR ? 4 : 1;
+            for (int ai = 0; ai < na; ai++)
             for (unsigned b = 0; b < 256; b++) {
+                const uint8_t fb = mode == BitSlave::ADDR ? addrs[ai] : uint8_t(b);
+                const uint8_t rdd = mode == BitSlave::ADDR ? uint8_t(b) : uint8_t(0x5A);
                 for (int scl_low = 0; scl_low < 2; scl_low++) {
                     // the master can only have been driving SDA low in its own read-ACK slot
                     const int msda_n = (mode == BitSlave::TX && pos == 8) ? 2 : 1;
                     for (int msda = 0; msda < msda_n; msda++) {
                         cases++;
                         n_mode[m]++;
-                        g.bus.hang(mode, pos, uint8_t(b), scl_low != 0, msda != 0);
+                        g.bus.hang(mode, pos, fb, scl_low != 0, msda != 0, rdd);
                         const uint32_t p0 = g.bus.clock_pulses, s0 = g.bus.stops;
                         const bool r = g.drv.recover_bus();
                         const uint32_t clk = g.drv.health().last_clear_clocks, pulses = g.bus.clock_pulses - p0;
@@ -898,13 +909,13 @@ static void test_stuck_bitlevel()
                                         !(g.drv.health().flags & F_RECOVERY_FAIL);
                         if (ok) good++;
                         else if (good + 50 > cases)   // print only the first few
-                            CHECK(false, "%s pos=%u byte=0x%02X scl_low=%d msda=%d r=%d clocks=%u pulses=%u stops=%u in_txn=%d",
-                                  names[m], unsigned(pos), b, scl_low, msda, int(r), unsigned(clk), unsigned(pulses),
+                            CHECK(false, "%s pos=%u byte=0x%02X rd=0x%02X scl_low=%d msda=%d r=%d clocks=%u pulses=%u stops=%u in_txn=%d",
+                                  names[m], unsigned(pos), unsigned(fb), unsigned(rdd), scl_low, msda, int(r), unsigned(clk), unsigned(pulses),
                                   unsigned(g.bus.stops - s0), int(g.bus.bs.in_txn));
                         if (clk > worst[m]) worst[m] = clk;
                         total_clocks += clk;
                         // same state through the pre-Rev-12 sequence
-                        g.bus.hang(mode, pos, uint8_t(b), scl_low != 0, msda != 0);
+                        g.bus.hang(mode, pos, fb, scl_low != 0, msda != 0, rdd);
                         uint32_t lc = 0;
                         const bool lr = legacy_recover(g.bus, lc);
                         if (!lr || g.bus.bs.in_txn) legacy_fail++;
@@ -914,12 +925,14 @@ static void test_stuck_bitlevel()
         }
     }
     CHECK(good == cases, "bit-level recovery %u/%u", unsigned(good), unsigned(cases));
-    CHECK(worst[BitSlave::TX] == 8 && worst[BitSlave::RX] == 1 && worst[BitSlave::ADDR] == 1,
+    CHECK(worst[BitSlave::TX] == 8 && worst[BitSlave::RX] == 1 && worst[BitSlave::ADDR] == 9,
           "worst clocks TX %u RX %u ADDR %u", unsigned(worst[1]), unsigned(worst[2]), unsigned(worst[3]));
     CHECK(legacy_fail > 0, "simulator must expose the pre-Rev-12 STOP bug");
+    static const char* const dims[4] = {"", " x master ACK", "", " x 4 addresses"};
     for (int m = BitSlave::TX; m <= BitSlave::ADDR; m++)
         std::printf("      %-22s %5u states (pos 0..8 x 256 bytes x SCL low/high%s): worst %u clocks\n", names[m],
-                    unsigned(n_mode[m]), m == BitSlave::TX ? " x master ACK" : "", unsigned(worst[m]));
+                    unsigned(n_mode[m]), dims[m], unsigned(worst[m]));
+    std::printf("      worst cases: TX 0x00 from MSB -> NACK slot after 8; own addr+R ACK then 0x00 -> 1 + 8 = 9 (bound is tight)\n");
     std::printf("      %u/%u recovered, STOP seen by slave, bus idle, <= 9 clocks (mean %.2f); legacy sequence fails %u/%u\n",
                 unsigned(good), unsigned(cases), double(total_clocks) / cases, unsigned(legacy_fail), unsigned(cases));
 }

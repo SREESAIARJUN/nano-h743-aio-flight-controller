@@ -62,3 +62,16 @@ BATT_FS_CRT_ACT 1
 # --- logging ---------------------------------------------------------------
 # microSD logging on SDMMC1 (IDMA)
 LOG_BACKEND_TYPE 1
+
+# --- digital VTX BEC (Rev 13.0) --------------------------------------------
+# RELAY2 = VTX_PWR (GPIO 81, U6 EN).  Must be 1: AP_Relay::init() drives the
+# pin to RELAYn_DEFAULT and would otherwise switch the VTX off at boot.
+RELAY2_DEFAULT 1
+# RELAY3 = VTX_12V_SEL (GPIO 82).  0 = 9 V (safe for HDZero 12 V max and the
+# only regulated setting on 3S).  12 V is a 4S-only mode: see
+# ardupilot/scripts/vtx_bec.lua (VBAT interlock) before setting it.
+RELAY3_DEFAULT 0
+# BEC output sense: PC5 = ADC12_INP8 through R40 10k / R41 1k (x11.0)
+BATT2_MONITOR 1
+BATT2_VOLT_PIN 8
+BATT2_VOLT_MULT 11.0

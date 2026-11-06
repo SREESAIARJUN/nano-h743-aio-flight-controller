@@ -1,0 +1,76 @@
+From: Sreesai Arjun <sreesaiarjun@users.noreply.github.com>
+Subject: [PATCH] AP_OSD: wait for the AT7456E NVM read before reading CMDO
+
+AP_OSD_MAX7456::check_font_char() sends one full-duplex burst:
+VM0=0 (OSD off), CMAH=chr, CMM=0x50 (read NVM character into shadow
+RAM), then 54 x (CMAL=x, CMDO read).  The first CMDO data byte is
+clocked 4 bytes after the CMM write: 3.2 us at the 10 MHz SCLK most
+boards use (6.4 us at the 5 MHz this board runs SPI2 at).
+
+That is enough for the MAX7456 (NVM read 0.5 us), but not for the
+AT7456E clone fitted to most current boards.  AT7456E-S402-V1.1:
+  - p.36 command execution table: CMM = 0x50 read completes (STAT[5]
+    clears) after 22 us min / 30 us typ; note 3 under the table: when
+    fixed delays are used, design to the typical value.
+  - same table: VM0[3] = 0 (display off) takes 0..18 us min / 30 us
+    typ; p.29 (CMM register): NVM read/write commands issued while the
+    display is enabled or STAT[5] is busy are ignored.  The p.34 read
+    procedure has an explicit 30 us wait after VM0[3] = 0.
+
+With the single burst the CMDO bytes come from stale shadow RAM, every
+character compares unequal and update_font() rewrites all 256
+characters (>= 256 x 15 ms) at every boot and on every font change,
+consuming NVM write endurance.  On a runtime font change (display on)
+the CMM read can additionally be ignored outright.
+
+Split the burst into three transfers on the same buffer (so the rx
+byte offsets parsed below are unchanged) with a 40 us wait after the
+OSD-disable and after CMM = 0x50 (typ 30 us + 33 % margin; ChibiOS
+delay_microseconds() rounds up to whole ticks so the wait is a
+minimum).  Both are overridable from hwdef.  Cost on a MAX7456: 256 x
+~80 us = ~20 ms extra at boot only.
+
+The timing analysis is from the datasheet and the Nano H743 AIO repo
+(analysis/osd_vtx_bec_analysis.py, firmware/osd_at7456e simulator);
+not yet confirmed on hardware.
+
+---
+--- a/libraries/AP_OSD/AP_OSD_MAX7456.cpp
++++ b/libraries/AP_OSD/AP_OSD_MAX7456.cpp
+@@ -122,6 +122,19 @@
+ //time to wait nvm flash complete
+ #define MAX_NVM_WAIT 10000
+ 
++// NVM -> shadow RAM read (CMM = READ_NVR) completion time. MAX7456: 0.5 us.
++// AT7456E (AT7456E-S402-V1.1 p.36 table): 22 us min, 30 us typ, and note 3
++// there says fixed delays must be designed to the typical value. Clearing
++// VM0[3] (OSD display off) likewise takes up to 30 us (same table) and a
++// CMM command issued while STAT[5] is busy is ignored (p.31, CMM register).
++// Both waits are therefore inserted between separate SPI transfers.
++#ifndef MAX7456_NVM_READ_DELAY_US
++#define MAX7456_NVM_READ_DELAY_US 40
++#endif
++#ifndef MAX7456_OSD_DISABLE_DELAY_US
++#define MAX7456_OSD_DISABLE_DELAY_US 40
++#endif
++
+ //black and white level
+ #ifndef WHITEBRIGHTNESS
+ #define WHITEBRIGHTNESS 0x01
+@@ -201,8 +214,15 @@
+         buffer_add_cmd(MAX7456ADD_CMAL, x);
+         buffer_add_cmd(MAX7456ADD_CMDO, 0xFF);
+     }
++    // buffer layout: [0..1] VM0=0, [2..5] CMAH=chr + CMM=READ_NVR,
++    // [6..] CMAL/CMDO pairs. Send it as three transfers so the OSD-disable
++    // and the NVM read have completed before the next command (AT7456E).
+     _dev->get_semaphore()->take_blocking();
+-    _dev->transfer_fullduplex(buffer, buffer_offset);
++    _dev->transfer_fullduplex(buffer, 2);
++    hal.scheduler->delay_microseconds(MAX7456_OSD_DISABLE_DELAY_US);
++    _dev->transfer_fullduplex(&buffer[2], 4);
++    hal.scheduler->delay_microseconds(MAX7456_NVM_READ_DELAY_US);
++    _dev->transfer_fullduplex(&buffer[6], buffer_offset - 6);
+     _dev->get_semaphore()->give();
+ 
+     //skip response from MAX7456ADD_VM0/MAX7456ADD_CMAH...

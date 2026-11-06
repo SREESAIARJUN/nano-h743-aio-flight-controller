@@ -1,5 +1,5 @@
 # hwdef.dat for the Nano H743 AIO (STM32H743VIT6 FC + integrated 4-in-1 ESC)
-# Sreesai Arjun Engineering - Revision 11.0 / 150
+# Sreesai Arjun Engineering - Revision 13.0 / 150
 #
 # Processed by libraries/AP_HAL_ChibiOS/hwdef/scripts/chibios_hwdef.py.
 # Rev 6.0 scope: deterministic DMA allocation for USART1, SPI1, SPI4 and
@@ -13,6 +13,11 @@
 # 32.768 kHz CLKIN (RTC mode), IMU2 gains its DRDY line, and each IMU has a
 # dedicated supply filter (see the IMU block and "Revision 11.0 Engineering
 # Changelog").
+# Rev 13.0 scope: AT7456E analog OSD on SPI2 (U5, 5 MHz SCLK for timing
+# margin), 6-pin SH1.0 digital VTX connector J1 on USART1 (+ UART7_RX for the
+# DJI HDL / SBUS pin) and the switchable 9 V / 12 V 2 A VTX BEC (U6
+# TPS62933, VTX_PWR / VTX_12V_SEL relays, VTX_VSENSE ADC).  See
+# analysis/osd_vtx_bec_analysis.py and "Revision 13.0 Engineering Changelog".
 
 # MCU class and specific type (format: MCU <series> <type>)
 MCU STM32H7xx STM32H743xx
@@ -97,6 +102,13 @@ define INVENSENSEV3_CLKIN_BITMASK 3
 
 # ---------------------------------------------------------------------------
 # SPI2 - AT7456E analog OSD          [DMA: SPI2_RX + SPI2_TX, shareable]
+#
+# Rev 13.0: U5 AT7456E (LCSC C82351, HTSSOP-28-EP), all three supplies on the
+# filtered +3V3_OSD rail (FB5) so SDOUT swings 0..3.3 V into PB14 and every
+# MCU-driven input stays inside its VDVDD+0.3 V abs-max.  33R source
+# termination R30..R33 (pin 1 = this hwdef net).  27 MHz crystal Y3.
+# /RESET is pulled up only (R29 10k); AP_OSD_MAX7456 probes with a VM0
+# software reset.  LOS / HSYNC / VSYNC are unused (driver polls STAT).
 # ---------------------------------------------------------------------------
 PB13 SPI2_SCK  SPI2
 PB14 SPI2_MISO SPI2
@@ -113,7 +125,12 @@ PB12 OSD1_CS   CS
 # 8 kHz need < 2 MHz effective).  A request of 20*MHZ would give 20/25 MHz.
 SPIDEV imu1 SPI1 DEVID1 IMU1_CS MODE3  2*MHZ 16*MHZ
 SPIDEV imu2 SPI4 DEVID1 IMU2_CS MODE3  2*MHZ 16*MHZ
-SPIDEV osd  SPI2 DEVID4 OSD1_CS MODE0 10*MHZ 10*MHZ
+# Rev 13.0 OSD speed: SPI2 kernel = PLL1_Q 80 MHz (same as SPI1).  10*MHZ
+# gave 80/8 = 10.000 MHz = the AT7456E tCP(min) 100 ns limit with ZERO
+# margin.  AP_OSD_MAX7456 never calls set_speed(), so the LOW speed value is
+# the one used.  8*MHZ -> divisor search 40 -> 20 -> 10 -> 5 => 5.000 MHz
+# (tCP 200 ns, 2x margin).  Worst-case 484-byte flush = 0.78 ms per 100 ms.
+SPIDEV osd  SPI2 DEVID4 OSD1_CS MODE0  8*MHZ  8*MHZ
 
 IMU Invensensev3 SPI:imu1 ROTATION_NONE
 IMU Invensensev3 SPI:imu2 ROTATION_PITCH_180
@@ -254,9 +271,10 @@ define HAL_BATT_CURR_SCALE 50.0
 
 # ---------------------------------------------------------------------------
 # Serial ports
-# SERIAL0 = USB, SERIAL1 = USART1, SERIAL2 = USART2, SERIAL3 = USART3
+# SERIAL0 = USB, SERIAL1 = USART1, SERIAL2 = USART2, SERIAL3 = USART3,
+# SERIAL4 = UART7 (RX only, VTX connector pin 6, Rev 13.0)
 # ---------------------------------------------------------------------------
-SERIAL_ORDER OTG1 USART1 USART2 USART3
+SERIAL_ORDER OTG1 USART1 USART2 USART3 UART7
 
 # USART1 - high-rate full-duplex link (DJI O3 / Walksnail MSP DisplayPort,
 # or MAVLink2 to a companion at up to 2 Mbaud). Both directions on
@@ -274,9 +292,39 @@ PD6 USART2_RX USART2
 PD8 USART3_TX USART3 NODMA
 PD9 USART3_RX USART3
 
+# Rev 13.0: UART7 RX only (PE7) - pin 6 of the digital VTX connector J1
+# (DJI HDL / SBUS from DJI goggles' remote, through R44 1k).  SBUS is 100k
+# 8E2 inverted; the H7 USART inverts in hardware (SERIAL4_OPTIONS bit 0).
+# NODMA: 100 kbaud is trivially interrupt-driven and the DMA budget below
+# stays at 12/16 streams.  PE8 (UART7_TX) remains unassigned.
+PE7  UART7_RX UART7 NODMA
+
 define DEFAULT_SERIAL1_PROTOCOL SerialProtocol_MSP_DisplayPort
 define DEFAULT_SERIAL2_PROTOCOL SerialProtocol_RCIN
 define DEFAULT_SERIAL3_PROTOCOL SerialProtocol_GPS
+
+# ---------------------------------------------------------------------------
+# Rev 13.0 - digital VTX power: 9 V / 12 V 2 A BEC (U6 TPS62933DRLR, 500 kHz)
+#
+# VTX_PWR  (PD10) -> R39 1k -> U6 EN.  EN has an internal pull-up, so while
+#   the MCU pin is high-Z (reset, bootloader) the BEC runs and the VTX keeps
+#   video.  OUTPUT HIGH here; RELAY2 must default ON (defaults.parm) because
+#   AP_Relay::init() otherwise drives the pin to RELAY2_DEFAULT = 0 (off).
+# VTX_12V_SEL (PD11) -> R37 1k -> Q1 2N7002 gate, R38 100k gate pull-down.
+#   Q1 parallels R36 26.7k with R35 10k (bottom FB): OFF = 8.96 V, ON = 12.02 V.
+#   High-Z / LOW = 9 V, so 12 V can only exist while firmware drives it HIGH.
+#   12 V is a 4S-only mode (regulation needs Vin >= ~13.3 V at 2 A); see
+#   firmware/vtx_power and ardupilot/scripts/vtx_bec.lua for the interlock.
+# VTX_VSENSE (PC5 = ADC12_INP8) <- R40 10k / R41 1k divider of +VTX (x11.0).
+#   Exposed as battery monitor 2 (voltage only): BATT2_VOLT_PIN 8,
+#   BATT2_VOLT_MULT 11.0 (defaults.parm).  Shares the ADC1 DMA stream.
+# PD10/PD11 sit next to PD12 (32.768 kHz IMU_CLKIN_MON) - route them away.
+# ---------------------------------------------------------------------------
+PD10 VTX_PWR     OUTPUT PUSHPULL SPEED_LOW HIGH GPIO(81)
+PD11 VTX_12V_SEL OUTPUT PUSHPULL SPEED_LOW LOW  GPIO(82)
+define RELAY2_PIN_DEFAULT 81
+define RELAY3_PIN_DEFAULT 82
+PC5  VTX_VSENSE  ADC1 SCALE(1)
 
 # ---------------------------------------------------------------------------
 # OSD
@@ -303,6 +351,7 @@ ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 #  DMA1-7  ADC1                     battery V/I
 #  DMA2-0  USART2_RX                CRSF / ELRS
 #  DMA2-1  USART3_RX                GPS
+#  (UART7_RX, Rev 13.0: NODMA - VTX connector SBUS / DJI HDL)
 #  DMA2-2  SPI2_TX                  OSD                          shareable
 #  DMA2-5  SPI2_RX                  OSD                          shareable
 #  free    DMA2-3, DMA2-4, DMA2-6, DMA2-7  (4 spare streams)
@@ -318,7 +367,7 @@ ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 #    I2C1      DMA excluded on H7 by chibios_hwdef.py
 #    FDCAN1    dedicated message RAM
 #    OTG1      USB OTG_FS internal FIFO
-#    USART2_TX, USART3_TX   NODMA (interrupt driven, low volume)
+#    USART2_TX, USART3_TX, UART7_RX   NODMA (interrupt driven, low volume)
 #
 # DMA_NOSHARE pins the latency-critical set (IMUs, motors, USART1) so the
 # resolver can never share them even if future peripherals exhaust the

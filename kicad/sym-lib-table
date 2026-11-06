@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "nano-h743-aio")(type "KiCad")(uri "${KIPRJMOD}/nano-h743-aio.kicad_sym")(options "")(descr "Nano H743 AIO project symbols (generated)"))
+)

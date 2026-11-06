@@ -1,5 +1,5 @@
 # hwdef.dat for the Nano H743 AIO (STM32H743VIT6 FC + integrated 4-in-1 ESC)
-# Sreesai Arjun Engineering - Revision 6.0 / 150
+# Sreesai Arjun Engineering - Revision 7.0 / 150
 #
 # Processed by libraries/AP_HAL_ChibiOS/hwdef/scripts/chibios_hwdef.py.
 # Rev 6.0 scope: deterministic DMA allocation for USART1, SPI1, SPI4 and
@@ -15,10 +15,18 @@ MCU STM32H7xx STM32H743xx
 # registered upstream (AP_HW_NANO_H743_AIO) before public release.
 APJ_BOARD_ID 5743
 
-# 25 MHz HSE crystal. ArduPilot's stm32h7_mcuconf.h derives the PLL
-# (M/N/P/Q/R) for 25 MHz -> 400 MHz SYSCLK; raw PLL values are NOT hwdef
-# keywords and must not be set here.
-OSCILLATOR_HZ 25000000
+# 24 MHz HSE crystal (Rev 7.0: Y1 TXM24M0004322FBCDO00T, CL 12 pF, C1/C2
+# 16 pF C0G - see kicad/nano-h743-aio.kicad_sch and
+# analysis/hse_vdda_analysis.py).  ArduPilot's stm32h7_mcuconf.h derives the
+# PLLs from OSCILLATOR_HZ; raw PLL values are NOT hwdef keywords.
+#   PLL1: 24 MHz /M3 = 8 MHz x N120 = 960 MHz VCO, /P2 = 480 MHz SYSCLK
+#   PLL3: 24 MHz /M6 = 4 MHz x N72 = 288 MHz VCO, /Q6 = 48 MHz USB (exact)
+# Rev 6 used 25 MHz, which cannot run at 480 MHz: stm32h7_mcuconf.h has no
+# custom-clockrate PLL set for 25 MHz and stops with
+# "#error Unable to configure custom clockrate".
+# 480 MHz requires revision V silicon (all current STM32H743VIT6 date codes).
+OSCILLATOR_HZ 24000000
+MCU_CLOCKRATE_MHZ 480
 
 # 2 MB flash; first 128 kB sector reserved for the bootloader
 FLASH_SIZE_KB 2048
@@ -64,8 +72,13 @@ PB15 SPI2_MOSI SPI2
 PB12 OSD1_CS   CS
 
 # SPI devices: name bus devid cs mode low_speed high_speed
-# ICM-42688-P is rated to 24 MHz; 16 MHz is the closest SPI kernel-clock
-# divisor that stays inside spec with margin on the 6-layer stackup.
+# ICM-42688-P is rated to 24 MHz.  ArduPilot picks the first power-of-two
+# divisor of (kernel clock / 2) that is <= the requested 16 MHz, so the
+# actual SCLK is (Rev 7.0, 24 MHz HSE / 480 MHz; identical to Rev 6 values):
+#   SPI1 kernel = PLL1_Q  80 MHz -> 40 -> 20 -> 10.0 MHz SCLK (IMU1)
+#   SPI4 kernel = PLL2_Q 100 MHz -> 50 -> 25 -> 12.5 MHz SCLK (IMU2)
+# Both are inside the 24 MHz limit; the asymmetry is accepted (FIFO reads at
+# 8 kHz need < 2 MHz effective).  A request of 20*MHZ would give 20/25 MHz.
 SPIDEV imu1 SPI1 DEVID1 IMU1_CS MODE3  2*MHZ 16*MHZ
 SPIDEV imu2 SPI4 DEVID1 IMU2_CS MODE3  2*MHZ 16*MHZ
 SPIDEV osd  SPI2 DEVID4 OSD1_CS MODE0 10*MHZ 10*MHZ

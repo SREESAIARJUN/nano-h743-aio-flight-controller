@@ -1,4 +1,4 @@
-# hwdef-bl.dat - bootloader for the Nano H743 AIO (Revision 6.0)
+# hwdef-bl.dat - bootloader for the Nano H743 AIO (Revision 7.0)
 # Sreesai Arjun Engineering
 
 MCU STM32H7xx STM32H743xx
@@ -6,7 +6,8 @@ MCU STM32H7xx STM32H743xx
 # PROVISIONAL board ID - must match hwdef.dat (see note there)
 APJ_BOARD_ID 5743
 
-OSCILLATOR_HZ 25000000
+# must match hwdef.dat: 24 MHz HSE (Rev 7.0)
+OSCILLATOR_HZ 24000000
 
 FLASH_SIZE_KB 2048
 

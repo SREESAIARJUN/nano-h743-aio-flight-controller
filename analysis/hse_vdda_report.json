@@ -1,0 +1,750 @@
+{
+  "checks": [
+    {
+      "check": "PLL dividers match ArduPilot stm32h7_mcuconf.h (24 MHz, 480 MHz)",
+      "pass": true,
+      "detail": "M/N/P/Q/R identical (libraries/AP_HAL_ChibiOS/hwdef/common/stm32h7_mcuconf.h)"
+    },
+    {
+      "check": "PLL1 reference input 2..16 MHz",
+      "pass": true,
+      "detail": "8.000 MHz"
+    },
+    {
+      "check": "PLL1 VCO within wide range 192..960 MHz (rev V)",
+      "pass": true,
+      "detail": "960.0 MHz"
+    },
+    {
+      "check": "PLL2 reference input 2..16 MHz",
+      "pass": true,
+      "detail": "12.000 MHz"
+    },
+    {
+      "check": "PLL2 VCO within wide range 192..960 MHz (rev V)",
+      "pass": true,
+      "detail": "600.0 MHz"
+    },
+    {
+      "check": "PLL3 reference input 2..16 MHz",
+      "pass": true,
+      "detail": "4.000 MHz"
+    },
+    {
+      "check": "PLL3 VCO within wide range 192..960 MHz (rev V)",
+      "pass": true,
+      "detail": "288.0 MHz"
+    },
+    {
+      "check": "SYSCLK = 480 MHz",
+      "pass": true,
+      "detail": "480.000 MHz"
+    },
+    {
+      "check": "USB 48 MHz exact (PLL3_Q)",
+      "pass": true,
+      "detail": "48.000000 MHz"
+    },
+    {
+      "check": "Effective CL within +/-1 pF of crystal spec (nominal stray)",
+      "pass": true,
+      "detail": "CL_eff = 12.00 pF (corners 10.42..13.58 pF), ideal C1=C2=16.0 pF"
+    },
+    {
+      "check": "Load caps centred: nominal pulling within +/-2 ppm",
+      "pass": true,
+      "detail": "nominal pull +0.00 ppm"
+    },
+    {
+      "check": "Load-cap pulling within +/-30 ppm over stray, cap tolerance and C1m 3..8 fF",
+      "pass": true,
+      "detail": "pull = +24.1 / +0.0 / -20.0 ppm (lo/nom/hi) at C1m 8 fF, C0 5 pF"
+    },
+    {
+      "check": "10-year frequency error budget <= 1000 ppm (FDCAN/USB/UART)",
+      "pass": true,
+      "detail": "104.1 ppm = pull 24.1 + tol 10 + stab 20 + aging 10x5"
+    },
+    {
+      "check": "Oscillator start-up: gm_crit <= Gm_critmax/1.2 (AN2867)",
+      "pass": true,
+      "detail": "gm_crit = 0.942 mA/V (worst CL 13.58 pF, ESR 30 R, C0 5 pF) vs Gm_critmax 1.5 mA/V -> margin x1.59"
+    },
+    {
+      "check": "Substitution rule computed: ESR_max(CL) at C0 5 pF, margin x1.2",
+      "pass": true,
+      "detail": "max ESR [R] per CL: {\"CL8pF\": 64.6, \"CL10pF\": 50.0, \"CL12pF\": 39.8, \"CL18pF\": 22.7, \"CL20pF\": 19.5}; a CL 18-20 pF part must have ESR <= 20 R"
+    },
+    {
+      "check": "Drive level at 1.0 Vpp on OSC_OUT below crystal limit",
+      "pass": true,
+      "detail": "DL(1.0 Vpp) = 27.6 uW, DL(3.3 Vpp) = 300.9 uW, limit 100 uW -> bring-up gate Vpp(OSC_OUT) <= 1.90 V; R1 may be raised to at most 6.8 R (9.8 R keeps x1.2 start-up margin)"
+    },
+    {
+      "check": "R2 = smallest candidate meeting peaking <= 2 dB design target and DC drop <= 30 mV",
+      "pass": true,
+      "detail": "selected 2.2 R (design 2.2 R); candidates {\"1.0\": {\"worst_peak_dB\": 5.42, \"dc_drop_mV\": 14.0}, \"1.5\": {\"worst_peak_dB\": 2.62, \"dc_drop_mV\": 19.05}, \"2.2\": {\"worst_peak_dB\": 0.5, \"dc_drop_mV\": 26.12}}"
+    },
+    {
+      "check": "VDDA filter resonance peaking <= +3 dB at every corner (L 0.47..4.7 uH, Rdc 0.1..0.39 R, C -45%, R2 -1%)",
+      "pass": true,
+      "detail": "worst 0.50 dB with R2=2.2 R vs 24.98 dB undamped"
+    },
+    {
+      "check": "VDDA filter attenuation >= 40 dB at 10 MHz incl. 1 nH cap ESL (all corners)",
+      "pass": true,
+      "detail": "worst -56.7 dB"
+    },
+    {
+      "check": "VDDA filter attenuation >= 40 dB at 100 MHz incl. 1 nH cap ESL (all corners)",
+      "pass": true,
+      "detail": "worst -64.7 dB"
+    },
+    {
+      "check": "VDDA DC drop <= 30 mV at 10 mA (bead Rdc 0.39 R after-test max + R2 +1%)",
+      "pass": true,
+      "detail": "26.1 mV"
+    }
+  ],
+  "revision": "7.0",
+  "assumptions": {
+    "crystal": {
+      "part": "Yajingxin TXM24M0004322FBCDO00T (LCSC C362340), 3225-4P",
+      "f_hz": 24000000.0,
+      "CL_spec_pF": 12.0,
+      "ESR_max_ohm": 30.0,
+      "C0_max_pF": 5.0,
+      "C1_motional_fF_range": [
+        3.0,
+        8.0
+      ],
+      "DL_max_uW": 100.0,
+      "tol_ppm": 10,
+      "stab_ppm": 20,
+      "aging_ppm_per_yr": 5,
+      "life_years": 10
+    },
+    "load_caps": {
+      "C1_pF": 16.0,
+      "C2_pF": 16.0,
+      "tol_pct": 1.0,
+      "dielectric": "C0G",
+      "part": "Murata GJM1555C1H160FB01J (LCSC C3853959)"
+    },
+    "stray": {
+      "Cs_pF_nominal": 4.0,
+      "Cs_pF_min": 2.5,
+      "Cs_pF_max": 5.5
+    },
+    "stm32h7_hse": {
+      "Gm_critmax_mA_per_V": 1.5,
+      "source": "DS12110 HSE oscillator characteristics",
+      "required_margin": 1.2
+    },
+    "freq_budget_ppm": {
+      "limit": 1000,
+      "basis": "FDCAN1 DroneCAN 1 Mbit/s, ISO 11898-1 bit timing with SJW>=2 tq tolerates >=3000 ppm combined; 3x margin -> 1000 ppm. USB FS needs 2500 ppm; UARTs ~2%."
+    },
+    "bead": {
+      "part": "Murata BLM15AX601SN1D (LCSC C76886)",
+      "rated_mA": 500,
+      "Rdc_ohm_min": 0.1,
+      "Rdc_ohm_max": 0.39,
+      "L_uH_list": [
+        0.47,
+        1.0,
+        2.2,
+        3.3,
+        4.7
+      ],
+      "R_parallel_ohm": 600.0
+    },
+    "vdda_caps": {
+      "nominal_uF": [
+        1.0,
+        0.1,
+        1.0,
+        0.1
+      ],
+      "parts": "2x CL05A105KA5NQNC 1uF X5R 25V (C52923), 2x CL05B104KO5NNNC 100nF X7R 16V (C1525)",
+      "dc_bias_factor_min": 0.55,
+      "esr_ohm_each": 0.01,
+      "esl_nH_each": 1.0
+    },
+    "R2_candidates_ohm": [
+      1.0,
+      1.5,
+      2.2
+    ],
+    "R2_damping_ohm": 2.2,
+    "R2_tol_pct": 1.0,
+    "R2_part": "UNI-ROYAL 0402WGF220KTCE 2.2R 1% (LCSC C25101)",
+    "peaking_limit_dB": 3.0,
+    "peaking_design_target_dB": 2.0,
+    "dc_drop_limit_mV": 30.0,
+    "I_vdda_max_mA": 10.0
+  },
+  "clock_tree": {
+    "PLL1": {
+      "ref_MHz": 8.0,
+      "vco_MHz": 960.0,
+      "P_MHz": 480.0,
+      "Q_MHz": 80.0,
+      "R_MHz": 480.0
+    },
+    "PLL2": {
+      "ref_MHz": 12.0,
+      "vco_MHz": 600.0,
+      "P_MHz": 200.0,
+      "Q_MHz": 100.0,
+      "R_MHz": 200.0
+    },
+    "PLL3": {
+      "ref_MHz": 4.0,
+      "vco_MHz": 288.0,
+      "Q_MHz": 48.0,
+      "R_MHz": 32.0
+    },
+    "silicon_note": "PLL1 VCO 960 MHz / 480 MHz SYSCLK is only specified for revision V (DBGMCU REV_ID 0x2003); rev Y is limited to VCO 836 MHz / 400 MHz. Enforced as a procurement field on U1 (tools/verify_mcu_core_sch.py S7).",
+    "note_25MHz": "stm32h7_mcuconf.h: '#elif STM32_HSECLK == 25000000U / #ifdef HAL_CUSTOM_MCU_CLOCKRATE / #error Unable to configure custom clockrate'"
+  },
+  "crystal": {
+    "CL_eff_pF": {
+      "min": 10.42,
+      "nom": 12.0,
+      "max": 13.58
+    },
+    "ideal_load_cap_pF": 16.0,
+    "pull_ppm_at_C1m_max": [
+      24.11,
+      0.0,
+      -20.01
+    ],
+    "total_error_ppm": 104.1,
+    "gm_crit_mA_per_V": 0.942,
+    "gm_margin": 1.59,
+    "substitution_ESR_max_ohm": {
+      "CL8pF": 64.6,
+      "CL10pF": 50.0,
+      "CL12pF": 39.8,
+      "CL18pF": 22.7,
+      "CL20pF": 19.5
+    },
+    "drive_level_uW": {
+      "1.0Vpp": 27.6,
+      "2.0Vpp": 110.5,
+      "3.3Vpp": 300.9
+    },
+    "Vpp_limit_for_DLmax_V": 1.902,
+    "R1_ext_max_ohm": 9.8,
+    "R1_ext_max_E12_ohm": 6.8
+  },
+  "vdda_filter": {
+    "R2_selection": {
+      "1.0": {
+        "worst_peak_dB": 5.42,
+        "dc_drop_mV": 14.0
+      },
+      "1.5": {
+        "worst_peak_dB": 2.62,
+        "dc_drop_mV": 19.05
+      },
+      "2.2": {
+        "worst_peak_dB": 0.5,
+        "dc_drop_mV": 26.12
+      }
+    },
+    "damped_R2": [
+      {
+        "L_uH": 0.47,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 211.0,
+        "Q": 0.27,
+        "peak_dB": -0.0,
+        "peak_at_kHz": 1.0,
+        "att_dB_1MHz": -29.0,
+        "att_dB_10MHz": -63.1,
+        "att_dB_100MHz": -64.8
+      },
+      {
+        "L_uH": 0.47,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 211.0,
+        "Q": 0.24,
+        "peak_dB": -0.0,
+        "peak_at_kHz": 1.0,
+        "att_dB_1MHz": -29.5,
+        "att_dB_10MHz": -63.2,
+        "att_dB_100MHz": -64.8
+      },
+      {
+        "L_uH": 0.47,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 156.5,
+        "Q": 0.2,
+        "peak_dB": -0.0,
+        "peak_at_kHz": 1.0,
+        "att_dB_1MHz": -34.4,
+        "att_dB_10MHz": -56.7,
+        "att_dB_100MHz": -64.7
+      },
+      {
+        "L_uH": 0.47,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 156.5,
+        "Q": 0.18,
+        "peak_dB": -0.01,
+        "peak_at_kHz": 1.0,
+        "att_dB_1MHz": -34.9,
+        "att_dB_10MHz": -56.7,
+        "att_dB_100MHz": -64.7
+      },
+      {
+        "L_uH": 1.0,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 144.7,
+        "Q": 0.4,
+        "peak_dB": -0.0,
+        "peak_at_kHz": 1.0,
+        "att_dB_1MHz": -34.2,
+        "att_dB_10MHz": -69.6,
+        "att_dB_100MHz": -69.1
+      },
+      {
+        "L_uH": 1.0,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 144.7,
+        "Q": 0.35,
+        "peak_dB": -0.0,
+        "peak_at_kHz": 1.0,
+        "att_dB_1MHz": -34.3,
+        "att_dB_10MHz": -69.6,
+        "att_dB_100MHz": -69.1
+      },
+      {
+        "L_uH": 1.0,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 107.3,
+        "Q": 0.3,
+        "peak_dB": -0.0,
+        "peak_at_kHz": 1.0,
+        "att_dB_1MHz": -39.6,
+        "att_dB_10MHz": -63.2,
+        "att_dB_100MHz": -69.0
+      },
+      {
+        "L_uH": 1.0,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 107.3,
+        "Q": 0.26,
+        "peak_dB": -0.0,
+        "peak_at_kHz": 1.0,
+        "att_dB_1MHz": -39.7,
+        "att_dB_10MHz": -63.2,
+        "att_dB_100MHz": -69.0
+      },
+      {
+        "L_uH": 2.2,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 97.5,
+        "Q": 0.59,
+        "peak_dB": -0.0,
+        "peak_at_kHz": 1.0,
+        "att_dB_1MHz": -40.7,
+        "att_dB_10MHz": -76.3,
+        "att_dB_100MHz": -71.2
+      },
+      {
+        "L_uH": 2.2,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 97.5,
+        "Q": 0.52,
+        "peak_dB": -0.0,
+        "peak_at_kHz": 1.0,
+        "att_dB_1MHz": -40.7,
+        "att_dB_10MHz": -76.3,
+        "att_dB_100MHz": -71.2
+      },
+      {
+        "L_uH": 2.2,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 72.3,
+        "Q": 0.44,
+        "peak_dB": -0.0,
+        "peak_at_kHz": 1.0,
+        "att_dB_1MHz": -46.0,
+        "att_dB_10MHz": -69.8,
+        "att_dB_100MHz": -71.0
+      },
+      {
+        "L_uH": 2.2,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 72.3,
+        "Q": 0.39,
+        "peak_dB": -0.0,
+        "peak_at_kHz": 1.0,
+        "att_dB_1MHz": -46.1,
+        "att_dB_10MHz": -69.8,
+        "att_dB_100MHz": -71.1
+      },
+      {
+        "L_uH": 3.3,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 79.6,
+        "Q": 0.72,
+        "peak_dB": 0.01,
+        "peak_at_kHz": 16.8,
+        "att_dB_1MHz": -44.1,
+        "att_dB_10MHz": -79.6,
+        "att_dB_100MHz": -71.6
+      },
+      {
+        "L_uH": 3.3,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 79.6,
+        "Q": 0.64,
+        "peak_dB": -0.0,
+        "peak_at_kHz": 1.0,
+        "att_dB_1MHz": -44.2,
+        "att_dB_10MHz": -79.6,
+        "att_dB_100MHz": -71.6
+      },
+      {
+        "L_uH": 3.3,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 59.1,
+        "Q": 0.54,
+        "peak_dB": -0.0,
+        "peak_at_kHz": 1.0,
+        "att_dB_1MHz": -49.5,
+        "att_dB_10MHz": -73.1,
+        "att_dB_100MHz": -71.4
+      },
+      {
+        "L_uH": 3.3,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 59.1,
+        "Q": 0.48,
+        "peak_dB": -0.0,
+        "peak_at_kHz": 1.0,
+        "att_dB_1MHz": -49.5,
+        "att_dB_10MHz": -73.1,
+        "att_dB_100MHz": -71.5
+      },
+      {
+        "L_uH": 4.7,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 66.7,
+        "Q": 0.86,
+        "peak_dB": 0.5,
+        "peak_at_kHz": 38.3,
+        "att_dB_1MHz": -47.2,
+        "att_dB_10MHz": -82.2,
+        "att_dB_100MHz": -71.7
+      },
+      {
+        "L_uH": 4.7,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 66.7,
+        "Q": 0.77,
+        "peak_dB": 0.1,
+        "peak_at_kHz": 25.5,
+        "att_dB_1MHz": -47.2,
+        "att_dB_10MHz": -82.2,
+        "att_dB_100MHz": -71.7
+      },
+      {
+        "L_uH": 4.7,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 49.5,
+        "Q": 0.64,
+        "peak_dB": -0.0,
+        "peak_at_kHz": 1.0,
+        "att_dB_1MHz": -52.5,
+        "att_dB_10MHz": -75.7,
+        "att_dB_100MHz": -71.6
+      },
+      {
+        "L_uH": 4.7,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 49.5,
+        "Q": 0.57,
+        "peak_dB": -0.0,
+        "peak_at_kHz": 1.0,
+        "att_dB_1MHz": -52.6,
+        "att_dB_10MHz": -75.7,
+        "att_dB_100MHz": -71.6
+      }
+    ],
+    "undamped": [
+      {
+        "L_uH": 0.47,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 211.0,
+        "Q": 6.08,
+        "peak_dB": 15.5,
+        "peak_at_kHz": 208.7,
+        "att_dB_1MHz": -26.8,
+        "att_dB_10MHz": -63.1,
+        "att_dB_100MHz": -64.8
+      },
+      {
+        "L_uH": 0.47,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 211.0,
+        "Q": 1.59,
+        "peak_dB": 4.42,
+        "peak_at_kHz": 189.1,
+        "att_dB_1MHz": -26.9,
+        "att_dB_10MHz": -63.1,
+        "att_dB_100MHz": -64.8
+      },
+      {
+        "L_uH": 0.47,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 156.5,
+        "Q": 4.51,
+        "peak_dB": 12.96,
+        "peak_at_kHz": 153.6,
+        "att_dB_1MHz": -32.3,
+        "att_dB_10MHz": -56.6,
+        "att_dB_100MHz": -64.7
+      },
+      {
+        "L_uH": 0.47,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 156.5,
+        "Q": 1.18,
+        "peak_dB": 2.25,
+        "peak_at_kHz": 124.8,
+        "att_dB_1MHz": -32.4,
+        "att_dB_10MHz": -56.6,
+        "att_dB_100MHz": -64.7
+      },
+      {
+        "L_uH": 1.0,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 144.7,
+        "Q": 8.87,
+        "peak_dB": 18.71,
+        "peak_at_kHz": 143.8,
+        "att_dB_1MHz": -33.6,
+        "att_dB_10MHz": -69.6,
+        "att_dB_100MHz": -69.1
+      },
+      {
+        "L_uH": 1.0,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 144.7,
+        "Q": 2.32,
+        "peak_dB": 7.44,
+        "peak_at_kHz": 137.7,
+        "att_dB_1MHz": -33.6,
+        "att_dB_10MHz": -69.6,
+        "att_dB_100MHz": -69.1
+      },
+      {
+        "L_uH": 1.0,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 107.3,
+        "Q": 6.58,
+        "peak_dB": 16.17,
+        "peak_at_kHz": 107.0,
+        "att_dB_1MHz": -39.0,
+        "att_dB_10MHz": -63.1,
+        "att_dB_100MHz": -69.0
+      },
+      {
+        "L_uH": 1.0,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 107.3,
+        "Q": 1.72,
+        "peak_dB": 5.04,
+        "peak_at_kHz": 98.1,
+        "att_dB_1MHz": -39.0,
+        "att_dB_10MHz": -63.1,
+        "att_dB_100MHz": -69.0
+      },
+      {
+        "L_uH": 2.2,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 97.5,
+        "Q": 13.16,
+        "peak_dB": 21.96,
+        "peak_at_kHz": 97.0,
+        "att_dB_1MHz": -40.5,
+        "att_dB_10MHz": -76.3,
+        "att_dB_100MHz": -71.1
+      },
+      {
+        "L_uH": 2.2,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 97.5,
+        "Q": 3.44,
+        "peak_dB": 10.71,
+        "peak_at_kHz": 94.9,
+        "att_dB_1MHz": -40.5,
+        "att_dB_10MHz": -76.3,
+        "att_dB_100MHz": -71.1
+      },
+      {
+        "L_uH": 2.2,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 72.3,
+        "Q": 9.76,
+        "peak_dB": 19.52,
+        "peak_at_kHz": 72.2,
+        "att_dB_1MHz": -45.9,
+        "att_dB_10MHz": -69.8,
+        "att_dB_100MHz": -71.0
+      },
+      {
+        "L_uH": 2.2,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 72.3,
+        "Q": 2.55,
+        "peak_dB": 8.22,
+        "peak_at_kHz": 69.1,
+        "att_dB_1MHz": -45.9,
+        "att_dB_10MHz": -69.8,
+        "att_dB_100MHz": -71.0
+      },
+      {
+        "L_uH": 3.3,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 79.6,
+        "Q": 16.11,
+        "peak_dB": 23.63,
+        "peak_at_kHz": 79.7,
+        "att_dB_1MHz": -44.1,
+        "att_dB_10MHz": -79.5,
+        "att_dB_100MHz": -71.5
+      },
+      {
+        "L_uH": 3.3,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 79.6,
+        "Q": 4.21,
+        "peak_dB": 12.4,
+        "peak_at_kHz": 78.8,
+        "att_dB_1MHz": -44.1,
+        "att_dB_10MHz": -79.5,
+        "att_dB_100MHz": -71.5
+      },
+      {
+        "L_uH": 3.3,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 59.1,
+        "Q": 11.95,
+        "peak_dB": 21.15,
+        "peak_at_kHz": 58.6,
+        "att_dB_1MHz": -49.4,
+        "att_dB_10MHz": -73.1,
+        "att_dB_100MHz": -71.4
+      },
+      {
+        "L_uH": 3.3,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 59.1,
+        "Q": 3.12,
+        "peak_dB": 9.91,
+        "peak_at_kHz": 57.4,
+        "att_dB_1MHz": -49.4,
+        "att_dB_10MHz": -73.1,
+        "att_dB_100MHz": -71.4
+      },
+      {
+        "L_uH": 4.7,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 66.7,
+        "Q": 19.23,
+        "peak_dB": 24.98,
+        "peak_at_kHz": 66.9,
+        "att_dB_1MHz": -47.1,
+        "att_dB_10MHz": -82.2,
+        "att_dB_100MHz": -71.7
+      },
+      {
+        "L_uH": 4.7,
+        "C_total_uF": 1.21,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 66.7,
+        "Q": 5.02,
+        "peak_dB": 13.88,
+        "peak_at_kHz": 66.1,
+        "att_dB_1MHz": -47.2,
+        "att_dB_10MHz": -82.2,
+        "att_dB_100MHz": -71.7
+      },
+      {
+        "L_uH": 4.7,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.1,
+        "f0_kHz": 49.5,
+        "Q": 14.26,
+        "peak_dB": 22.6,
+        "peak_at_kHz": 49.2,
+        "att_dB_1MHz": -52.5,
+        "att_dB_10MHz": -75.7,
+        "att_dB_100MHz": -71.6
+      },
+      {
+        "L_uH": 4.7,
+        "C_total_uF": 2.2,
+        "Rdc_ohm": 0.39,
+        "f0_kHz": 49.5,
+        "Q": 3.72,
+        "peak_dB": 11.39,
+        "peak_at_kHz": 48.7,
+        "att_dB_1MHz": -52.5,
+        "att_dB_10MHz": -75.7,
+        "att_dB_100MHz": -71.6
+      }
+    ],
+    "worst_peak_dB_damped": 0.5,
+    "worst_peak_dB_undamped": 24.98,
+    "dc_drop_mV": 26.12,
+    "note": "VREF+ shares the +3.3VA node, so VREF+ = VDDA by construction (VREFBUF must stay off)."
+  },
+  "summary": {
+    "checks": 21,
+    "failures": 0
+  }
+}

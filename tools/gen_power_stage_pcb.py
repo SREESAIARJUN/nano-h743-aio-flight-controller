@@ -150,7 +150,7 @@ def _smd(num, x, y, w, h, layers="\"F.Cu\" \"F.Paste\" \"F.Mask\"", extra=""):
 
 def _via_pad(num, x, y):
     return (f'\t(pad "{num}" thru_hole circle (at {fmt(x)} {fmt(y)}) (size {fmt(VIA_PAD)} {fmt(VIA_PAD)}) '
-            f'(drill {fmt(VIA_DRILL)}) (layers "*.Cu") (remove_unused_layers no) (zone_connect 2))')
+            f'(drill {fmt(VIA_DRILL)}) (layers "*.Cu") (remove_unused_layers yes) (keep_end_layers yes) (zone_connect 2))')
 
 
 def fp_mosfet(variant):
@@ -225,7 +225,7 @@ def fp_mount():
                f'(drill {fmt(MOUNT_DRILL)}) (layers "*.Cu" "*.Mask"))')
     pts = " ".join(f"(xy {fmt(r * math.cos(2 * math.pi * k / 32))} {fmt(r * math.sin(2 * math.pi * k / 32))})"
                    for k in range(32))
-    out.append('\t(zone (net 0) (net_name "") (layers "*.Cu") (hatch edge 0.5) (connect_pads (clearance 0)) '
+    out.append('\t(zone (net 0) (net_name "") (layers "F.Cu" "In1.Cu" "In2.Cu" "In3.Cu" "In4.Cu" "B.Cu") (hatch edge 0.5) (connect_pads (clearance 0)) '
                '(min_thickness 0.25) (filled_areas_thickness no) '
                '(keepout (tracks not_allowed) (vias not_allowed) (pads allowed) (copperpour not_allowed) '
                '(footprints allowed)) (fill (thermal_gap 0.5) (thermal_bridge_width 0.5)) '
@@ -272,15 +272,15 @@ DRU = """(version 1)
 
 (rule "2oz inner copper clearance"
   (layer inner)
-  (constraint clearance (min 0.2)))
+  (constraint clearance (min 0.2mm)))
 
 (rule "2oz inner minimum width"
   (layer inner)
-  (constraint track_width (min 0.16)))
+  (constraint track_width (min 0.16mm)))
 
 (rule "Inner plane hole to copper (JLC 0.2 mm)"
   (layer inner)
-  (constraint hole_clearance (min 0.2)))
+  (constraint hole_clearance (min 0.2mm)))
 
 (rule "MOSFET and motor pads connect solid to copper (no thermal spokes)"
   (condition "A.Type == 'Pad' && (A.memberOfFootprint('Q*') || A.memberOfFootprint('MP*'))")
@@ -288,11 +288,11 @@ DRU = """(version 1)
 
 (rule "POFV thermal via drill"
   (condition "A.Type == 'Pad' && A.Pad_Type == 'Through-hole' && A.memberOfFootprint('Q*')")
-  (constraint hole_size (min 0.3) (max 0.3)))
+  (constraint hole_size (min 0.3mm) (max 0.3mm)))
 
 (rule "Mount hole grommet clearance"
   (condition "A.Type == 'Pad' && A.Pad_Type == 'NPTH, mechanical'")
-  (constraint hole_clearance (min 0.5)))
+  (constraint hole_clearance (min 0.5mm)))
 """
 
 
@@ -496,9 +496,62 @@ def phase_polygon(cx_h, cx_l, bottom):
                 (cx_l - 2.5, vin), (cx_h - 1.2, vin)]
     # bottom HS (mirrored): gate toward L -> join HS sources to LS drain through the
     # motor strip and keep g1 free for the bottom gate escape
-    strip = LAND_EDGE_V - 0.25
+    strip = LAND_EDGE_V - 0.2      # 0.2 mm (Power class) clearance to the gate pad
     return [(cx_h - 2.4, 0.4), (cx_l + 2.4, 0.4), (cx_l + 2.4, vls), (cx_l - 2.4, vls),
             (cx_l - 2.4, strip), (cx_h + 1.25, strip), (cx_h + 1.25, vin), (cx_h - 2.4, vin)]
+
+
+# ----------------------------------------------------------------------------
+# Deterministic UUIDs: pcbnew assigns random KIIDs and orders some items by them.
+# Rewrite every uuid as uuid5(content of its top-level item), reload+save so the
+# ordering follows the new ids, and rewrite again (a fixed point).
+# ----------------------------------------------------------------------------
+_UUID_NS = __import__("uuid").UUID("6e616e6f-2d68-4373-9433-2d61696f2e6b")
+
+
+def _top_level_spans(text):
+    spans, depth, start, i, n = [], 0, None, 0, len(text)
+    while i < n:
+        c = text[i]
+        if c == '"':
+            i += 1
+            while i < n and text[i] != '"':
+                i += 2 if text[i] == "\\" else 1
+        elif c == "(":
+            depth += 1
+            if depth == 2:
+                start = i
+        elif c == ")":
+            if depth == 2:
+                spans.append((start, i + 1))
+            depth -= 1
+        i += 1
+    return spans
+
+
+def canonical_uuids(path):
+    import hashlib
+    import re
+    import uuid
+    text = open(path).read()
+    uu = re.compile(r'\(uuid "[0-9a-fA-F-]+"\)')
+    out, last, seen = [], 0, {}
+    for a, b in _top_level_spans(text):
+        blk = text[a:b]
+        key = hashlib.sha1(uu.sub("(uuid)", blk).encode()).hexdigest()
+        seen[key] = seen.get(key, 0) + 1
+        key = f"{key}#{seen[key]}"
+        cnt = [0]
+
+        def rep(_m, key=key, cnt=cnt):
+            cnt[0] += 1
+            return f'(uuid "{uuid.uuid5(_UUID_NS, key + "/" + str(cnt[0]))}")'
+        out.append(text[last:a])
+        out.append(uu.sub(rep, blk))
+        last = b
+    out.append(text[last:])
+    with open(path, "w") as f:
+        f.write("".join(out))
 
 
 # ----------------------------------------------------------------------------
@@ -529,6 +582,7 @@ def build(outdir, fill=True):
 
     def place(fpname, ref, value, edge, u, v, rot, bottom, padnets, fields=None):
         fp = pcbnew.FootprintLoad(libdir, fpname)
+        fp.SetFPID(pcbnew.LIB_ID(FPLIB, fpname))
         fp.SetReference(ref)
         fp.SetValue(value)
         board.Add(fp)
@@ -615,6 +669,8 @@ def build(outdir, fill=True):
                     via.SetWidth(mm(VIA_PAD))
                     via.SetDrill(mm(VIA_DRILL))
                     via.SetNet(net("GND"))
+                    via.SetRemoveUnconnected(True)
+                    via.SetKeepStartEnd(True)
                     board.Add(via)
                 for lay in (pcbnew.F_Cu, pcbnew.B_Cu):
                     segs = [((LS_ROW_U[0], V_C + GS_Y), (LS_ROW_U[0], vrow)),
@@ -650,6 +706,7 @@ def build(outdir, fill=True):
     off = (BOARD - MOUNT_PITCH) / 2
     for i, (x, y) in enumerate([(off, off), (BOARD - off, off), (BOARD - off, BOARD - off), (off, BOARD - off)]):
         fp = pcbnew.FootprintLoad(libdir, FP_MOUNT)
+        fp.SetFPID(pcbnew.LIB_ID(FPLIB, FP_MOUNT))
         fp.SetReference(f"H{i + 1}")
         fp.SetValue("M3_Grommet")
         fp.SetPosition(pcbnew.VECTOR2I(mm(x), mm(y)))
@@ -699,6 +756,24 @@ def build(outdir, fill=True):
         filler = pcbnew.ZONE_FILLER(board)
         filler.Fill(board.Zones())
     board.Save(pcb_path)
+    canonical_uuids(pcb_path)
+    pcbnew.LoadBoard(pcb_path).Save(pcb_path)
+    canonical_uuids(pcb_path)
+    # pcbnew.Save() rewrites the .kicad_pro with a random root-sheet UUID; pin it to
+    # the schematic's root UUID so the project file is deterministic.
+    pro_path = os.path.join(outdir, f"{PROJECT}.kicad_pro")
+    sch_path = os.path.join(KDIR, f"{PROJECT}.kicad_sch")
+    root = ""
+    if os.path.exists(sch_path):
+        import re
+        m = re.search(r'\(uuid "([0-9a-f-]+)"\)', open(sch_path).read(2000))
+        root = m.group(1) if m else ""
+    with open(pro_path) as f:
+        pro = json.load(f)
+    pro["sheets"] = [[root, "Root"]] if root else []
+    with open(pro_path, "w") as f:
+        json.dump(pro, f, indent=2)
+        f.write("\n")
     with open(os.path.join(outdir, "power_stage_fet_map.json"), "w") as f:
         json.dump({"board_mm": BOARD, "thickness_mm": BOARD_THICKNESS, "centre_reserve_mm": BOARD - 2 * lo,
                    "fets": [dict(zip(("ref", "esc", "phase", "role", "side", "edge"), m)) for m in fet_map]},

@@ -1,13 +1,13 @@
 # STM32H743 Nano Flight Controller + 4-in-1 ESC AIO
 
 **Autonomous Engineering Release - Cycle 31**  
-*Ultra-Dense 25.5x25.5mm (Whoop/Toothpick/Nano) AIO Board for ArduPilot & PX4 with Integrated 4x 20A/35A ESC.*
+*Dense 36 × 36 mm AIO (30.5 × 30.5 mm M3 mount) for ArduPilot & PX4 with Integrated 4x 20A/35A ESC. Rev 8.0 moved off the 25.5 mm outline because 24 SOP-Advance MOSFETs cannot fit on it; see the Rev 8.0 changelog.*
 
 ---
 
 ## 1. System Overview
 - **MCU**: STM32H743VIT6 (480 MHz ARM Cortex-M7, 2MB Flash, 1MB RAM, Double-Precision FPU), clocked from a 24 MHz HSE crystal. 480 MHz requires revision V silicon.
-- **PCB Stackup**: 6-Layer High-Density Interconnect (HDI) with 2oz copper outer & inner power planes.
+- **PCB Stackup**: 6 layers, JLCPCB JLC061612-1080, 1.614 mm, ENIG. 1 oz outer for signals and fine pitch, 2 oz inner planes (In1 GND / In2 VBAT / In3 VBAT / In4 GND), filled-and-capped via-in-pad (POFV, IPC-4761 Type VII). Through vias only, no HDI microvias.
 - **Dual IMUs**:
   - Primary: ICM-42688-P on high-speed SPI1 with isolated ground plane and silicon damping pads.
   - Secondary: ICM-42688-P on SPI4 for redundancy and sensor voting.
@@ -17,23 +17,25 @@
 - **Blackbox**: MicroSD card slot with 4-bit high-speed SDIO (SDMMC1).
 - **Integrated 4-in-1 ESC**:
   - 4x Brushless ESC channels (20A continuous, 35A burst each, 2S–4S LiPo input).
-  - 24x Low-RDS(on) 40V N-MOSFETs (TPHR8504PL, 1.4 mΩ).
+  - 24x Toshiba TPHR8504PL 40 V N-MOSFETs, SOP Advance. RDS(on) max 0.85 mΩ at VGS=10 V and 1.40 mΩ at 4.5 V, Rth(ch-c) 0.88 K/W. ESC1/2 sit on the top face and ESC3/4 on the bottom; each half-bridge site is shared by both faces, and every high-side pair has a 16-via POFV thermal array.
   - 4x FD6288Q 3-phase half-bridge gate drivers with bootstrap diodes.
-  - 0.5 mΩ 2W shunt resistor with INA226 / INA169 current monitor.
+  - 0.5 mΩ shunt resistor with INA226 / INA169 current monitor. **Rev 8 finding:** at 4 × 20 A, D=0.9 (72 A battery current) it dissipates 2.6 W, which is over the 2 W rating previously specified. It needs a ≥ 4 W part or 0.25 mΩ; this is an open item.
   - Support for BLHeli_32 / AM32 firmware, DShot300/600/1200, and bi-directional DShot RPM filtering.
 
 ---
 
 ## 2. Repository Contents
-- `kicad/`: Complete KiCad 8 6-layer schematic and PCB layout.
-- `kicad/gerbers/`: Production-ready Gerbers and drill files.
+- `kicad/`: KiCad 8 project. The schematic covers the MCU core (Rev 7). The 6-layer PCB has the stackup, planes and the 24-MOSFET power stage (Rev 8); the other functions are not placed yet. Project footprint library `nano-h743-aio.pretty`, custom DRC rules `nano-h743-aio.kicad_dru`.
+- `kicad/gerbers/`: Gerber X2 for 6 copper layers plus paste, mask, silk and edge, Excellon PTH/NPTH with drill maps, and a Gerber job file carrying the stackup. These are a power-stage fab preview, **not a releasable board yet** (see Rev 8.0 open items).
 - `ardupilot/`: ArduPilot board definition `hwdef.dat`, bootloader `hwdef-bl.dat`, and board `defaults.parm`.
 - `tools/validate_dma.py`: DMA-allocation validator that runs ArduPilot's own `chibios_hwdef.py` / `dma_resolver.py` and enforces the stream policy.
 - `tools/gen_mcu_core_sch.py`: generates the MCU-core schematic, project symbol library and `sym-lib-table` from `ardupilot/hwdef.dat` (Rev 7).
 - `tools/verify_mcu_core_sch.py`: schematic gate covering KiCad ERC, netlist topology of the HSE and VDDA circuits, and the hwdef ↔ schematic pin map (Rev 7).
 - `analysis/hse_vdda_analysis.py`: design check for the 24 MHz crystal and the VDDA filter (clock tree, load capacitance, gm_crit, drive level, LC damping). Writes `analysis/hse_vdda_report.json`.
 - `am32_esc/`: AM32 ESC target configuration `am32_target.h`.
-- `analysis/`: Python thermal loss analysis (`thermal_power_analysis.py`) and operating curve plot (`thermal_dissipation_curve.png`).
+- `tools/gen_power_stage_pcb.py`: generates the footprint library, DRC rules, project rules and the 6-layer board (Rev 8).
+- `tools/verify_power_stage_pcb.py`: PCB gate covering stackup, MOSFET population, thermal via geometry, through-hole net safety, topology, DRC with a rule-liveness check, regeneration, fab outputs and the thermal report (Rev 8).
+- `analysis/thermal_power_analysis.py`: per-MOSFET loss model and a thermal network that reads its geometry back from the KiCad board. Writes `thermal_report.json` and `thermal_dissipation_curve.png` (rewritten in Rev 8).
 
 ---
 

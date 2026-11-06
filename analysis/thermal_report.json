@@ -1,8 +1,350 @@
 {
-  "rated_continuous_current_A": 20.0,
-  "peak_burst_current_A": 35.0,
-  "temp_at_20A_airflow_C": 100.91076197530865,
-  "temp_at_35A_burst_airflow_C": 218.2658,
-  "pcb_stackup": "6-Layer HDI 2oz Copper Outer/Inner with Thermal Via Arrays",
-  "thermal_safety_status": "CERTIFIED_SAFE_UNDER_FLIGHT_AIRFLOW"
+  "revision": "8.0",
+  "board_geometry_readback": {
+    "board_w": 36.0,
+    "board_h": 36.0,
+    "copper": {
+      "F.Cu": 0.035,
+      "In1.Cu": 0.061,
+      "In2.Cu": 0.061,
+      "In3.Cu": 0.061,
+      "In4.Cu": 0.061,
+      "B.Cu": 0.035
+    },
+    "dielectrics": [
+      0.1375,
+      0.35,
+      0.325,
+      0.35,
+      0.1375
+    ],
+    "ls_row_vias": 18,
+    "mount_holes": 4
+  },
+  "hs_thermal_arrays": {
+    "count": 6,
+    "vias_each": [
+      16,
+      16,
+      16,
+      16,
+      16,
+      16
+    ],
+    "drill_mm": [
+      0.3
+    ]
+  },
+  "ls_source_arrays": {
+    "count": 6,
+    "vias_each": [
+      4,
+      4,
+      4,
+      4,
+      4,
+      4
+    ]
+  },
+  "thermal_network": {
+    "kt_w_per_k": 0.107415,
+    "a_board_m2": 0.0012638300912272405,
+    "r_solder": 0.08279173738460902,
+    "r_vias_hs": 5.8942203218998115,
+    "n_hs_vias": 16,
+    "via_depth_mm": 0.579,
+    "r_prepreg_hs": 20.316193853427897,
+    "r_hs_local": 4.568723022593501,
+    "r_prepreg_ls": 8.333333333333336,
+    "r_spread_site": 0.8087743338886801
+  },
+  "assumptions": {
+    "rds_tempco_per_K": 0.0056,
+    "v_plateau": 3.0,
+    "r_drv_source": 6.0,
+    "r_drv_sink": 4.0,
+    "rg_ext": 4.7,
+    "dead_time_s": 6e-08,
+    "duty_at_rated": 0.9,
+    "solder_bond_um": 50.0,
+    "solder_void_frac": 0.3,
+    "k_sac305": 58.0,
+    "via_plating_um": 18.0,
+    "k_cu": 385.0,
+    "k_fr4_z": 0.3,
+    "rho_cu_20": 1.72e-08,
+    "rho_tempco": 0.0039,
+    "plane_squares": 0.75,
+    "shunt_ohm": 0.0005,
+    "p_misc_w": 0.6,
+    "h_flight": 50.0,
+    "h_bench": 12.0,
+    "t_amb": 35.0,
+    "ls_pour_mm2": 55.0,
+    "cvol_cu": 3.45,
+    "cvol_fr4": 2.0
+  },
+  "limits_C": {
+    "tj_cont": 125.0,
+    "tj_burst": 150.0,
+    "t_board_cont": 105.0
+  },
+  "am32_temperature_cutoff_C": 115.0,
+  "scenarios": {
+    "S1_4S_20A_flight_48kHz": {
+      "I_motor_A": 20,
+      "vbat_V": 16.8,
+      "fsw_kHz": 48.0,
+      "h_W_m2K": 50.0,
+      "duty": 0.9,
+      "vgs_class": "10V",
+      "t_on_ns": 19.666666666666668,
+      "t_off_ns": 75.13333333333334,
+      "p_hs_W": {
+        "cond": 0.1745,
+        "sw": 0.2548,
+        "coss_qrr": 0.0365
+      },
+      "p_ls_W": {
+        "cond": 0.2131,
+        "deadtime": 0.0307
+      },
+      "p_fet_hs_W": 0.465846256770001,
+      "p_fet_ls_W": 0.2438396011389634,
+      "p_fets_total_W": 8.516230294907572,
+      "p_planes_W": 1.3528200393442622,
+      "p_shunt_W": 2.592,
+      "p_misc_W": 0.6,
+      "p_board_total_W": 13.061050334251835,
+      "r_board_air_K_W": 8.673463848206875,
+      "fin_eff": 0.9122602166473837,
+      "t_board_C": 148.28454789374362,
+      "t_site_C": 149.4324993077447,
+      "tj_hs_C": 152.00933475294852,
+      "tj_ls_C": 151.69926273712647,
+      "rds_hs_mohm": 1.4545644334240349
+    },
+    "S2_4S_20A_flight_24kHz": {
+      "I_motor_A": 20,
+      "vbat_V": 16.8,
+      "fsw_kHz": 24.0,
+      "h_W_m2K": 50.0,
+      "duty": 0.9,
+      "vgs_class": "10V",
+      "t_on_ns": 19.666666666666668,
+      "t_off_ns": 75.13333333333334,
+      "p_hs_W": {
+        "cond": 0.1628,
+        "sw": 0.1274,
+        "coss_qrr": 0.0182
+      },
+      "p_ls_W": {
+        "cond": 0.1991,
+        "deadtime": 0.0154
+      },
+      "p_fet_hs_W": 0.3084243092948286,
+      "p_fet_ls_W": 0.2145083495500178,
+      "p_fets_total_W": 6.275191906138157,
+      "p_planes_W": 1.3528200393442622,
+      "p_shunt_W": 2.592,
+      "p_misc_W": 0.6,
+      "p_board_total_W": 10.820011945482419,
+      "r_board_air_K_W": 8.673463848206875,
+      "fin_eff": 0.9122602166473837,
+      "t_board_C": 128.8469824463083,
+      "t_site_C": 129.69285147196004,
+      "tj_hs_C": 131.39890509116043,
+      "tj_ls_C": 131.68694791809028,
+      "rds_hs_mohm": 1.3564587882339236
+    },
+    "S3_2S_20A_flight_24kHz": {
+      "I_motor_A": 20,
+      "vbat_V": 8.4,
+      "fsw_kHz": 24.0,
+      "h_W_m2K": 50.0,
+      "duty": 0.9,
+      "vgs_class": "4.5V",
+      "t_on_ns": 59.00000000000001,
+      "t_off_ns": 75.13333333333334,
+      "p_hs_W": {
+        "cond": 0.2928,
+        "sw": 0.0901,
+        "coss_qrr": 0.0091
+      },
+      "p_ls_W": {
+        "cond": 0.3594,
+        "deadtime": 0.0154
+      },
+      "p_fet_hs_W": 0.39203778032658115,
+      "p_fet_ls_W": 0.3747155053040273,
+      "p_fets_total_W": 9.201039427567302,
+      "p_planes_W": 1.3528200393442622,
+      "p_shunt_W": 2.592,
+      "p_misc_W": 0.6,
+      "p_board_total_W": 13.745859466911565,
+      "r_board_air_K_W": 8.673463848206875,
+      "fin_eff": 0.9122602166473837,
+      "t_board_C": 154.22421514878968,
+      "t_site_C": 155.4644759044754,
+      "tj_hs_C": 157.63303867282093,
+      "tj_ls_C": 158.9478781077189,
+      "rds_hs_mohm": 2.4398430231949155
+    },
+    "S4_4S_35A_10s_burst_24kHz": {
+      "I_motor_A": 35,
+      "vbat_V": 16.8,
+      "fsw_kHz": 24.0,
+      "h_W_m2K": 50.0,
+      "duty": 0.9,
+      "vgs_class": "10V",
+      "t_on_ns": 19.666666666666668,
+      "t_off_ns": 75.13333333333334,
+      "p_hs_W": {
+        "cond": 0.5924,
+        "sw": 0.223,
+        "coss_qrr": 0.0182
+      },
+      "p_ls_W": {
+        "cond": 0.7292,
+        "deadtime": 0.0269
+      },
+      "p_fet_hs_W": 0.833614103710117,
+      "p_fet_ls_W": 0.756101281646124,
+      "p_fets_total_W": 19.076584624274894,
+      "p_planes_W": 4.143011370491803,
+      "p_shunt_W": 7.938,
+      "p_misc_W": 0.6,
+      "p_board_total_W": 31.757595994766696,
+      "r_board_air_K_W": 8.673463848206875,
+      "fin_eff": 0.9122602166473837,
+      "t_board_C": 177.89941198272732,
+      "t_site_C": 180.47085398645547,
+      "tj_hs_C": 185.0820027052539,
+      "tj_ls_C": 187.49966606676796,
+      "rds_hs_mohm": 1.6119903328770084,
+      "burst_s": 10,
+      "c_board_J_K": 5.8698648,
+      "tau_s": 50.912060136662085,
+      "t_board_ss_if_sustained_C": 403.91160039874796
+    },
+    "S5_4S_35A_10s_burst_48kHz": {
+      "I_motor_A": 35,
+      "vbat_V": 16.8,
+      "fsw_kHz": 48.0,
+      "h_W_m2K": 50.0,
+      "duty": 0.9,
+      "vgs_class": "10V",
+      "t_on_ns": 19.666666666666668,
+      "t_off_ns": 75.13333333333334,
+      "p_hs_W": {
+        "cond": 0.6393,
+        "sw": 0.4459,
+        "coss_qrr": 0.0365
+      },
+      "p_ls_W": {
+        "cond": 0.7847,
+        "deadtime": 0.0538
+      },
+      "p_fet_hs_W": 1.121695377850265,
+      "p_fet_ls_W": 0.8385019527872739,
+      "p_fets_total_W": 23.522367967650467,
+      "p_planes_W": 4.143011370491803,
+      "p_shunt_W": 7.938,
+      "p_misc_W": 0.6,
+      "p_board_total_W": 36.20337933814227,
+      "r_board_air_K_W": 8.673463848206875,
+      "fin_eff": 0.9122602166473837,
+      "t_board_C": 202.5022460923218,
+      "t_site_C": 205.6729606730753,
+      "tj_hs_C": 211.87763521185326,
+      "tj_ls_C": 213.46777969822702,
+      "rds_hs_mohm": 1.7395375436084213,
+      "burst_s": 10,
+      "c_board_J_K": 5.8698648,
+      "tau_s": 50.912060136662085,
+      "t_board_ss_if_sustained_C": 452.3137383374126
+    },
+    "S6_4S_20A_static_bench_24kHz": {
+      "I_motor_A": 20,
+      "vbat_V": 16.8,
+      "fsw_kHz": 24.0,
+      "h_W_m2K": 12.0,
+      "duty": 0.9,
+      "vgs_class": "10V",
+      "t_on_ns": 19.666666666666668,
+      "t_off_ns": 75.13333333333334,
+      "p_hs_W": {
+        "cond": 0.4856,
+        "sw": 0.1274,
+        "coss_qrr": 0.0182
+      },
+      "p_ls_W": {
+        "cond": 0.595,
+        "deadtime": 0.0154
+      },
+      "p_fet_hs_W": 0.6312553301450085,
+      "p_fet_ls_W": 0.610402235322294,
+      "p_fets_total_W": 14.899890785607628,
+      "p_planes_W": 1.3528200393442622,
+      "p_shunt_W": 2.592,
+      "p_misc_W": 0.6,
+      "p_board_total_W": 19.44471082495189,
+      "r_board_air_K_W": 33.74074709257288,
+      "fin_eff": 0.977114306768241,
+      "t_board_C": 691.0790702329159,
+      "t_site_C": 693.0875117737733,
+      "tj_hs_C": 696.5793099497853,
+      "tj_ls_C": 698.7618872967751,
+      "rds_hs_mohm": 4.046717515360978
+    }
+  },
+  "verdict": {
+    "S1_4S_20A_flight_48kHz": {
+      "pass": false,
+      "must_pass": false,
+      "tj_limit_C": 125.0,
+      "am32_cutoff_trips": true
+    },
+    "S2_4S_20A_flight_24kHz": {
+      "pass": false,
+      "must_pass": true,
+      "tj_limit_C": 125.0,
+      "am32_cutoff_trips": true
+    },
+    "S3_2S_20A_flight_24kHz": {
+      "pass": false,
+      "must_pass": true,
+      "tj_limit_C": 125.0,
+      "am32_cutoff_trips": true
+    },
+    "S4_4S_35A_10s_burst_24kHz": {
+      "pass": false,
+      "must_pass": true,
+      "tj_limit_C": 150.0,
+      "am32_cutoff_trips": true
+    },
+    "S5_4S_35A_10s_burst_48kHz": {
+      "pass": false,
+      "must_pass": false,
+      "tj_limit_C": 150.0,
+      "am32_cutoff_trips": true
+    },
+    "S6_4S_20A_static_bench_24kHz": {
+      "pass": false,
+      "must_pass": false,
+      "tj_limit_C": 125.0,
+      "am32_cutoff_trips": true
+    }
+  },
+  "max_continuous_current_per_motor": {
+    "flight_4S_24kHz_A": 17.10290081102322,
+    "flight_4S_48kHz_A": 15.01357475345019,
+    "bench_4S_24kHz_A": 6.097777090364675
+  },
+  "must_pass_failures": [
+    "S2_4S_20A_flight_24kHz",
+    "S3_2S_20A_flight_24kHz",
+    "S4_4S_35A_10s_burst_24kHz"
+  ],
+  "status": "FAIL"
 }

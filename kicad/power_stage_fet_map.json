@@ -1,0 +1,199 @@
+{
+ "board_mm": 36.0,
+ "thickness_mm": 1.614,
+ "centre_reserve_mm": 15.7,
+ "fets": [
+  {
+   "ref": "Q1",
+   "esc": 1,
+   "phase": "A",
+   "role": "HS",
+   "side": "top",
+   "edge": "N"
+  },
+  {
+   "ref": "Q2",
+   "esc": 1,
+   "phase": "A",
+   "role": "LS",
+   "side": "top",
+   "edge": "N"
+  },
+  {
+   "ref": "Q3",
+   "esc": 1,
+   "phase": "B",
+   "role": "HS",
+   "side": "top",
+   "edge": "N"
+  },
+  {
+   "ref": "Q4",
+   "esc": 1,
+   "phase": "B",
+   "role": "LS",
+   "side": "top",
+   "edge": "N"
+  },
+  {
+   "ref": "Q5",
+   "esc": 1,
+   "phase": "C",
+   "role": "HS",
+   "side": "top",
+   "edge": "W"
+  },
+  {
+   "ref": "Q6",
+   "esc": 1,
+   "phase": "C",
+   "role": "LS",
+   "side": "top",
+   "edge": "W"
+  },
+  {
+   "ref": "Q7",
+   "esc": 2,
+   "phase": "A",
+   "role": "HS",
+   "side": "top",
+   "edge": "S"
+  },
+  {
+   "ref": "Q8",
+   "esc": 2,
+   "phase": "A",
+   "role": "LS",
+   "side": "top",
+   "edge": "S"
+  },
+  {
+   "ref": "Q9",
+   "esc": 2,
+   "phase": "B",
+   "role": "HS",
+   "side": "top",
+   "edge": "S"
+  },
+  {
+   "ref": "Q10",
+   "esc": 2,
+   "phase": "B",
+   "role": "LS",
+   "side": "top",
+   "edge": "S"
+  },
+  {
+   "ref": "Q11",
+   "esc": 2,
+   "phase": "C",
+   "role": "HS",
+   "side": "top",
+   "edge": "E"
+  },
+  {
+   "ref": "Q12",
+   "esc": 2,
+   "phase": "C",
+   "role": "LS",
+   "side": "top",
+   "edge": "E"
+  },
+  {
+   "ref": "Q13",
+   "esc": 3,
+   "phase": "A",
+   "role": "HS",
+   "side": "bottom",
+   "edge": "N"
+  },
+  {
+   "ref": "Q14",
+   "esc": 3,
+   "phase": "A",
+   "role": "LS",
+   "side": "bottom",
+   "edge": "N"
+  },
+  {
+   "ref": "Q15",
+   "esc": 3,
+   "phase": "B",
+   "role": "HS",
+   "side": "bottom",
+   "edge": "N"
+  },
+  {
+   "ref": "Q16",
+   "esc": 3,
+   "phase": "B",
+   "role": "LS",
+   "side": "bottom",
+   "edge": "N"
+  },
+  {
+   "ref": "Q17",
+   "esc": 3,
+   "phase": "C",
+   "role": "HS",
+   "side": "bottom",
+   "edge": "W"
+  },
+  {
+   "ref": "Q18",
+   "esc": 3,
+   "phase": "C",
+   "role": "LS",
+   "side": "bottom",
+   "edge": "W"
+  },
+  {
+   "ref": "Q19",
+   "esc": 4,
+   "phase": "A",
+   "role": "HS",
+   "side": "bottom",
+   "edge": "S"
+  },
+  {
+   "ref": "Q20",
+   "esc": 4,
+   "phase": "A",
+   "role": "LS",
+   "side": "bottom",
+   "edge": "S"
+  },
+  {
+   "ref": "Q21",
+   "esc": 4,
+   "phase": "B",
+   "role": "HS",
+   "side": "bottom",
+   "edge": "S"
+  },
+  {
+   "ref": "Q22",
+   "esc": 4,
+   "phase": "B",
+   "role": "LS",
+   "side": "bottom",
+   "edge": "S"
+  },
+  {
+   "ref": "Q23",
+   "esc": 4,
+   "phase": "C",
+   "role": "HS",
+   "side": "bottom",
+   "edge": "E"
+  },
+  {
+   "ref": "Q24",
+   "esc": 4,
+   "phase": "C",
+   "role": "LS",
+   "side": "bottom",
+   "edge": "E"
+  }
+ ]
+}

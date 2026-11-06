@@ -5,34 +5,39 @@
       "Application": "Pcbnew",
       "Version": "8.0.9-8.0.9-0~ubuntu24.04.1"
     },
-    "CreationDate": "2026-11-06T05:51:25+00:00"
+    "CreationDate": "2026-11-06T06:09:04+00:00"
   },
   "GeneralSpecs": {
     "ProjectId": {
       "Name": "nano-h743-aio",
       "GUID": "6e616e6f-2d68-4373-9433-2d61696f2e6b",
-      "Revision": "7.0"
+      "Revision": "8.0"
     },
     "Size": {
-      "X": 25.65,
-      "Y": 25.65
+      "X": 36.1,
+      "Y": 36.1
     },
     "LayerNumber": 6,
-    "BoardThickness": 1.6,
-    "Finish": "None"
+    "BoardThickness": 1.614,
+    "Finish": "ENIG"
   },
   "DesignRules": [
     {
       "Layers": "Outer",
-      "PadToPad": 0.2,
-      "PadToTrack": 0.2,
-      "TrackToTrack": 0.2
+      "PadToPad": 0.127,
+      "PadToTrack": 0.127,
+      "TrackToTrack": 0.127,
+      "MinLineWidth": 0.6,
+      "TrackToRegion": 0.2,
+      "RegionToRegion": 0.2
     },
     {
       "Layers": "Inner",
-      "PadToPad": 0.2,
-      "PadToTrack": 0.2,
-      "TrackToTrack": 0.2
+      "PadToPad": 0.0,
+      "PadToTrack": 0.0,
+      "TrackToTrack": 0.127,
+      "TrackToRegion": 0.2,
+      "RegionToRegion": 0.2
     }
   ],
   "FilesAttributes": [
@@ -67,6 +72,26 @@
       "FilePolarity": "Positive"
     },
     {
+      "Path": "nano-h743-aio-F_Adhesive.gta",
+      "FileFunction": "Glue,Top",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "nano-h743-aio-B_Adhesive.gba",
+      "FileFunction": "Glue,Bot",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "nano-h743-aio-F_Paste.gtp",
+      "FileFunction": "SolderPaste,Top",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "nano-h743-aio-B_Paste.gbp",
+      "FileFunction": "SolderPaste,Bot",
+      "FilePolarity": "Positive"
+    },
+    {
       "Path": "nano-h743-aio-F_Silkscreen.gto",
       "FileFunction": "Legend,Top",
       "FilePolarity": "Positive"
@@ -87,8 +112,28 @@
       "FilePolarity": "Negative"
     },
     {
+      "Path": "nano-h743-aio-User_Drawings.gbr",
+      "FileFunction": "Other,User",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "nano-h743-aio-User_Comments.gbr",
+      "FileFunction": "Other,User",
+      "FilePolarity": "Positive"
+    },
+    {
       "Path": "nano-h743-aio-Edge_Cuts.gm1",
       "FileFunction": "Profile",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "nano-h743-aio-F_Fab.gbr",
+      "FileFunction": "AssemblyDrawing,Top",
+      "FilePolarity": "Positive"
+    },
+    {
+      "Path": "nano-h743-aio-B_Fab.gbr",
+      "FileFunction": "AssemblyDrawing,Bot",
       "FilePolarity": "Positive"
     }
   ],
@@ -96,6 +141,10 @@
     {
       "Type": "Legend",
       "Name": "Top Silk Screen"
+    },
+    {
+      "Type": "SolderPaste",
+      "Name": "Top Solder Paste"
     },
     {
       "Type": "SolderMask",
@@ -109,56 +158,56 @@
     },
     {
       "Type": "Dielectric",
-      "Thickness": 0.274,
-      "Material": "FR4",
+      "Thickness": 0.1375,
+      "Material": "FR4 1080x2 (NP-155F)",
       "Name": "F.Cu/In1.Cu",
       "Notes": "Type: dielectric layer 1 (from F.Cu to In1.Cu)"
     },
     {
       "Type": "Copper",
-      "Thickness": 0.035,
+      "Thickness": 0.061,
       "Name": "In1.Cu"
     },
     {
       "Type": "Dielectric",
-      "Thickness": 0.274,
-      "Material": "FR4",
+      "Thickness": 0.35,
+      "Material": "FR4 core (NP-155F)",
       "Name": "In1.Cu/In2.Cu",
       "Notes": "Type: dielectric layer 2 (from In1.Cu to In2.Cu)"
     },
     {
       "Type": "Copper",
-      "Thickness": 0.035,
+      "Thickness": 0.061,
       "Name": "In2.Cu"
     },
     {
       "Type": "Dielectric",
-      "Thickness": 0.274,
-      "Material": "FR4",
+      "Thickness": 0.325,
+      "Material": "FR4 1080+7628+1080 (NP-155F)",
       "Name": "In2.Cu/In3.Cu",
       "Notes": "Type: dielectric layer 3 (from In2.Cu to In3.Cu)"
     },
     {
       "Type": "Copper",
-      "Thickness": 0.035,
+      "Thickness": 0.061,
       "Name": "In3.Cu"
     },
     {
       "Type": "Dielectric",
-      "Thickness": 0.274,
-      "Material": "FR4",
+      "Thickness": 0.35,
+      "Material": "FR4 core (NP-155F)",
       "Name": "In3.Cu/In4.Cu",
       "Notes": "Type: dielectric layer 4 (from In3.Cu to In4.Cu)"
     },
     {
       "Type": "Copper",
-      "Thickness": 0.035,
+      "Thickness": 0.061,
       "Name": "In4.Cu"
     },
     {
       "Type": "Dielectric",
-      "Thickness": 0.274,
-      "Material": "FR4",
+      "Thickness": 0.1375,
+      "Material": "FR4 1080x2 (NP-155F)",
       "Name": "In4.Cu/B.Cu",
       "Notes": "Type: dielectric layer 5 (from In4.Cu to B.Cu)"
     },
@@ -171,6 +220,10 @@
       "Type": "SolderMask",
       "Thickness": 0.01,
       "Name": "Bottom Solder Mask"
+    },
+    {
+      "Type": "SolderPaste",
+      "Name": "Bottom Solder Paste"
     },
     {
       "Type": "Legend",

@@ -7,3 +7,4 @@ node_modules/
 *secret*
 *.pyc
 __pycache__/
+firmware/bdshot_telem/test_bdshot_telem

@@ -1,11 +1,14 @@
 # hwdef.dat for the Nano H743 AIO (STM32H743VIT6 FC + integrated 4-in-1 ESC)
-# Sreesai Arjun Engineering - Revision 7.0 / 150
+# Sreesai Arjun Engineering - Revision 10.0 / 150
 #
 # Processed by libraries/AP_HAL_ChibiOS/hwdef/scripts/chibios_hwdef.py.
 # Rev 6.0 scope: deterministic DMA allocation for USART1, SPI1, SPI4 and
 # SDMMC1 (4-bit microSD) so that no latency-critical peripheral shares a
 # DMA stream. See "DMA STREAM BUDGET" below and README.md section
 # "Revision 6.0 Engineering Changelog".
+# Rev 10.0 scope: bidirectional DShot600 timer-channel / input-capture
+# configuration and ESC telemetry processing (see the TIM1 block below and
+# "Revision 10.0 Engineering Changelog").
 
 # MCU class and specific type (format: MCU <series> <type>)
 MCU STM32H7xx STM32H743xx
@@ -128,10 +131,41 @@ PD2  SDMMC1_CMD SDMMC1
 define HAL_OS_FATFS_IO 1
 
 # ---------------------------------------------------------------------------
-# Integrated 4-in-1 ESC - bidirectional DShot on TIM1 CH1..CH4
-# BIDIR is set on CH1 and CH3 only: ArduPilot pairs CH1/CH2 and CH3/CH4 for
-# eRPM input capture, so two TIM1_CHx capture streams cover all four motors.
-# DShot output uses one TIM1_UP burst stream for all four channels.
+# Integrated 4-in-1 ESC - bidirectional DShot600 on TIM1 CH1..CH4
+# (Rev 10.0 - validated by tools/validate_bdshot.py against ArduPilot source)
+#
+# Output: one TIM1_UP DMAR burst writes CCR1..CCR4 for all four motors.
+#
+# eRPM input capture (RCOutput_bdshot.cpp, bdshot_setup_group_ic_DMA):
+#   BIDIR on CH1 and CH3 only.  CH2 has no IC DMA of its own, so ArduPilot
+#   captures it on IC1 with CC1S=10 (TI2 -> IC1) and borrows CH1's DMA
+#   request; CH4 likewise on IC3 (TI4 -> IC3).  That pairing only exists
+#   within CH1/CH2 and CH3/CH4, which is why the BIDIR channels are 1 and 3.
+#   dma_resolver.py then puts TIM1_CH1 and TIM1_CH3 on the TIM1_UP stream
+#   (DMA1-0) and RCOutput re-points the DMAMUX request between UP and CHx for
+#   each receive window (has_shared_ic_up_dma()).
+#   No complementary (CHxN) outputs: ArduPilot cannot input-capture them.
+#
+# Round-robin: one pwm_group (TIM1) captures ONE motor per DShot frame
+# (bdshot.curr_telem_chan, bdshot_find_next_ic_channel), so each motor's
+# eRPM refreshes at f_dshot / 4.  defaults.parm SERVO_DSHOT_RATE 4 gives
+# 1600 Hz frames -> 400 Hz per motor at SCHED_LOOP_RATE 400.
+#
+# Timing at MCU_CLOCKRATE_MHZ 480 (TIM1 on APB2, 240 MHz kernel clock):
+#   DShot600 bit 1.667 us = 400 ticks; frame 16 bits = 26.7 us
+#   GCR reply 750 kbit/s, 21 bits = 28.0 us, ~30 us after the frame
+#   IC prescaler telempsc = 240e6/750e3/16 - 1 = 19 -> 83.3 ns/tick,
+#   exactly 16 ticks per GCR bit (no rounding drift; tolerates +/-14 % ESC
+#   clock error, firmware/bdshot_telem test T3).
+#   Bidir cycle ~95 us of the 625 us frame period (15 %).
+#
+# Electrical: ArduPilot sets these pins PUSHPULL + PULLUP at OSPEED MID1 in
+# bidir mode.  Each line has a 100R 0402 series resistor (R4..R7, schematic
+# nets TIM1_CHn -> ESCn_DSHOT) placed within 3 mm of the MCU pin to damp
+# edge ringing into the ESC MCU input.  No external pull-up: the ESC
+# bootloaders (AM32, BLHeli_32) treat a signal line that is high at power-on
+# as a host waiting for 1-wire passthrough and delay the jump to the
+# application; the FC pin is high-Z until ArduPilot configures it.
 # ---------------------------------------------------------------------------
 PE9  TIM1_CH1 TIM1 PWM(1) GPIO(50) BIDIR
 PE11 TIM1_CH2 TIM1 PWM(2) GPIO(51)
@@ -199,6 +233,7 @@ ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 #
 #  stream  request(s)               consumer                     policy
 #  DMA1-0  TIM1_UP (+CH1,CH3 *)     DShot out + eRPM capture     NOSHARE
+#                                   (all 4 motors, round-robin)
 #  DMA1-1  SPI1_RX                  IMU1 ICM-42688-P             NOSHARE
 #  DMA1-2  SPI1_TX                  IMU1 ICM-42688-P             NOSHARE
 #  DMA1-3  SPI4_RX                  IMU2 ICM-42688-P             NOSHARE

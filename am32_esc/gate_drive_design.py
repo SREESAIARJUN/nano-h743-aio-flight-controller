@@ -42,6 +42,8 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 HEADER = os.path.join(HERE, "am32_target.h")
+EEPROM = os.path.join(HERE, "eeprom_settings.json")
+PARM = os.path.join(REPO, "ardupilot", "defaults.parm")
 REPORT = os.path.join(HERE, "gate_drive_report.json")
 
 # ----------------------------------------------------------------- driver data
@@ -80,6 +82,8 @@ ASSUME = {
     "vf_bs": 0.45,                   # bootstrap Schottky at refresh current
     "pole_pairs": 7,                 # 14-pole whoop/toothpick motor (defaults.parm)
     "tj_board_C": 105.0,             # board limit from analysis/thermal_power_analysis.py
+    "tj_fd6288_max_C": 125.0,
+    "loss_band": 0.10,               # selection: candidates within +10 % of the minimum feasible loss        # 25 K below FD6288Q Tj max at the 24 kHz design point
 }
 
 # ---------------------------------------------------------------- MOSFET data
@@ -142,36 +146,19 @@ class Gate:
 
 
 def off_current(v, r_drv, rg_int, rg_on, r_off):
-    """Gate discharge current at gate voltage v through driver sink -> (Rg_on || D+R_off) -> rg_int."""
+    """Gate discharge current at gate voltage v through driver sink -> (Rg_on || D+R_off) -> rg_int.
+    The Schottky branch is a knee at Vf followed by R_off (closed-form piecewise-linear solve)."""
     if v <= 0.0:
         return 0.0
     rs = r_drv + rg_int
-    if r_off is None:
+    if r_off is None or rg_on <= 0.0:
         return v / (rs + rg_on)
-
-    def branch(vb):
-        i = max(0.0, vb - ASSUME["schottky_vf"]) / max(r_off, 0.05)
-        return i + (vb / rg_on if rg_on > 0 else 1e9 * vb)
-
-    lo, hi = 0.0, v / max(rs, 1e-3)
-    for _ in range(60):
-        i = 0.5 * (lo + hi)
-        if i * rs + _vb_for(branch, i, v) > v:
-            hi = i
-        else:
-            lo = i
-    return lo
-
-
-def _vb_for(branch, i, vmax):
-    lo, hi = 0.0, vmax
-    for _ in range(50):
-        m = 0.5 * (lo + hi)
-        if branch(m) > i:
-            hi = m
-        else:
-            lo = m
-    return lo
+    ro, vf = max(r_off, 0.05), ASSUME["schottky_vf"]
+    i = v / (rs + rg_on)                       # diode off
+    if i * rg_on <= vf:
+        return i
+    vb = (v + rs * vf / ro) / (1.0 + rs * (1.0 / rg_on + 1.0 / ro))
+    return (v - vb) / rs
 
 
 def simulate_on(vd, vbus, r_src, rg_int, rg_on, cgs_ext, dt=0.05e-9):
@@ -250,6 +237,27 @@ def corner_r(corner):
     return DRV["r_src"]["slow"], DRV["r_snk"]["slow"], FET["rg_int"][1]
 
 
+def qg_total(v, cgs=0.0):
+    """Total gate charge at drive voltage v (linear above the plateau) incl. external Cgs."""
+    return (FET["qg_10v"] + (v - 10.0) * (FET["qg_10v"] - FET["qgs1"] - FET["qgd"]) / (10.0 - FET["v_plateau"])
+            + cgs * v)
+
+
+def fd6288_tj(rg_on, r_off, cgs, f_pwm, vbus=None, t_board=None):
+    """FD6288Q junction temperature. AM32 6-step with complementary PWM: in every 60-degree
+    step only the PWM phase's HS and LS toggle at f_pwm (2 gates); the sink phase LS is static
+    and commutation switching at the eRPM rate is negligible. The gate energy Qg*V splits between
+    driver output resistance and the external path in proportion to resistance."""
+    vbus = BUS["4S_HV"] if vbus is None else vbus
+    t_board = ASSUME["tj_board_C"] if t_board is None else t_board
+    p_gate = 2 * qg_total(vbus, cgs) * vbus * f_pwm
+    r_ext_off = rg_on if r_off is None else min(rg_on, r_off + 0.5)
+    share_on = DRV["r_src"]["slow"] / (DRV["r_src"]["slow"] + rg_on + FET["rg_int"][0])
+    share_off = DRV["r_snk"]["slow"] / (DRV["r_snk"]["slow"] + r_ext_off + FET["rg_int"][0])
+    p_ic = 0.5 * p_gate * (share_on + share_off) + vbus * (DRV["iqcc_max"] + 3 * DRV["iqbs_max"])
+    return {"p_gate_total_W": p_gate, "p_fd6288_W": p_ic, "tj_fd6288_C": t_board + p_ic * DRV["rth_ja"]}
+
+
 def evaluate(rg_on, r_off, cgs, vbus, i_load, fsw):
     vd = vbus                         # FD6288Q VCC = VBAT (filtered); HS gets VCC - Vf_bs
     rs_f, rk_f, rgi_f = corner_r("fast")
@@ -277,12 +285,15 @@ def evaluate(rg_on, r_off, cgs, vbus, i_load, fsw):
         "est_frac": e_st / e_on if e_on > 0 else 0.0,
         "t_fall_fast_ns": t_fi_f * 1e9, "v_overshoot_V": v_os, "vds_peak_V": vbus + v_os,
         "p_sw_W": p_sw,
+        "tj_fd6288_24k_C": fd6288_tj(rg_on, r_off, cgs, 24e3)["tj_fd6288_C"],
+        "tj_fd6288_48k_C": fd6288_tj(rg_on, r_off, cgs, 48e3)["tj_fd6288_C"],
         "_on_f": on_f, "_off_s": off_s,
     }
 
 
 def feasible(e):
-    return (e["dvdt_V_per_ns"] <= ASSUME["dvdt_emi_max"] * 1e-9
+    return (e["tj_fd6288_24k_C"] <= ASSUME["tj_fd6288_max_C"]
+            and e["dvdt_V_per_ns"] <= ASSUME["dvdt_emi_max"] * 1e-9
             and e["est_frac"] <= ASSUME["est_frac_max"]
             and e["vds_peak_V"] <= ASSUME["vds_derate"] * FET["vdss"])
 
@@ -365,11 +376,17 @@ def main():
     if not feas:
         json.dump({"status": "FAIL", "checks": checks, "sweep": sweep}, open(a.out, "w"), indent=1)
         print("FAIL: no feasible gate network"); return 1
-    # prefer: lowest loss; tie-break fewer parts (no Cgs, no diode)
-    def cost(s):
-        parts = (1 if s["r_off"] is not None else 0) * 2 + (1 if s["cgs_ext_nF"] > 0 else 0)
-        return (round(s["p_sw_4S_20A_24kHz_W"], 3), parts)
-    best = min(feas, key=cost)
+    # Selection rule: the feasible loss landscape is flat, so among candidates within
+    # LOSS_BAND of the minimum loss pick the fewest parts per FET, then the lowest dv/dt
+    # (EMI next to the IMUs on an AIO board), then the lowest loss.
+    def parts(s_):
+        return (s_["rg_on"] > 0) + (0 if s_["r_off"] is None else 1 + (s_["r_off"] > 0)) + (s_["cgs_ext_nF"] > 0)
+
+    def cost(s_):
+        return (parts(s_), round(s_["stress_4S_HV_35A"]["dvdt_V_per_ns"], 2), s_["p_sw_4S_20A_24kHz_W"])
+    p_min = min(s_["p_sw_4S_20A_24kHz_W"] for s_ in feas)
+    short = [s_ for s_ in feas if s_["p_sw_4S_20A_24kHz_W"] <= (1.0 + ASSUME["loss_band"]) * p_min]
+    best = min(short, key=cost)
     rg_on, r_off, cgs = best["rg_on"], best["r_off"], best["cgs_ext_nF"] * 1e-9
     sel = evaluate(rg_on, r_off, cgs, BUS["4S_HV"], 35.0, fsw)
     # loss-optimal infeasible point, to show what the constraints cost
@@ -428,18 +445,12 @@ def main():
     check("C6_vgss_margin", BUS["4S_HV"] <= FET["vgss"] - 2.0,
           f"LS VGS max 17.4 V vs VGSS 20 V; HS VBS may pump to {vgs_hs_worst:.1f} V on a -4 V VS undershoot "
           f"-> 2.2 ohm in series with each bootstrap diode + 18 V VCC Zener are required (see report 'requirements')")
-    qg = lambda v: FET["qg_10v"] + (v - 10.0) * (FET["qg_10v"] - FET["qgs1"] - FET["qgd"]) / (10.0 - FET["v_plateau"]) + cgs * v
-    drv_rows = {}
-    for f_k in (24e3, 48e3):
-        p_gate = 6 * qg(BUS["4S_HV"]) * BUS["4S_HV"] * f_k
-        share_on = DRV["r_src"]["slow"] / (DRV["r_src"]["slow"] + rg_on + FET["rg_int"][0])
-        share_off = DRV["r_snk"]["slow"] / (DRV["r_snk"]["slow"] + (rg_on if r_off is None else min(rg_on, r_off + 0.5)) + FET["rg_int"][0])
-        p_ic = 0.5 * p_gate * (share_on + share_off) + BUS["4S_HV"] * (DRV["iqcc_max"] + 3 * DRV["iqbs_max"])
-        tj = ASSUME["tj_board_C"] + p_ic * DRV["rth_ja"]
-        drv_rows[f"{int(f_k/1e3)}kHz"] = {"p_gate_total_W": p_gate, "p_fd6288_W": p_ic, "tj_fd6288_C": tj}
-    check("C7_fd6288_tj", drv_rows["48kHz"]["tj_fd6288_C"] <= DRV["tj_max"] - 10,
+    qg = lambda v: qg_total(v, cgs)
+    drv_rows = {f"{int(f_k/1e3)}kHz": fd6288_tj(rg_on, r_off, cgs, f_k) for f_k in (24e3, 48e3)}
+    check("C7_fd6288_tj", drv_rows["24kHz"]["tj_fd6288_C"] <= ASSUME["tj_fd6288_max_C"],
           f"FD6288Q Tj at board {ASSUME['tj_board_C']:.0f} C: 24 kHz {drv_rows['24kHz']['tj_fd6288_C']:.1f} C, "
-          f"48 kHz {drv_rows['48kHz']['tj_fd6288_C']:.1f} C (limit 140 C)")
+          f"48 kHz {drv_rows['48kHz']['tj_fd6288_C']:.1f} C (limit {ASSUME['tj_fd6288_max_C']:.0f} C at 24 kHz; "
+          f"48 kHz {'allowed' if drv_rows['48kHz']['tj_fd6288_C'] <= DRV['tj_max'] - 10 else 'NOT allowed'} vs 140 C)")
     # bootstrap: HS held on with no refresh for 1/3 electrical period at 100 % duty
     c_bs = ASSUME["c_bs_eff_uF"] * 1e-6
     bs = {}
@@ -478,6 +489,27 @@ def main():
                            "SENSE_SHUNT_MILLIOHM", "OVER_CURRENT_LIMIT_AMPS", "DSHOT_TELEMETRY") if m in defs]
         check("H6_no_dead_macros", not bad, f"macros AM32 never reads: {bad or 'none'}")
 
+    # ---- EEPROM settings the analysis depends on
+    ee = {e["field"]: e["value"] for e in json.load(open(EEPROM))["settings"]}
+    cell_cut = (ee.get("low_cell_volt_cutoff", 0) + 250) / 100.0
+    vbs_cut = 2 * cell_cut - ASSUME["vf_bs"]
+    poles_parm = None
+    for line in open(PARM):
+        m = re.match(r"\s*SERVO_BLH_POLES\s+(\d+)", line)
+        if m:
+            poles_parm = int(m.group(1))
+    e_ok = (ee.get("comp_pwm") == 1 and ee.get("variable_pwm") == 0
+            and ee.get("pwm_frequency") == int(MCU["nominal_pwm_hz"] / 1e3)
+            and ee.get("driving_brake_strength") == 10
+            and ee.get("low_voltage_cut_off") == 1 and 2 * cell_cut >= BUS["2S_min"] and vbs_cut > DRV["uvlo_on_max"]
+            and 70 <= ee.get("limits.temperature", 0) <= 140
+            and ee.get("motor_poles") == poles_parm == 2 * ASSUME["pole_pairs"])
+    check("E1_eeprom_settings", e_ok,
+          f"comp_pwm {ee.get('comp_pwm')}, variable_pwm {ee.get('variable_pwm')}, pwm {ee.get('pwm_frequency')} kHz, "
+          f"driving_brake {ee.get('driving_brake_strength')}, cutoff {cell_cut:.2f} V/cell -> 2S VBS {vbs_cut:.2f} V "
+          f"(UVLO+ max {DRV['uvlo_on_max']}), temp limit {ee.get('limits.temperature')} C, poles {ee.get('motor_poles')} "
+          f"(defaults.parm {poles_parm})")
+
     report = {
         "revision": "9.0",
         "sources": {
@@ -491,7 +523,8 @@ def main():
         "selected_gate_network": {
             "rg_on_ohm": rg_on, "turn_off": ("single resistor" if r_off is None else f"Schottky + {r_off} ohm in parallel with Rg_on"),
             "r_off_ohm": r_off, "cgs_ext_nF": cgs * 1e9, "stress_4S_HV_35A": {k: v for k, v in sel.items() if not k.startswith("_")},
-            "p_sw_per_HS_4S_20A_24kHz_W": best["p_sw_4S_20A_24kHz_W"],
+            "p_sw_per_HS_4S_20A_24kHz_W": best["p_sw_4S_20A_24kHz_W"], "min_feasible_loss_W": p_min,
+            "selection_rule": "within +10 % of min feasible loss -> fewest parts/FET -> lowest dv/dt -> lowest loss",
             "unconstrained_loss_optimum": {"rg_on": unconstrained["rg_on"], "r_off": unconstrained["r_off"],
                                            "cgs_ext_nF": unconstrained["cgs_ext_nF"], "feasible": unconstrained["feasible"],
                                            "p_sw_W": unconstrained["p_sw_4S_20A_24kHz_W"],
@@ -516,6 +549,23 @@ def main():
             "FD6288Q HIN1..3 <- AT32F421 PA10/PA9/PA8 (TMR1_CH3/2/1), LIN1..3 <- PB1/PB0/PA7 (TMR1_CH3N/2N/1N); no inverters",
             "AM32 EEPROM: pwm_frequency 24, driving_brake_strength 10 (override off), limits.temperature 115, limits.current 0",
         ],
+        "sweep_feasible_by_loss": [
+            {"rg_on": s_["rg_on"], "r_off": s_["r_off"], "cgs_ext_nF": s_["cgs_ext_nF"],
+             "p_sw_W": round(s_["p_sw_4S_20A_24kHz_W"], 4),
+             "dvdt": round(s_["stress_4S_HV_35A"]["dvdt_V_per_ns"], 2),
+             "est_pct": round(100 * s_["stress_4S_HV_35A"]["est_frac"], 1),
+             "tj_fd6288_24k": round(s_["stress_4S_HV_35A"]["tj_fd6288_24k_C"], 1),
+             "parts_per_fet": parts(s_), "in_loss_band": s_ in short}
+            for s_ in sorted(feas, key=lambda x: x["p_sw_4S_20A_24kHz_W"])],
+        "sweep_rejected": [
+            {"rg_on": s_["rg_on"], "r_off": s_["r_off"], "cgs_ext_nF": s_["cgs_ext_nF"],
+             "p_sw_W": round(s_["p_sw_4S_20A_24kHz_W"], 4),
+             "why": [w for w, bad in (
+                 ("dv/dt", s_["stress_4S_HV_35A"]["dvdt_V_per_ns"] > ASSUME["dvdt_emi_max"] * 1e-9),
+                 ("shoot-through", s_["stress_4S_HV_35A"]["est_frac"] > ASSUME["est_frac_max"]),
+                 ("VDS", s_["stress_4S_HV_35A"]["vds_peak_V"] > ASSUME["vds_derate"] * FET["vdss"]),
+                 ("FD6288Q Tj", s_["stress_4S_HV_35A"]["tj_fd6288_24k_C"] > ASSUME["tj_fd6288_max_C"])) if bad]}
+            for s_ in sorted(sweep, key=lambda x: x["p_sw_4S_20A_24kHz_W"]) if not s_["feasible"]],
         "header": hdr, "checks": checks, "failures": fails,
         "status": "PASS" if not fails else "FAIL",
     }

@@ -1,0 +1,24 @@
+{
+ "_doc": "Rev 9.0 AM32 EEPROM settings for NANO_H743_AIO_F421. Offsets from AM32 v2.21 Inc/eeprom.h (EEprom_t). Program all four ESCs through ArduPilot BLHeli passthrough (SERVO_BLH_AUTO 1) with the AM32 configurator. Only fields that the Rev 9 gate-drive / dead-time / thermal analysis depends on are pinned here; the rest stay at configurator defaults. Checked by am32_esc/gate_drive_design.py (check E1).",
+ "target": "NANO_H743_AIO_F421",
+ "settings": [
+  {"offset": 20, "field": "comp_pwm", "value": 1,
+   "why": "Complementary (synchronous) PWM. The dead-time derivation and the Rev 8 loss model assume the LS conducts in the PWM off-time; with 0 the body diode conducts for the whole off-time (+0.8 V x I)."},
+  {"offset": 21, "field": "variable_pwm", "value": 0,
+   "why": "Fixed frequency. Mode 1 halves ARR at high eRPM (main.c:1977), i.e. up to 2 x pwm_frequency, which is outside the 24 kHz thermal must-pass budget."},
+  {"offset": 24, "field": "pwm_frequency", "value": 24,
+   "why": "kHz. Rev 8 thermal must-pass scenarios are at 24 kHz; at 48 kHz the 35 A burst trips the 115 C cutoff (thermal_report S5). Valid range 8..144 (main.c:637); out of range falls back to TIM1_AUTORELOAD = 24 kHz."},
+  {"offset": 27, "field": "motor_poles", "value": 14,
+   "why": "Matches ardupilot/defaults.parm SERVO_BLH_POLES 14 so the eRPM->RPM notch reference agrees."},
+  {"offset": 36, "field": "low_voltage_cut_off", "value": 1,
+   "why": "Per-cell cutoff on. Needed because the FD6288Q is supplied straight from VBAT (see low_cell_volt_cutoff)."},
+  {"offset": 37, "field": "low_cell_volt_cutoff", "value": 70,
+   "why": "Stored +250 (main.c:680) -> 3.20 V/cell. At 2S the bootstrap supply is VBAT - 0.45 V; 3.0 V/cell is the floor at which VBS = 5.55 V stays above the FD6288Q UVLO+ max of 5.0 V. 3.2 V leaves 0.4 V of sag margin."},
+  {"offset": 42, "field": "driving_brake_strength", "value": 10,
+   "why": "10 disables dead_time_override. Values 1..9 OR (not add) DEAD_TIME + 150 - 10*s into TMR1_BRK.DTC (main.c:699-711), giving a non-monotonic 0.88..2.03 us dead time (gate_drive_report.json dead_time.driving_brake_override)."},
+  {"offset": 43, "field": "limits.temperature", "value": 115,
+   "why": "C, AT32F421 die sensor (ADC_CH16). Valid 70..140, anything else disables the limit (main.c:724). Same 115 C as the Rev 8 board-temperature cutoff."},
+  {"offset": 44, "field": "limits.current", "value": 0,
+   "why": "Current limit off: the AIO has one battery shunt read by the H743 (HAL_BATT_CURR_PIN), no per-channel amplifier. The AT32 PA6 current input is tied to GND via 10 k, so AM32 reports 0 A."}
+ ]
+}

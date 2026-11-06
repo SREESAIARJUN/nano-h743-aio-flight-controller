@@ -1,0 +1,248 @@
+{
+  "revision": "10.0",
+  "inputs": {
+    "loop_hz": 400,
+    "poles": 14,
+    "pwm_channels": [
+      {
+        "pin": "PE9",
+        "timer": 1,
+        "ch": 1,
+        "compl": false,
+        "out": 1,
+        "bidir": true
+      },
+      {
+        "pin": "PE11",
+        "timer": 1,
+        "ch": 2,
+        "compl": false,
+        "out": 2,
+        "bidir": false
+      },
+      {
+        "pin": "PE13",
+        "timer": 1,
+        "ch": 3,
+        "compl": false,
+        "out": 3,
+        "bidir": true
+      },
+      {
+        "pin": "PE14",
+        "timer": 1,
+        "ch": 4,
+        "compl": false,
+        "out": 4,
+        "bidir": false
+      }
+    ],
+    "punch_slew_hz_per_s": 9444.444444444443,
+    "gyro_rate_hz": 2000
+  },
+  "clocking": {
+    "sysclk_mhz": 480,
+    "tim1_kernel_clock_hz": 240000000.0,
+    "dshot_bitrate": 600000,
+    "dshot_bit_us": 1.6666666666666667,
+    "output_ticks_per_bit": 400.0,
+    "gcr_bitrate": 750000,
+    "gcr_bit_us": 1.3333333333333333,
+    "telem_psc": 19,
+    "ic_tick_ns": 83.33333333333334,
+    "ic_ticks_per_gcr_bit": 16.0,
+    "esc_clock_tolerance_pct_theory": 16.666666666666668,
+    "ic_capture_window_ticks": 336,
+    "ic_counter_wrap_ms": 5.461333333333334
+  },
+  "bidir_cycle_us": {
+    "frame": 26.666666666666668,
+    "turnaround": 30.0,
+    "gcr_reply": 28.0,
+    "margin": 10.0,
+    "total": 94.66666666666667
+  },
+  "rate_sweep": [
+    {
+      "SERVO_DSHOT_RATE": 0,
+      "punch_residual_attenuation_db": -0.6151748812304265,
+      "frame_hz": 1000.0,
+      "loop_synchronous": false,
+      "per_motor_erpm_hz": 250.0,
+      "worst_sample_age_ms": 5.428571428571429,
+      "punch_tracking_error_hz": 51.269841269841265,
+      "cycle_duty_pct": 9.466666666666669
+    },
+    {
+      "SERVO_DSHOT_RATE": 1,
+      "punch_residual_attenuation_db": -0.4160593495677257,
+      "frame_hz": 800.0,
+      "loop_synchronous": true,
+      "per_motor_erpm_hz": 200.0,
+      "worst_sample_age_ms": 6.678571428571429,
+      "punch_tracking_error_hz": 63.07539682539682,
+      "cycle_duty_pct": 7.573333333333334
+    },
+    {
+      "SERVO_DSHOT_RATE": 2,
+      "punch_residual_attenuation_db": -0.4160593495677257,
+      "frame_hz": 800.0,
+      "loop_synchronous": true,
+      "per_motor_erpm_hz": 200.0,
+      "worst_sample_age_ms": 6.678571428571429,
+      "punch_tracking_error_hz": 63.07539682539682,
+      "cycle_duty_pct": 7.573333333333334
+    },
+    {
+      "SERVO_DSHOT_RATE": 3,
+      "punch_residual_attenuation_db": -0.8363482293946406,
+      "frame_hz": 1200.0,
+      "loop_synchronous": true,
+      "per_motor_erpm_hz": 300.0,
+      "worst_sample_age_ms": 4.595238095238095,
+      "punch_tracking_error_hz": 43.39947089947089,
+      "cycle_duty_pct": 11.360000000000001
+    },
+    {
+      "SERVO_DSHOT_RATE": 4,
+      "punch_residual_attenuation_db": -1.319782602478317,
+      "frame_hz": 1600.0,
+      "loop_synchronous": true,
+      "per_motor_erpm_hz": 400.0,
+      "worst_sample_age_ms": 3.5535714285714284,
+      "punch_tracking_error_hz": 33.56150793650793,
+      "cycle_duty_pct": 15.146666666666668
+    }
+  ],
+  "chosen": {
+    "SERVO_DSHOT_RATE": 4,
+    "punch_residual_attenuation_db": -1.319782602478317,
+    "frame_hz": 1600.0,
+    "loop_synchronous": true,
+    "per_motor_erpm_hz": 400.0,
+    "worst_sample_age_ms": 3.5535714285714284,
+    "punch_tracking_error_hz": 33.56150793650793,
+    "cycle_duty_pct": 15.146666666666668
+  },
+  "quantisation": {
+    "worst_rel_error_pct": 0.4,
+    "at_rpm": 1750,
+    "worst_abs_error_hz": 0.11666666666666667,
+    "min_representable_rpm": 131,
+    "period_at_max_rpm_us": 204.08163265306123
+  },
+  "notch": {
+    "min_hz": 80.0,
+    "disable_below_hz": 20.0,
+    "nyquist_guard_hz": 960.0,
+    "harmonics": [
+      1,
+      2
+    ],
+    "filters_per_imu": 8,
+    "idle_motor_hz": 25.0,
+    "hover_motor_hz": 333.3333333333333,
+    "max_motor_hz": 700.0,
+    "highest_tracked_h2_motor_hz": 480.0
+  },
+  "line": {
+    "series_ohm": 100.0,
+    "line_capacitance_pF": 14.0,
+    "rc_ns": 1.4,
+    "rise_10_90_ns": 3.08,
+    "internal_pullup_tau_us": 0.56
+  },
+  "gates": [
+    {
+      "gate": "B1 integer output ticks per DShot bit",
+      "pass": true,
+      "detail": "400.000 ticks"
+    },
+    {
+      "gate": "B2 IC sampling exactly 16 ticks/GCR bit",
+      "pass": true,
+      "detail": "PSC 19 -> 16.0000 ticks/bit"
+    },
+    {
+      "gate": "B3 DShot output loop-synchronous",
+      "pass": true,
+      "detail": "SERVO_DSHOT_RATE 4 -> 1600 Hz"
+    },
+    {
+      "gate": "B4 frame rate within ArduPilot bounds [800, 4096] Hz",
+      "pass": true,
+      "detail": "1600 Hz"
+    },
+    {
+      "gate": "B5 per-motor eRPM refresh >= 250 Hz under round-robin",
+      "pass": true,
+      "detail": "400 Hz (4 motors on one timer)"
+    },
+    {
+      "gate": "B6 punch tracking lag <= INS_HNTCH_BW (sizing rule)",
+      "pass": true,
+      "detail": "33.6 Hz vs BW 40 Hz (residual depth -1.3 dB during the slew)"
+    },
+    {
+      "gate": "B7 bidir cycle < 50 % of frame period",
+      "pass": true,
+      "detail": "94.7 us of 625.0 us"
+    },
+    {
+      "gate": "B8 eRPM quantisation < BW/4",
+      "pass": true,
+      "detail": "0.12 Hz at 1750 RPM"
+    },
+    {
+      "gate": "B9 notch tracks ESC telemetry",
+      "pass": true,
+      "detail": "MODE 3"
+    },
+    {
+      "gate": "B10 OPTS multi-source + loop-rate update",
+      "pass": true,
+      "detail": "OPTS 6"
+    },
+    {
+      "gate": "B11 FREQ >= 0.52 x BW (HarmonicNotchFilter bandwidth_limit)",
+      "pass": true,
+      "detail": "80 vs 20.8"
+    },
+    {
+      "gate": "B12 min frequency well below hover fundamental",
+      "pass": true,
+      "detail": "80 vs hover 333 Hz"
+    },
+    {
+      "gate": "B13 notch filters fit HAL_HNF_MAX_FILTERS (54, H7)",
+      "pass": true,
+      "detail": "8"
+    },
+    {
+      "gate": "B14 series R edge < 2 % of a GCR bit",
+      "pass": true,
+      "detail": "3.1 ns vs 1333 ns bit"
+    },
+    {
+      "gate": "B15 internal pull-up settles the idle level within turnaround",
+      "pass": true,
+      "detail": "5 tau = 2.8 us vs 30 us"
+    },
+    {
+      "gate": "B16 AM32 MOTOR_POLES == SERVO_BLH_POLES",
+      "pass": false,
+      "detail": "None vs 14"
+    },
+    {
+      "gate": "B17 EDT enabled on both FC and ESC",
+      "pass": false,
+      "detail": "SERVO_DSHOT_ESC 3, AM32 EDT None"
+    },
+    {
+      "gate": "B18 AM32 input rate == MOT_PWM_TYPE",
+      "pass": false,
+      "detail": "None kbps vs 600000"
+    }
+  ],
+  "result": "FAIL"
+}

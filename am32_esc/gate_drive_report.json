@@ -1,0 +1,1367 @@
+{
+ "revision": "9.0",
+ "sources": {
+  "FD6288Q": "Fortior FD6288 datasheet V1.6 (2023-08-31), Tables 3-1..3-4, LCSC C328453",
+  "TPHR8504PL": "Toshiba TPHR8504PL datasheet Rev.5.0 (2019-10-24), sections 4-6, Figs 8.1/8.8/8.10",
+  "AM32": "am32-firmware/AM32 3d8cd50 (v2.21): Inc/targets.h, Src/main.c:419,536,637-648,699-711, Mcu/f421/Src/peripherals.c:97-115"
+ },
+ "assumptions": {
+  "r_drv_fast_factor": 0.6,
+  "toff_prop_min": 5e-08,
+  "dt_guard": 2.5e-08,
+  "l_loop_nH": 3.0,
+  "dvdt_emi_max": 5000000000.0,
+  "est_frac_max": 0.1,
+  "vds_derate": 0.8,
+  "schottky_vf": 0.3,
+  "qgd_scaling": "sqrt",
+  "c_bs_eff_uF": 0.5,
+  "vf_bs": 0.45,
+  "pole_pairs": 7,
+  "tj_board_C": 105.0,
+  "tj_fd6288_max_C": 125.0,
+  "loss_band": 0.1
+ },
+ "driver": {
+  "vcc_min": 5.0,
+  "vcc_max_rec": 20.0,
+  "vcc_abs_max": 25.0,
+  "uvlo_on_max": 5.0,
+  "uvlo_on_typ": 4.6,
+  "uvlo_off_max": 4.7,
+  "vih_min": 2.7,
+  "vil_max": 0.8,
+  "in_pulldown_kohm": [
+   140,
+   200,
+   260
+  ],
+  "ton_typ": 3e-07,
+  "ton_max": 4.5e-07,
+  "toff_typ": 1e-07,
+  "toff_max": 1.6e-07,
+  "mt_max": 3e-08,
+  "dt_int": [
+   1e-07,
+   2e-07,
+   3e-07
+  ],
+  "io_src_min": 1.1,
+  "io_snk_min": 1.3,
+  "voh_typ": 0.6,
+  "voh_max": 0.9,
+  "vol_typ": 0.3,
+  "vol_max": 0.45,
+  "iqbs_max": 0.00027,
+  "iqcc_max": 0.0005,
+  "vs_neg_op": -4.0,
+  "dvs_dt_max": 50000000000.0,
+  "rth_ja": 42.0,
+  "tj_max": 150.0,
+  "inputs_active_high": true,
+  "r_src": {
+   "slow": 9.0,
+   "typ": 5.999999999999999
+  },
+  "r_snk": {
+   "slow": 4.5,
+   "typ": 2.9999999999999996
+  }
+ },
+ "fet": {
+  "vdss": 40.0,
+  "vgss": 20.0,
+  "vth_min": 1.4,
+  "vth_max": 2.4,
+  "vth_typ_25": 1.95,
+  "vth_tc": -0.0085,
+  "ciss": 7.37e-09,
+  "crss": 5.8e-11,
+  "coss": 1.93e-09,
+  "qg_10v": 1.03e-07,
+  "qg_4v5": 4.9e-08,
+  "qgs1": 2.5e-08,
+  "qgd": 1.24e-08,
+  "qsw": 2.3e-08,
+  "v_plateau": 3.3,
+  "rg_int": [
+   0.6,
+   1.1
+  ],
+  "k_sat": 12.8,
+  "test": {
+   "vgs": 10.0,
+   "rgg": 4.7,
+   "id": 50.0,
+   "vdd": 20.0,
+   "ton": 2.6e-08,
+   "toff": 6.3e-08
+  }
+ },
+ "vth_hot_min_V": 0.5499999999999998,
+ "vth_hot_typ_V": 1.0999999999999999,
+ "calibration": {
+  "ton_model_ns": 25.90000000000014,
+  "toff_model_ns": 98.55000000000139
+ },
+ "selected_gate_network": {
+  "rg_on_ohm": 15.0,
+  "turn_off": "Schottky + 0.0 ohm in parallel with Rg_on",
+  "r_off_ohm": 0.0,
+  "cgs_ext_nF": 0.0,
+  "stress_4S_HV_35A": {
+   "rg_on": 15.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 0.0,
+   "vbus": 17.4,
+   "i": 35.0,
+   "dvdt_V_per_ns": 1.104761904761968,
+   "induced_vgs_pk_V": 1.1875577093786216,
+   "shoot_through_pk_A": 5.202941859687874,
+   "e_on_uJ": 11.570999999999524,
+   "e_off_uJ": 23.827125000001793,
+   "e_st_uJ": 0.8446093955767727,
+   "est_frac": 0.0729936388883249,
+   "t_fall_fast_ns": 24.50000000000072,
+   "v_overshoot_V": 4.28571428571416,
+   "vds_peak_V": 21.68571428571416,
+   "p_sw_W": 0.2899418751646247,
+   "tj_fd6288_24k_C": 109.55604096934837,
+   "tj_fd6288_48k_C": 113.15473393869676
+  },
+  "p_sw_per_HS_4S_20A_24kHz_W": 0.16345696509417826,
+  "min_feasible_loss_W": 0.15253838811225917,
+  "selection_rule": "within +10 % of min feasible loss -> fewest parts/FET -> lowest dv/dt -> lowest loss",
+  "unconstrained_loss_optimum": {
+   "rg_on": 0.0,
+   "r_off": null,
+   "cgs_ext_nF": 0.0,
+   "feasible": false,
+   "p_sw_W": 0.1159725734429356,
+   "stress": {
+    "rg_on": 0.0,
+    "r_off": null,
+    "cgs_ext_nF": 0.0,
+    "vbus": 17.4,
+    "i": 35.0,
+    "dvdt_V_per_ns": 5.043478260869538,
+    "induced_vgs_pk_V": 1.410638726416568,
+    "shoot_through_pk_A": 9.480947422821538,
+    "e_on_uJ": 4.658850000000042,
+    "e_off_uJ": 20.157900000001515,
+    "e_st_uJ": 0.8611951099509013,
+    "est_frac": 0.18485143542953597,
+    "t_fall_fast_ns": 19.94999999999989,
+    "v_overshoot_V": 5.263157894736872,
+    "vds_peak_V": 22.66315789473687,
+    "p_sw_W": 0.20542356087961966,
+    "tj_fd6288_24k_C": 111.55761436751536,
+    "tj_fd6288_48k_C": 117.15788073503073
+   }
+  },
+  "vds_peak_vs_loop_inductance_V": {
+   "1.5nH": 19.54285714285708,
+   "3.0nH": 21.68571428571416,
+   "5.0nH": 24.54285714285693
+  }
+ },
+ "dead_time": {
+  "rows": [
+   {
+    "bus": "4S_HV",
+    "transition": "HS_off->LS_on",
+    "t_outgoing_below_vth_ns": 382.70000000001073,
+    "t_incoming_at_vth_ns_without_mcu_dt": 154.7,
+    "dt_mcu_required_ns": 283.0000000000108
+   },
+   {
+    "bus": "4S_HV",
+    "transition": "LS_off->HS_on",
+    "t_outgoing_below_vth_ns": 362.40000000000924,
+    "t_incoming_at_vth_ns_without_mcu_dt": 154.79999999999998,
+    "dt_mcu_required_ns": 262.60000000000923
+   },
+   {
+    "bus": "2S_min",
+    "transition": "HS_off->LS_on",
+    "t_outgoing_below_vth_ns": 309.90000000000526,
+    "t_incoming_at_vth_ns_without_mcu_dt": 164.00000000000003,
+    "dt_mcu_required_ns": 200.90000000000524
+   },
+   {
+    "bus": "2S_min",
+    "transition": "LS_off->HS_on",
+    "t_outgoing_below_vth_ns": 301.65000000000464,
+    "t_incoming_at_vth_ns_without_mcu_dt": 165.20000000000002,
+    "dt_mcu_required_ns": 191.45000000000465
+   }
+  ],
+  "dt_mcu_required_ns": 283.00000000001086,
+  "tick_ns": 8.333333333333334,
+  "DEAD_TIME": 34,
+  "dt_mcu_ns": 283.33333333333337,
+  "body_diode_per_edge_ns": {
+   "typ": 483.3333333333333,
+   "max": 613.3333333333334
+  },
+  "arr_at_24kHz": 4999,
+  "min_duty_from_dead_time_pct": 0.68,
+  "driving_brake_override": [
+   {
+    "driving_brake_strength": 1,
+    "override": 174,
+    "register": 174,
+    "dead_time_ns": 1833.3333333333333
+   },
+   {
+    "driving_brake_strength": 2,
+    "override": 164,
+    "register": 166,
+    "dead_time_ns": 1700.0
+   },
+   {
+    "driving_brake_strength": 3,
+    "override": 154,
+    "register": 186,
+    "dead_time_ns": 2033.3333333333335
+   },
+   {
+    "driving_brake_strength": 4,
+    "override": 144,
+    "register": 178,
+    "dead_time_ns": 1900.0
+   },
+   {
+    "driving_brake_strength": 5,
+    "override": 134,
+    "register": 166,
+    "dead_time_ns": 1700.0
+   },
+   {
+    "driving_brake_strength": 6,
+    "override": 124,
+    "register": 126,
+    "dead_time_ns": 1050.0
+   },
+   {
+    "driving_brake_strength": 7,
+    "override": 114,
+    "register": 114,
+    "dead_time_ns": 950.0
+   },
+   {
+    "driving_brake_strength": 8,
+    "override": 104,
+    "register": 106,
+    "dead_time_ns": 883.3333333333334
+   },
+   {
+    "driving_brake_strength": 9,
+    "override": 94,
+    "register": 126,
+    "dead_time_ns": 1050.0
+   }
+  ]
+ },
+ "fd6288_dissipation": {
+  "24kHz": {
+   "p_gate_total_W": 0.14653895641791043,
+   "p_fd6288_W": 0.10847716593686618,
+   "tj_fd6288_C": 109.55604096934837
+  },
+  "48kHz": {
+   "p_gate_total_W": 0.29307791283582085,
+   "p_fd6288_W": 0.19416033187373238,
+   "tj_fd6288_C": 113.15473393869676
+  }
+ },
+ "bootstrap": {
+  "2S_min": {
+   "dv_allowed_V": 0.5499999999999998,
+   "dv_charge_share_V": 0.1276716417910448,
+   "max_hs_on_ms": 0.7820895522388056,
+   "min_erpm_at_100pct_duty": 25572.51908396948,
+   "min_mech_rpm_at_100pct_duty": 3653.21701199564
+  },
+  "3S_nom": {
+   "dv_allowed_V": 5.65,
+   "dv_charge_share_V": 0.22754029850746266,
+   "max_hs_on_ms": 10.041592039800994,
+   "min_erpm_at_100pct_duty": 1991.7160466913733,
+   "min_mech_rpm_at_100pct_duty": 284.5308638130533
+  },
+  "4S_full": {
+   "dv_allowed_V": 11.350000000000001,
+   "dv_charge_share_V": 0.33915820895522386,
+   "max_hs_on_ms": 20.390447761194032,
+   "min_erpm_at_100pct_duty": 980.851437606137,
+   "min_mech_rpm_at_100pct_duty": 140.12163394373385
+  }
+ },
+ "requirements": [
+  "FD6288Q VCC = VBAT via 10 ohm + 10 uF/25 V X5R (datasheet C1), clamped by an 18 V Zener (BZT52C18) at VCC",
+  "Gate network per FET: Rg_on 15.0 ohm 0402, Schottky (RB521S30) + 0.0 ohm in parallel for turn-off",
+  "10 kohm gate-source pull-down on every FET (holds off while VCC < UVLO; FD6288Q outputs are undriven below UVLO)",
+  "Bootstrap: Schottky (B5819WS class, 40 V) + 2.2 ohm series + 1 uF/25 V X5R per phase, cap within 2 mm of VB/VS",
+  "HS-LS-ceramic commutation loop <= 3 nH: >= 2 x 10 uF/25 V 0805 across each half-bridge on the FET layer",
+  "FD6288Q HIN1..3 <- AT32F421 PA10/PA9/PA8 (TMR1_CH3/2/1), LIN1..3 <- PB1/PB0/PA7 (TMR1_CH3N/2N/1N); no inverters",
+  "AM32 EEPROM: pwm_frequency 24, driving_brake_strength 10 (override off), limits.temperature 115, limits.current 0"
+ ],
+ "sweep_feasible_by_loss": [
+  {
+   "rg_on": 1.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1525,
+   "dvdt": 4.05,
+   "est_pct": 9.2,
+   "tj_fd6288_24k": 112.2,
+   "parts_per_fet": 3,
+   "in_loss_band": true
+  },
+  {
+   "rg_on": 1.0,
+   "r_off": 1.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1543,
+   "dvdt": 4.05,
+   "est_pct": 9.2,
+   "tj_fd6288_24k": 111.9,
+   "parts_per_fet": 4,
+   "in_loss_band": true
+  },
+  {
+   "rg_on": 1.0,
+   "r_off": 2.2,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.155,
+   "dvdt": 4.05,
+   "est_pct": 9.2,
+   "tj_fd6288_24k": 111.9,
+   "parts_per_fet": 4,
+   "in_loss_band": true
+  },
+  {
+   "rg_on": 1.0,
+   "r_off": null,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.156,
+   "dvdt": 4.05,
+   "est_pct": 9.2,
+   "tj_fd6288_24k": 111.9,
+   "parts_per_fet": 2,
+   "in_loss_band": true
+  },
+  {
+   "rg_on": 6.8,
+   "r_off": 0.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1577,
+   "dvdt": 1.92,
+   "est_pct": 9.2,
+   "tj_fd6288_24k": 110.5,
+   "parts_per_fet": 3,
+   "in_loss_band": true
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": 0.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1595,
+   "dvdt": 3.31,
+   "est_pct": 8.7,
+   "tj_fd6288_24k": 111.8,
+   "parts_per_fet": 3,
+   "in_loss_band": true
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": 0.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1622,
+   "dvdt": 2.83,
+   "est_pct": 7.8,
+   "tj_fd6288_24k": 111.6,
+   "parts_per_fet": 3,
+   "in_loss_band": true
+  },
+  {
+   "rg_on": 15.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1635,
+   "dvdt": 1.1,
+   "est_pct": 7.3,
+   "tj_fd6288_24k": 109.6,
+   "parts_per_fet": 2,
+   "in_loss_band": true
+  },
+  {
+   "rg_on": 10.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1644,
+   "dvdt": 1.49,
+   "est_pct": 7.0,
+   "tj_fd6288_24k": 110.2,
+   "parts_per_fet": 3,
+   "in_loss_band": true
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": 0.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1656,
+   "dvdt": 2.38,
+   "est_pct": 6.8,
+   "tj_fd6288_24k": 111.3,
+   "parts_per_fet": 3,
+   "in_loss_band": true
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": 1.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1673,
+   "dvdt": 3.31,
+   "est_pct": 9.7,
+   "tj_fd6288_24k": 111.4,
+   "parts_per_fet": 4,
+   "in_loss_band": true
+  },
+  {
+   "rg_on": 6.8,
+   "r_off": 0.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1704,
+   "dvdt": 1.93,
+   "est_pct": 5.6,
+   "tj_fd6288_24k": 111.0,
+   "parts_per_fet": 3,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": 1.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1737,
+   "dvdt": 2.83,
+   "est_pct": 9.3,
+   "tj_fd6288_24k": 111.1,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 15.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1749,
+   "dvdt": 1.1,
+   "est_pct": 5.0,
+   "tj_fd6288_24k": 109.9,
+   "parts_per_fet": 3,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 22.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1771,
+   "dvdt": 0.81,
+   "est_pct": 4.8,
+   "tj_fd6288_24k": 109.3,
+   "parts_per_fet": 2,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 10.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1779,
+   "dvdt": 1.49,
+   "est_pct": 4.4,
+   "tj_fd6288_24k": 110.7,
+   "parts_per_fet": 3,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": 1.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1797,
+   "dvdt": 2.38,
+   "est_pct": 8.6,
+   "tj_fd6288_24k": 110.9,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 10.0,
+   "r_off": 1.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1818,
+   "dvdt": 1.49,
+   "est_pct": 9.8,
+   "tj_fd6288_24k": 109.8,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 6.8,
+   "r_off": 1.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1869,
+   "dvdt": 1.93,
+   "est_pct": 7.3,
+   "tj_fd6288_24k": 110.6,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 15.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1894,
+   "dvdt": 1.1,
+   "est_pct": 3.1,
+   "tj_fd6288_24k": 110.3,
+   "parts_per_fet": 3,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 22.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.19,
+   "dvdt": 0.81,
+   "est_pct": 3.3,
+   "tj_fd6288_24k": 109.6,
+   "parts_per_fet": 3,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": 2.2,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1914,
+   "dvdt": 2.38,
+   "est_pct": 9.9,
+   "tj_fd6288_24k": 110.5,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 15.0,
+   "r_off": 1.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1936,
+   "dvdt": 1.1,
+   "est_pct": 7.4,
+   "tj_fd6288_24k": 109.5,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 22.0,
+   "r_off": 1.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.196,
+   "dvdt": 0.81,
+   "est_pct": 7.6,
+   "tj_fd6288_24k": 108.9,
+   "parts_per_fet": 3,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 10.0,
+   "r_off": 1.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1961,
+   "dvdt": 1.49,
+   "est_pct": 6.0,
+   "tj_fd6288_24k": 110.2,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 6.8,
+   "r_off": 2.2,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.202,
+   "dvdt": 1.93,
+   "est_pct": 8.9,
+   "tj_fd6288_24k": 110.2,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 22.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.2057,
+   "dvdt": 0.81,
+   "est_pct": 2.1,
+   "tj_fd6288_24k": 110.0,
+   "parts_per_fet": 3,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 15.0,
+   "r_off": 1.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.2091,
+   "dvdt": 1.1,
+   "est_pct": 4.6,
+   "tj_fd6288_24k": 109.9,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 22.0,
+   "r_off": 1.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.2095,
+   "dvdt": 0.81,
+   "est_pct": 5.2,
+   "tj_fd6288_24k": 109.2,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 15.0,
+   "r_off": 2.2,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.2139,
+   "dvdt": 1.1,
+   "est_pct": 9.9,
+   "tj_fd6288_24k": 109.1,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 10.0,
+   "r_off": 2.2,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.2145,
+   "dvdt": 1.49,
+   "est_pct": 7.7,
+   "tj_fd6288_24k": 109.8,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 22.0,
+   "r_off": 1.0,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.2263,
+   "dvdt": 0.81,
+   "est_pct": 3.2,
+   "tj_fd6288_24k": 109.6,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 15.0,
+   "r_off": 2.2,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.2303,
+   "dvdt": 1.1,
+   "est_pct": 6.1,
+   "tj_fd6288_24k": 109.5,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 22.0,
+   "r_off": 2.2,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.2317,
+   "dvdt": 0.81,
+   "est_pct": 7.3,
+   "tj_fd6288_24k": 108.9,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  },
+  {
+   "rg_on": 22.0,
+   "r_off": 2.2,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.2497,
+   "dvdt": 0.81,
+   "est_pct": 4.6,
+   "tj_fd6288_24k": 109.2,
+   "parts_per_fet": 4,
+   "in_loss_band": false
+  }
+ ],
+ "sweep_rejected": [
+  {
+   "rg_on": 0.0,
+   "r_off": null,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.116,
+   "why": [
+    "dv/dt",
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 0.0,
+   "r_off": null,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1235,
+   "why": [
+    "dv/dt",
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 1.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.133,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 0.0,
+   "r_off": null,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1334,
+   "why": [
+    "dv/dt"
+   ]
+  },
+  {
+   "rg_on": 1.0,
+   "r_off": 1.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1347,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 1.0,
+   "r_off": 2.2,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1354,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 1.0,
+   "r_off": null,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1366,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": 0.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1387,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": 0.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1409,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 1.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1414,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 1.0,
+   "r_off": 1.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1432,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": 0.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1436,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 1.0,
+   "r_off": 2.2,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1438,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 1.0,
+   "r_off": null,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1449,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": 1.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1461,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": 0.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1477,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 6.8,
+   "r_off": 0.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1477,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": 0.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1502,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": 2.2,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1506,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": 1.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1517,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": 0.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1533,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 10.0,
+   "r_off": 0.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1538,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": 1.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1552,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": 1.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.157,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": 2.2,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1594,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": 2.2,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1598,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": 1.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1612,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": null,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1614,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 6.8,
+   "r_off": 1.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1631,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": 1.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1668,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": 2.2,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1678,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": 2.2,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1691,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": null,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1705,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 10.0,
+   "r_off": 1.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1708,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": 2.2,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1719,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 6.8,
+   "r_off": 1.0,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1735,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 6.8,
+   "r_off": 2.2,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1772,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": 2.2,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1779,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 15.0,
+   "r_off": 1.0,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1816,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": 2.2,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1819,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 2.2,
+   "r_off": null,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.1831,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": null,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1839,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 10.0,
+   "r_off": 2.2,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.1878,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 6.8,
+   "r_off": 2.2,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1878,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": null,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.194,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 10.0,
+   "r_off": 2.2,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.1993,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 15.0,
+   "r_off": 2.2,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.2013,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 3.3,
+   "r_off": null,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.2079,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": null,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.2128,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 22.0,
+   "r_off": 2.2,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.2176,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": null,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.2239,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 4.7,
+   "r_off": null,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.2396,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 6.8,
+   "r_off": null,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.2561,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 6.8,
+   "r_off": null,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.2687,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 6.8,
+   "r_off": null,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.2868,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 10.0,
+   "r_off": null,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.3214,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 10.0,
+   "r_off": null,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.3366,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 10.0,
+   "r_off": null,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.359,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 15.0,
+   "r_off": null,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.4243,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 15.0,
+   "r_off": null,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.4432,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 15.0,
+   "r_off": null,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.4718,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 22.0,
+   "r_off": null,
+   "cgs_ext_nF": 0.0,
+   "p_sw_W": 0.5683,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 22.0,
+   "r_off": null,
+   "cgs_ext_nF": 1.0,
+   "p_sw_W": 0.593,
+   "why": [
+    "shoot-through"
+   ]
+  },
+  {
+   "rg_on": 22.0,
+   "r_off": null,
+   "cgs_ext_nF": 2.1999999999999997,
+   "p_sw_W": 0.6301,
+   "why": [
+    "shoot-through"
+   ]
+  }
+ ],
+ "header": {
+  "DEAD_TIME": "34",
+  "blocks": [
+   "NANO_H743_AIO_F421"
+  ]
+ },
+ "checks": [
+  {
+   "check": "C0_model_calibration",
+   "pass": true,
+   "detail": "model ton 25.9 ns vs datasheet 26 ns (x1.00); toff 98.6 ns vs 63 ns (x1.56); turn-off must not be optimistic"
+  },
+  {
+   "check": "C1_feasible_gate_network_exists",
+   "pass": true,
+   "detail": "35/99 candidates meet dv/dt, shoot-through and VDS limits"
+  },
+  {
+   "check": "C2_vds_peak_5nH",
+   "pass": true,
+   "detail": "VDS peak at 35 A turn-off, L_loop 1.5/3/5 nH: 1.5nH 19.5 V, 3.0nH 21.7 V, 5.0nH 24.5 V (limit 32 V)"
+  },
+  {
+   "check": "C3_dvdt_vs_FD6288_abs",
+   "pass": true,
+   "detail": "1.10 V/ns vs FD6288Q dVS/dt 50 V/ns"
+  },
+  {
+   "check": "C4_dtg_linear_range",
+   "pass": true,
+   "detail": "DEAD_TIME = 34 (0x22) -> 283.3 ns, need 283.0 ns"
+  },
+  {
+   "check": "C5_vcc_uvlo_window",
+   "pass": true,
+   "detail": "VCC = VBAT 6.0..17.4 V; VBS at 2S/3.0 V-cell = 5.55 V > UVLO+ max 5.0 V; 4S HV 17.4 V <= VCC rec. max 20.0 V"
+  },
+  {
+   "check": "C6_vgss_margin",
+   "pass": true,
+   "detail": "LS VGS max 17.4 V vs VGSS 20 V; HS VBS may pump to 20.9 V on a -4 V VS undershoot -> 2.2 ohm in series with each bootstrap diode + 18 V VCC Zener are required (see report 'requirements')"
+  },
+  {
+   "check": "C7_fd6288_tj",
+   "pass": true,
+   "detail": "FD6288Q Tj at board 105 C: 24 kHz 109.6 C, 48 kHz 113.2 C (limit 125 C at 24 kHz; 48 kHz allowed vs 140 C)"
+  },
+  {
+   "check": "C8_bootstrap_hold",
+   "pass": true,
+   "detail": "max HS on-time without refresh: 2S_min 0.78 ms, 3S_nom 10.04 ms, 4S_full 20.39 ms"
+  },
+  {
+   "check": "H1_header_dead_time",
+   "pass": true,
+   "detail": "am32_target.h DEAD_TIME 34 vs computed 34"
+  },
+  {
+   "check": "H2_header_hw_group",
+   "pass": true,
+   "detail": "requires ['HARDWARE_GROUP_AT_B', 'HARDWARE_GROUP_AT_045']"
+  },
+  {
+   "check": "H3_header_polarity",
+   "pass": true,
+   "detail": "FD6288Q HIN/LIN active-high, so no inversion/bridge macros may be set (found: none)"
+  },
+  {
+   "check": "H4_header_names",
+   "pass": true,
+   "detail": "FIRMWARE_NAME 'NanoH743AIO' (11/12 chars, AM32 _Static_assert), FILE_NAME 'NANO_H743_AIO_F421' must end _F421 and gate its block"
+  },
+  {
+   "check": "H5_header_voltage_divider",
+   "pass": true,
+   "detail": "TARGET_VOLTAGE_DIVIDER 110: 100k/10k divider -> ratio 11 -> AM32 units x10 = 110; full scale 36.3 V"
+  },
+  {
+   "check": "H6_no_dead_macros",
+   "pass": true,
+   "detail": "macros AM32 never reads: none"
+  },
+  {
+   "check": "E1_eeprom_settings",
+   "pass": true,
+   "detail": "comp_pwm 1, variable_pwm 0, pwm 24 kHz, driving_brake 10, cutoff 3.20 V/cell -> 2S VBS 5.95 V (UVLO+ max 5.0), temp limit 115 C, poles 14 (defaults.parm 14)"
+  }
+ ],
+ "failures": [],
+ "status": "PASS"
+}

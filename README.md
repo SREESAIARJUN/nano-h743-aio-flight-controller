@@ -16,7 +16,7 @@
 - **DroneCAN / UAVCAN**: On-board TCAN334 CAN FD transceiver on FDCAN1.
 - **Blackbox**: MicroSD card slot with 4-bit high-speed SDIO (SDMMC1).
 - **Integrated 4-in-1 ESC**:
-  - 4x Brushless ESC channels (20A continuous, 35A burst each, 2S–4S LiPo input).
+  - 4x Brushless ESC channels, 2S–4S LiPo input. **Rev 8 thermal rating per motor, all four loaded:** 20 A continuous / 28 A for 10 s in typical prop wash; 17 A / 22 A in the pessimistic case. 35 A is held for only ~4 s, and only ~8 A is allowed on a static bench. These figures require 12 AWG battery and 20 AWG motor leads.
   - 24x Toshiba TPHR8504PL 40 V N-MOSFETs, SOP Advance. RDS(on) max 0.85 mΩ at VGS=10 V and 1.40 mΩ at 4.5 V, Rth(ch-c) 0.88 K/W. ESC1/2 sit on the top face and ESC3/4 on the bottom; each half-bridge site is shared by both faces, and every high-side pair has a 16-via POFV thermal array.
   - 4x FD6288Q 3-phase half-bridge gate drivers with bootstrap diodes.
   - 0.5 mΩ shunt resistor with INA226 / INA169 current monitor. **Rev 8 finding:** at 4 × 20 A, D=0.9 (72 A battery current) it dissipates 2.6 W, which is over the 2 W rating previously specified. It needs a ≥ 4 W part or 0.25 mΩ; this is an open item.
@@ -38,6 +38,131 @@
 - `analysis/thermal_power_analysis.py`: per-MOSFET loss model and a thermal network that reads its geometry back from the KiCad board. Writes `thermal_report.json` and `thermal_dissipation_curve.png` (rewritten in Rev 8).
 
 ---
+
+## Revision 8.0 Engineering Changelog
+
+**Scope:** KiCad 8 6-layer PCB with a 2 oz inner copper plane stackup, and thermal vias under the 24× TPHR8504PL MOSFETs.
+
+### Changes implemented
+
+**1. A real 6-layer stackup in place of a label.** Before Rev 8, `nano-h743-aio.kicad_pcb` was an empty outline: six copper layers with no stackup definition, so the Gerber job file reported 35 µm everywhere. The board now carries JLCPCB's orderable **JLC061612-1080** stackup, which is written into the board and the Gerber job file:
+
+| Layer | Copper | Dielectric to next layer | Use |
+|---|---|---|---|
+| L1 F.Cu | 1 oz (35 µm) | 0.1375 mm 1080×2 prepreg, εr 3.91 | FETs ESC1/2, phase pours, signals |
+| L2 In1.Cu | **2 oz** (61 µm finished) | 0.35 mm core, εr 4.6 | **GND plane**. Reference for L1, HSE/VDDA return from Rev 7 |
+| L3 In2.Cu | **2 oz** | 0.325 mm 1080+7628+1080, εr 4.24 | **VBAT plane** |
+| L4 In3.Cu | **2 oz** | 0.35 mm core | **VBAT plane** |
+| L5 In4.Cu | **2 oz** | 0.1375 mm 1080×2 | **GND plane**. Reference for L6 |
+| L6 B.Cu | 1 oz | — | FETs ESC3/4, phase pours |
+
+The stackup totals 1.614 mm, with an ENIG finish and filled-and-capped via-in-pad (POFV, IPC-4761 Type VII), which JLC includes free on 6-layer boards. Outer copper stays at 1 oz on purpose. The LQFP-100 has a 0.5 mm pitch, and 2 oz outer copper would push it to JLC's 0.15–0.2 mm 2 oz trace and space limit. GND/VBAT/VBAT/GND gives two GND–VBAT pairs 0.35 mm apart for the hot loop, two parallel 2 oz layers per rail (0.14 mΩ/sq each), and a solid GND reference directly under both outer signal layers.
+
+**2. The 24 MOSFETs did not fit on a 25.5 mm board, so the outline moved to 36 × 36 mm with a 30.5 × 30.5 mm M3 mount.** The previous outline was 25.5 mm square with holes 20 mm apart, inconsistent with its own "25.5 mm" label. On Toshiba's land pattern, a TPHR8504PL needs 38.7 mm² of courtyard, so 24 of them need 929 mm². A 25.5 mm square has 650 mm² per side before the LQFP-100, which takes about 290 mm² more. The fit check is built into the generator, and its result made 30.5 mm-class the smallest standard frame size that works.
+
+**3. Project footprint library (`kicad/nano-h743-aio.pretty`).** The land pattern is Toshiba's recommended SOP Advance (2-5Q1S) pattern. The research reviewer found that the LCSC/EasyEDA footprint for C5331611 is actually a Diodes PowerDI5060 footprint, so it isn't used. The pattern details:
+
+- G/S pads: 0.85 × 1.45 mm on a 1.27 mm pitch.
+- Gap to the drain: 0.7 mm.
+- Drain land: 4.7 × 4.8 mm, with four 0.85 mm fingers for pins 5–8 (pin 5 sits opposite pin 4).
+- Paste: 2 × 2 windowpane at 69 % coverage.
+- Zone connection: solid, set on the footprint.
+
+There are three variants:
+- `…_ThermalVias_4x4`: 16 × 0.30/0.50 mm POFV vias in the drain body, on a 1.27 × 1.0 mm pitch.
+- `…_SourceVias_2x2`: 4 POFV vias in source pads 2 and 3.
+- Plain.
+
+The same five-file library also holds `MountingHole_3.2mm_M3_Grommet_Keepout` and `MotorPad_4.0x1.3mm`.
+
+**4. Power-stage layout (`tools/gen_power_stage_pcb.py`).** The layout is placed in a single frame of reference along the board edge, then rotated onto the N, S, W and E edges. Each of the 444 pad positions is checked against a closed-form transform at generation time. Six half-bridge sites each hold one top half-bridge (ESC1/2) and one mirrored bottom half-bridge (ESC3/4) at the same XY position:
+
+- **H slot.** The top and bottom high-side drains are both VBAT, so they share one 16-via POFV array. The array connects solidly to In2/In3 and to both drain tabs. Every high-side FET therefore gets a thermal-via array, while only 96 drills are needed for 12 high-side FETs.
+- **L slot.** The top and bottom low-side sources are both GND. Mirroring makes top pins 2/3 coincide with bottom pins 3/2, so 4 in-pad POFV vias serve both FETs. A row of 3 return vias just inboard, tied to both faces by 0.6 mm tracks, brings the total to **7 GND vias per low-side pair**. Without that row, the four barrels would carry about 16 A RMS combined at 20 A.
+- **No drain vias on the low-side FETs, by design.** The top and bottom low-side drains are phase nodes of different ESCs, so any through via under one would short it to the other. Their heat path is the L1/L6 phase pour plus the 0.1375 mm prepreg into the In1/In4 GND plane, modelled at 8.3 K/W. Any other arrangement costs a third slot per phase, which doesn't fit.
+- **Phase pours.** On the top face, the high-side sources (pins 1–3) face the low-side drain across a 0.7 mm gap, so the pour bridges them directly. On the mirrored bottom face, the gate pad sits on that side, so the pour runs through the motor-pad strip. That leaves the gap free as the bottom gate's escape channel. A second 0.7 mm channel on the far side serves the top gate.
+- **Motor pads.** Each phase has a 4.0 × 1.3 mm wire pad at the board edge, inside its own pour.
+- **Mounting holes.** Each M3 hole has a 6.4 mm grommet keep-out on all copper.
+- **MCU area.** A 15.7 mm square is reserved for the MCU and marked on Cmts.User.
+
+**5. Thermal relief policy: the MOSFETs get solid connections, not spokes.** A 4-spoke relief in 2 oz copper adds 9–18 K/W per layer, which is two to four times the whole via-array resistance. All Q* and motor pads therefore connect solid. This is set on the footprint and enforced by a `.kicad_dru` rule. The planes keep 0.25 mm gap / 0.4 mm spoke reliefs for any future through-hole parts, which need them to solder.
+
+**6. Custom DRC rules (`kicad/nano-h743-aio.kicad_dru`):**
+- 2 oz inner layers: clearance 0.2 mm, width 0.16 mm, hole-to-copper 0.2 mm.
+- Solid zone connection on Q* and MP*.
+- POFV drill must be exactly 0.30 mm.
+- NPTH grommet clearance 0.5 mm.
+
+**Defect found while building this:** the rules file originally had no units, and **KiCad then ignores the whole file without warning**. `kicad-cli` reported a clean DRC while no custom rule was active. The rule-liveness gate caught it. The fix: every value now carries `mm`, and the verifier also requires the file to parse in pcbnew's DRC engine.
+
+**7. Thermal analysis rewritten (`analysis/thermal_power_analysis.py`).** Several defects in the Rev ≤ 7 script are fixed:
+
+- It multiplied the **total board loss by a single θJA**, so four ESCs were treated as one junction.
+- It used 1.4 mΩ, the 4.5 V RDS(on), at every gate drive.
+- It reported **218 °C** at 35 A as `CERTIFIED_SAFE_UNDER_FLIGHT_AIRFLOW`.
+
+The new model:
+
+- **Losses per FET, 6-step complementary PWM:** HS conduction I²R·D/3 and LS I²R·(2−D)/3, with RDS(on)(Tj) iterated. Switching losses use gate-charge transition times (t_on 19.7 ns, t_off 75 ns through the FD6288Q plus 4.7 Ω Rg). Also included: Coss/Qrr, the dead-time body diode, and gate drive (Qg(V)·V·fsw).
+- **Board-level losses previously missing:** VBAT/GND plane I²R, the current shunt, and the 1 oz phase bridge (from the generator geometry; the bottom-face neck is narrower).
+- **Thermal network read back from the KiCad file:**
+  - junction-to-case (0.88 K/W) and SAC305 joint (0.08 K/W);
+  - HS: 16 barrels down 0.58 mm to the nearest VBAT plane (5.9 K/W), in parallel with prepreg (20.3 K/W), giving 4.6 K/W;
+  - LS: 8.3 K/W through prepreg;
+  - radial spreading in the 4 × 2 oz planes: 0.81 K/W per site;
+  - board-to-air on both faces with fin efficiency;
+  - battery and motor leads as pin fins **with their own I²R generation**;
+  - a lumped board capacitance and wire lags for bursts.
+- **Via array ablation at the legacy 35 A point:** with the vias, the HS junction sits 4.3 K above its site; with prepreg only it would be 16.4 K. The array buys **12.2 K** per FET.
+
+**8. Ratings corrected, and AM32 changed.**
+- **The model does not support the old 20 A / 35 A claim under pessimistic cooling.** At h = 50 W/m²K and 20 A, the board reaches 118 °C, which trips AM32's 115 °C cutoff.
+- **Published ratings (per motor, all four loaded, 4S, D = 0.9, 24 kHz, Tamb 35 °C, 12 AWG battery / 20 AWG motor leads):**
+  - Typical prop wash (h = 80): **20 A continuous, 28 A for 10 s.**
+  - Pessimistic (h = 50): **17 A, 22 A.**
+  - 35 A is allowed for about 4 s (2 s in the pessimistic case).
+  - Static bench: about 8 A.
+- **`am32_esc/am32_target.h`:**
+  - `PWM_FREQ_KHZ 48 → 24`. 48 kHz adds +2.6 W at the 20 A point, and the 28 A burst then ends at 118.9 °C, past the cutoff; at 24 kHz it ends at 109.2 °C.
+  - The RDS(on) comment is corrected.
+  - The 38 A over-current limit is documented as a stall/short trip, not a thermal rating.
+
+### Architecture improvements
+
+- **Generator-first PCB.** Following the Rev 7 schematic, the footprints, DRC rules, project rules and the filled board are all generated by code. The board is **byte-deterministic**: pcbnew's random KIIDs are replaced with content-derived uuid5 values, the board is reloaded, re-saved and rewritten, and the root sheet UUID in `.kicad_pro` is pinned to the schematic. A hand edit therefore shows up as a diff against regeneration. All footprints link to the `nano-h743-aio` library, so KiCad's library-parity DRC actually runs.
+- **Planes stay continuous under the via arrays.** Via pads use `remove_unused_layers`, so each GND plane sees a 0.7 mm hole antipad instead of a 0.9 mm pad antipad. Before this fix, the 1.0 mm pitch columns merged into **3.9 mm slots in In1/In4 under every high-side array**. The review found this, and the verifier now samples between every adjacent via pair. GND plane fill went from 83 % to 85 %.
+- **Power budget, from the model.** At 20 A typical, the board dissipates 12.3 W:
+  - FETs 5.6 W
+  - shunt 2.6 W
+  - phase bridges 1.6 W
+  - planes 1.4 W
+  - gate drive 0.5 W
+  - MCU and other 0.6 W
+
+  So **at the rated point the via arrays aren't the bottleneck; board-level heat removal is.** The next gains are a lower-value shunt, 2 oz outer copper on the bridges, and harness/airflow.
+
+### Validation status
+
+| Check | Result |
+|---|---|
+| `python3 tools/verify_power_stage_pcb.py` (P1–P11, see the script header) | **PASS (0 failures)** |
+| P1 stackup / planes | Matches JLC061612-1080, 1.614 mm, ENIG. In1/In4 GND 85 %, In2/In3 VBAT 87 % filled. No slots between thermal vias |
+| P2–P6 population, thermal arrays, safety, topology | 24 FETs, 12 per side. 6 × 16 VBAT vias, each inside both high-side drains. 12 low-side FETs with ≥ 7 GND vias each. None of the 138 plated holes lands in a pad of another net. 12 phases, 24 unique gates, 12 motor pads |
+| P8 `kicad-cli pcb drc --severity-all` | **0 violations, 0 unconnected**, with custom rules live. A planted 0.25 mm thermal via is flagged. The DRU parses in the pcbnew engine |
+| P9 / P10 reproducibility and fab outputs | Board byte-identical to regeneration with a fresh fill. Exactly 18 fab files, each content-identical to a fresh `kicad-cli` re-plot. Job file: 6 layers, 1.614 mm, ENIG, copper 35/61/61/61/61/35 µm. 138 PTH hits plus 4 × 3.2 mm NPTH |
+| P11 thermal | All five published-rating scenarios PASS. The committed report matches a re-run field by field |
+| Verifier mutation tests (12 runs against a repo copy) | **11/11 defects caught**, no-op control passes. The defects: thermal-via pad resized; via made blind; one thermal via deleted; Q pad set to thermal relief; inner copper 0.035 mm; stale F.Cu Gerber; missing B.Mask; drill moved; hand-edited thermal report; rating raised to 25 A; DRU units dropped |
+| Independent 4-lens adversarial review (geometry/DFM, thermal/electrical, verifier mutation, KiCad tooling), each finding re-verified by a refuter | 15 confirmed findings, all fixed or modelled; 1 refuted. Critical: wire fins credited for cooling while their own I²R heating was ignored. Major: the burst verdict ignored the AM32 cutoff; P9/P10 never checked pad, drill or Gerber content; stale fills; no library nickname on footprints; non-deterministic UUIDs. Also fixed: the GND plane slots, a narrow bottom phase bridge (widened to the gate-clearance limit and modelled), and a mismatched mounting-hole library zone |
+| `python3 tools/verify_mcu_core_sch.py` (Rev 7 gate) | **PASS** with the Rev 8 project file |
+| Hardware | **Not built.** Bring-up: IR camera at 20 A × 4 in a prop-wash rig (expect a board of about 87 °C at 35 °C ambient); confirm AM32 reads 24 kHz; keep bench runs to ≤ 8 A per motor without airflow |
+
+**Open items (blocking a releasable board):**
+- **MCU placement.** The 15.7 mm reserve can't hold an LQFP-100 land pattern with its decoupling. Either move to STM32H743**VIH6** (TFBGA-100, 8 × 8 mm), which needs a Rev 7 pin-map regeneration, or accept a 38 mm outline.
+- **Unplaced parts.** Gate drivers, gate resistors, bulk and ceramic capacitors, shunt, current sensor, battery pads, IMUs and the rest. The 24 gate nets have reserved 0.7 mm channels but no routing. ESC schematic sheets are still to be drawn.
+- **Shunt.** It needs a ≥ 4 W part, or 0.25 mΩ, which saves 1.3 W.
+- **Package variant.** Confirm the TPHR8504PL reel is SOP Advance (2-5Q1S), not (N) 2-5W1A.
+- **Unconfirmed driver data.** FD6288Q output resistance (6 / 4 Ω assumed) and the RDS(on) temperature slope are taken from typical curves. Re-run the analysis when confirmed.
+- **Release prerequisite.** Confirm with JLC that their stackup with POFV supports 2 oz inner copper.
 
 ## Revision 7.0 Engineering Changelog
 

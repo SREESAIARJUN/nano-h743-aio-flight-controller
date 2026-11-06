@@ -16,6 +16,8 @@ Gates (exit 0 only if every check passes):
       no unexpected nets, every other GPIO a single no-connect pin.
   S5  Exact values for all 22 parts, key MPNs, no DNP, only #PWR/#FLG
       symbols out of BOM, U1 rev V silicon procurement field.
+  S8  (Rev 10.0) DShot series resistors R4..R7: U1 TIM1_CHn -> 100R ->
+      ESCn_DSHOT, in hwdef PWM(n) order.
   S7  Clock consistency: OSCILLATOR_HZ in hwdef.dat and hwdef-bl.dat equals
       the Y1 frequency, and hwdef.dat sets MCU_CLOCKRATE_MHZ 480.
 
@@ -123,7 +125,10 @@ def main():
         if x["type"] == "global_label_dangling":
             m = re.search(r"'([^']+)'", x["items"][0]["description"])
             dang.add(m.group(1) if m else "?")
-    check(dang <= hw_labels, "dangling global labels are all hwdef interface signals (%d)" % len(dang))
+    esc_labels = {esc for _, _, esc in gen.DSHOT_SERIES}
+    check(dang <= hw_labels | esc_labels,
+          "dangling global labels are all hwdef / ESC interface signals (%d) %s"
+          % (len(dang), sorted(dang - hw_labels - esc_labels)[:5]))
 
     nl = sexpr(open(net).read())
     nets = {}
@@ -186,6 +191,18 @@ def main():
     port_to_num.update({nm.split("_")[0]: n for nm, n in list(port_to_num.items()) if nm.endswith("_C")})
     for port, func in hw.items():
         expected[gen.net_for_hwdef(func)] = U(port_to_num[port])
+    # Rev 10.0: DShot lines run U1 -> 100R -> ESCn_DSHOT
+    for ref, mcu_net, esc_net in gen.DSHOT_SERIES:
+        expected[mcu_net] = expected[mcu_net] | {(ref, "1")}
+        expected[esc_net] = {(ref, "2")}
+    pwm_nets = {}
+    for line in open(gen.HWDEF):
+        m = re.match(r"^\s*P[A-K]\d+\s+(TIM\d+_CH\d)\s+TIM\d+\s+PWM\((\d+)\)", line)
+        if m:
+            pwm_nets[int(m.group(2))] = m.group(1)
+    check(sorted(pwm_nets) == [1, 2, 3, 4] and all(
+          gen.DSHOT_SERIES[n - 1][1] == pwm_nets[n] and gen.DSHOT_SERIES[n - 1][2] == "ESC%d_DSHOT" % n
+          for n in pwm_nets), "S8 R4..R7 map hwdef PWM(1..4) %s to ESC1..4_DSHOT" % pwm_nets)
     for k, v in sorted(expected.items()):
         if k in ("HSE_IN", "HSE_OUT", "HSE_OUT_MCU", "VDDA_FB", "+3.3VA", "+3V3", "GND", "VCAP", "NRST", "BOOT0"):
             got = nets.get(k, set())
@@ -202,16 +219,18 @@ def main():
     values = {"U1": "STM32H743VITx", "Y1": "24MHz CL=12pF", "C1": "16pF", "C2": "16pF", "R1": "0R",
               "FB1": "600R@100MHz", "R2": "2R2", "C3": "1uF", "C4": "100nF", "C5": "1uF", "C6": "100nF",
               "C7": "2.2uF", "C8": "2.2uF", "C9": "100nF", "C10": "100nF", "C11": "100nF", "C12": "100nF",
-              "C13": "100nF", "C14": "4.7uF", "C15": "100nF", "C16": "100nF", "R3": "10k"}
+              "C13": "100nF", "C14": "4.7uF", "C15": "100nF", "C16": "100nF", "R3": "10k",
+              "R4": "100R", "R5": "100R", "R6": "100R", "R7": "100R"}
     vbad = [(r, comps.get(r, {}).get("value"), v) for r, v in values.items() if comps.get(r, {}).get("value") != v]
     check(not vbad, "all %d part values exact %s" % (len(values), vbad))
     check(set(comps) == set(values), "BOM refs exactly %s (extra %s)" % (len(values), sorted(set(comps) - set(values))))
     mpns = {"U1": "STM32H743VIT6", "Y1": "TXM24M0004322FBCDO00T", "C1": "GJM1555C1H160FB01J",
             "C2": "GJM1555C1H160FB01J", "FB1": "BLM15AX601SN1D", "R2": "0402WGF220KTCE",
-            "C7": "CL10B225KP8NNNC", "C8": "CL10B225KP8NNNC"}
+            "C7": "CL10B225KP8NNNC", "C8": "CL10B225KP8NNNC",
+            "R4": "0402WGF1000TCE", "R5": "0402WGF1000TCE", "R6": "0402WGF1000TCE", "R7": "0402WGF1000TCE"}
     mbad = [(r, comps.get(r, {}).get("fields", {}).get("MPN"), m) for r, m in mpns.items()
             if comps.get(r, {}).get("fields", {}).get("MPN") != m]
-    check(not mbad, "key MPNs (Y1, C1/C2, FB1, R2, VCAP, U1) %s" % mbad)
+    check(not mbad, "key MPNs (Y1, C1/C2, FB1, R2, VCAP, U1, R4-R7) %s" % mbad)
     sch_txt = open(SCH).read()
     check("(dnp yes)" not in sch_txt, "no part marked DNP")
     nobom = re.findall(r'\(in_bom no\).*?\(property "Reference" "([^"]+)"', sch_txt, re.S)

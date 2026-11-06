@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Nano H743 AIO - MCU core schematic generator (Revision 7.0)
+Nano H743 AIO - MCU core schematic generator (Revision 7.0, DShot termination Rev 10.0)
 
 Generates, deterministically:
   kicad/nano-h743-aio.kicad_sym   project-local symbol library
@@ -16,6 +16,8 @@ Scope of the sheet ("MCU core: HSE clock and analog supply"):
   * VDDA / VREF+ filter: +3V3 -> FB1 (600R@100MHz) -> R2 2R2 damping ->
     +3.3VA, local 1u+100n at VDDA and 1u+100n at VREF+.  VSSA -> GND.
   * VCAP (2 x 2.2 uF), VDD decoupling, VBAT, NRST, BOOT0.
+  * Rev 10.0: R4..R7 100R series resistors TIM1_CH1..4 -> ESC1..4_DSHOT
+    (bidirectional DShot600 lines to the integrated 4-in-1 ESC).
   * Every GPIO that ardupilot/hwdef.dat assigns is broken out with a global
     label named after its hwdef function, so the schematic netlist and the
     firmware pin map can never silently diverge (tools/verify_mcu_core_sch.py
@@ -439,13 +441,19 @@ class Sheet:
             self.label(net, ex, ey, 180 if dx < 0 else 0)
 
 
-def passive(sh, libname, ref, value, x, y, net1, net2, footprint, fields, dnp=False):
+def passive(sh, libname, ref, value, x, y, net1, net2, footprint, fields, dnp=False, kind="label"):
     """Vertical two-pin part; pin1 up, pin2 down; stubs 2.54 mm."""
     sh.symbol(libname, ref, value, x, y, footprint=footprint, fields=fields,
               ref_xy=(x + 2.54, y - 1.27), val_xy=(x + 2.54, y + 1.27), dnp=dnp)
     o = PIN_OFFS[libname]
-    sh.attach(net1, x + o["1"][0], y + o["1"][1], 0, -2.54)
-    sh.attach(net2, x + o["2"][0], y + o["2"][1], 0, 2.54)
+    sh.attach(net1, x + o["1"][0], y + o["1"][1], 0, -2.54, kind)
+    sh.attach(net2, x + o["2"][0], y + o["2"][1], 0, 2.54, kind)
+
+
+# Rev 10.0: bidirectional DShot series termination.  hwdef PWM(n) on TIM1_CHx
+# -> 100R -> ESCn_DSHOT (global label, ESC MCU on a future sheet).
+DSHOT_SERIES = (("R4", "TIM1_CH1", "ESC1_DSHOT"), ("R5", "TIM1_CH2", "ESC2_DSHOT"),
+                ("R6", "TIM1_CH3", "ESC3_DSHOT"), ("R7", "TIM1_CH4", "ESC4_DSHOT"))
 
 
 FP_C0402 = "Capacitor_SMD:C_0402_1005Metric"
@@ -579,6 +587,16 @@ def build():
     passive(sh, "R", "R3", "10k", cx + 45.72, cy + 25.4, "BOOT0", "GND", FP_R0402,
             {"Spec": "10k 1% 0402 - BOOT0 pull-down (boot from flash)", "LCSC": "C25744"})
 
+    # ---------------- bidirectional DShot series termination (Rev 10.0) ----------------
+    dx_, dy_ = 294.64, 91.44
+    sh.text("Bidirectional DShot600 series termination (Rev 10.0)\n"
+            "100R within 3 mm of U1; no pull-up (ESC bootloader entry)", dx_ - 6.35, dy_ - 20.32, 2.0)
+    for i, (ref, mcu_net, esc_net) in enumerate(DSHOT_SERIES):
+        passive(sh, "R", ref, "100R", dx_ + i * 25.4, dy_, mcu_net, esc_net, FP_R0402,
+                {"MPN": "0402WGF1000TCE", "Manufacturer": "UNI-ROYAL", "LCSC": "C25076",
+                 "Spec": "100R 1% 0402 - DShot/GCR source damping, tau = 100R x ~15 pF = 1.5 ns << 1.33 us GCR bit"},
+                kind="global")
+
     # ---------------- power flags ----------------
     fx, fy = 345.44, 40.64
     for i, net in enumerate(["+3V3", "GND", "+3.3VA"]):
@@ -626,11 +644,11 @@ def write_sch(sh, kdir=KDIR):
         "(uuid %s)" % q(ROOT_UUID),
         "(paper \"A3\")",
         "(title_block (title \"Nano H743 AIO - MCU core: 24 MHz HSE + VDDA filter\")",
-        "  (date \"2026-11-06\") (rev \"7.0\") (company \"Sreesai Arjun Engineering\")",
+        "  (date \"2026-11-06\") (rev \"10.0\") (company \"Sreesai Arjun Engineering\")",
         "  (comment 1 \"STM32H743VIT6 480 MHz: HSE 24 MHz, PLL1 M3 N120 P2\")",
         "  (comment 2 \"Y1 CL 12 pF, C1/C2 16 pF C0G; VDDA via FB1 + R2 2R2\")",
         "  (comment 3 \"Generated: tools/gen_mcu_core_sch.py + hwdef.dat\")",
-        "  (comment 4 \"Production Revision 7.0 / 150\"))",
+        "  (comment 4 \"Production Revision 10.0 / 150\"))",
         "(lib_symbols\n%s\n)" % libsyms,
         "\n".join(sh.items),
         "(sheet_instances (path \"/\" (page \"1\")))",

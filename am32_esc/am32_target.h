@@ -1,33 +1,54 @@
-#ifndef AM32_TARGET_NANO_H743_AIO_H
-#define AM32_TARGET_NANO_H743_AIO_H
+// AM32 target block - Nano H743 AIO integrated 4-in-1 ESC (Revision 9.0)
+// =======================================================================
+// Drop-in block for am32-firmware/AM32 Inc/targets.h (verified against v2.21,
+// commit 3d8cd50). tools/am32_build_target.sh splices it in, builds it with
+// AM32's own toolchain and checks the preprocessed configuration.
+//
+// Hardware per ESC channel (x4, identical):
+//   MCU          AT32F421K8U7 (QFN-32, 120 MHz)  -> AM32 MCU_AT421
+//   Gate driver  Fortior FD6288Q (QFN-24), VCC = VBAT via 10 R / 10 uF + 18 V Zener
+//   Power stage  6x Toshiba TPHR8504PL (40 V, 0.85 mOhm @ 10 V)
+//   Gate network 15 R (0402) per gate, Schottky (RB521S30) across it for fast
+//                turn-off, 10 k gate-source pull-down
+//
+// PWM / gate-driver interface (HARDWARE_GROUP_AT_B):
+//   FD6288Q HIN1 (A) <- PA10 TMR1_CH3     LIN1 (A) <- PB1 TMR1_CH3N
+//   FD6288Q HIN2 (B) <- PA9  TMR1_CH2     LIN2 (B) <- PB0 TMR1_CH2N
+//   FD6288Q HIN3 (C) <- PA8  TMR1_CH1     LIN3 (C) <- PA7 TMR1_CH1N
+//   FD6288Q HIN and LIN are both ACTIVE-HIGH ("output in phase with input",
+//   datasheet V1.6 section 1.3 / Table 1-2), so USE_INVERTED_LOW/HIGH,
+//   USE_OPEN_DRAIN_* and PWM_ENABLE_BRIDGE must NOT be defined. The 200 k
+//   input pull-downs hold all six FETs off while the AT32 is in reset.
+//   Signal input: PB4 TMR3_CH1 <- H743 TIM1_CHx (bidirectional DShot, see
+//   ardupilot/hwdef.dat). Back-EMF comparator (HARDWARE_GROUP_AT_045):
+//   A = PA0, B = PA4, C = PA5, virtual neutral on PA1.
+//
+// Dead time
+//   DEAD_TIME is the raw TMR1_BRK.DTC (STM32 BDTR.DTG) code, NOT nanoseconds.
+//   tDTS = 1/120 MHz = 8.333 ns; codes < 128 are linear.
+//   34 -> 283.3 ns MCU dead time, in series with the FD6288Q fixed internal
+//   interlock dead time of 100/200/300 ns (min/typ/max). Derived in
+//   am32_esc/gate_drive_design.py: the slowest outgoing FET (4S HV, 125 C,
+//   Vth,min 0.55 V, max driver Rsink, max toff propagation) must be below
+//   threshold before the fastest incoming gate reaches it, plus the 30 ns
+//   HO/LO delay matching and a 25 ns guard -> 283.0 ns required.
+//   Body-diode conduction per edge: 483 ns typ / 613 ns max.
+//   DEAD_TIME also seeds AM32's minimum_duty_cycle and gate_drive_offset
+//   (Src/main.c:419,536): 34 of 5000 ARR counts = 0.68 % at 24 kHz.
+//
+// Settings AM32 reads from EEPROM, not from this file (programmed by
+// am32_esc/eeprom_settings.json via the AM32 configurator / passthrough):
+//   pwm_frequency 24 kHz, driving_brake_strength 10 (dead-time override
+//   off; 1..9 OR into DTC and give 0.88-2.03 us), limits.temperature 115 C
+//   (MCU die sensor), limits.current 0 (no per-channel current sense).
 
-// AM32 Multi-Rotor ESC Firmware Definition for Nano H743 AIO (Revision 8.0)
-// Gate Driver: FD6288Q (Integrated 3-Phase Half-Bridge Driver)
-// Power MOSFETs: 24x Toshiba TPHR8504PL, 40 V, SOP Advance (2-5Q1S)
-//   RDS(on) max 0.85 mOhm @ VGS=10 V, 1.40 mOhm @ VGS=4.5 V (ID=50 A, 25 C)
-//   Qg 103 nC @ 10 V, Qsw 23 nC, Rth(ch-c) 0.88 K/W max
-//   (Rev <=7 quoted "1.4 mOhm" -- that is the 4.5 V figure, not the operating value
-//    at 3S-4S gate drive.)
-
-#define DEAD_TIME_NS 60
-
-// Rev 8.0: 48 -> 24 kHz.  analysis/thermal_power_analysis.py (geometry read back
-// from the 6-layer board, 4S, 20 A per motor, h = 80 W/m2K): 48 kHz adds +2.6 W to
-// the board (+1.5 W HS switching -- t_off ~75 ns for Qsw 23 nC through the FD6288Q
-// sink + 4.7 ohm Rg -- plus Coss/Qrr, gate drive and the RDS(on) rise).  The board
-// runs 94.6 C instead of 86.7 C, and the rated 28 A / 10 s burst ends at 118.9 C,
-// past TEMPERATURE_CUTOFF_C.  At 24 kHz the same burst ends at 109.2 C (Tj 114 C).
-#define PWM_FREQ_KHZ 24
-
-#define SENSE_SHUNT_MILLIOHM 0.5f
-// Rev 8.0 thermal ratings per motor (all four loaded): 20 A continuous / 28 A for
-// 10 s in typical prop wash; 17 A / 22 A in the pessimistic case.  35 A is allowed
-// for only ~4 s from 20 A.  The 38 A limit stays as a fast short-circuit/stall trip
-// and is NOT a thermal rating.
-#define OVER_CURRENT_LIMIT_AMPS 38.0f
-#define TEMPERATURE_CUTOFF_C 115.0f
-
-#define BIDIRECTIONAL_DSHOT 1
-#define DSHOT_TELEMETRY 1
-
+#ifdef NANO_H743_AIO_F421
+#define FIRMWARE_NAME "NanoH743AIO"
+#define FILE_NAME "NANO_H743_AIO_F421"
+#define DEAD_TIME 34
+#define HARDWARE_GROUP_AT_B
+#define HARDWARE_GROUP_AT_045
+#define TARGET_VOLTAGE_DIVIDER 110
+#define CURRENT_OFFSET 0
+#define MILLIVOLT_PER_AMP 20
 #endif

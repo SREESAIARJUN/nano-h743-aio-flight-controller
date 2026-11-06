@@ -1,5 +1,24 @@
 # hwdef-bl.dat - bootloader for the Nano H743 AIO (Revision 7.0)
-# Sreesai Arjun Engineering
+# Sreesai Arjun Engineering - reviewed for Revision 13.0 / 150
+#
+# Rev 13.0 (AT7456E OSD on SPI2, digital VTX BEC) - no functional change:
+#  - OSD1_CS (PB12) is already held high below (CS = output, ODR high,
+#    pull-up), so U5 AT7456E never drives SDOUT/PB14 while the bootloader
+#    runs; SPI2 itself is not configured here.
+#  - PD10 VTX_PWR and PD11 VTX_12V_SEL are deliberately NOT listed: the
+#    generated bootloader hwdef.h leaves them INPUT / floating (as after
+#    reset, where H7 GPIOs are analog high-Z), so
+#      U6 TPS62933 EN: internal pull-up (Ip 0.7 uA, TPS62933 DS Electrical
+#        Characteristics "ENABLE"; Pin Functions: "leaving this pin floating
+#        enables the converter") through R39 1k  -> BEC ON,
+#      Q1 gate: R38 100k pull-down                -> OFF -> +VTX = 8.96 V.
+#    The VTX keeps video at the 9 V-safe setting through reset, bootloader,
+#    DFU and firmware update; the firmware (hwdef.dat OUTPUT HIGH / LOW,
+#    RELAY2_DEFAULT 1, RELAY3_DEFAULT 0) takes over with the same levels.
+#    Do not add PD10 here as OUTPUT LOW: that would switch the VTX off
+#    during every boot / firmware update.
+#  - PC5 VTX_VSENSE and PE7 UART7_RX are unused by the bootloader.
+#  Checked by tools/validate_osd_vtx.py (V1).
 
 MCU STM32H7xx STM32H743xx
 

@@ -1,0 +1,126 @@
+{
+ "_comment": "Vendored pad table of the stock KiCad 8.0.9 footprint, extracted once from the official kicad-footprints repository (Rev 14.0) so tools/verify_mcu_core_sch.py S11 can check the DroneCAN land patterns offline. Units mm, footprint frame (y down), 'at' = [x, y, rotation_deg].",
+ "lib_id": "Connector_JST:JST_GH_SM04B-GHS-TB_1x04-1MP_P1.25mm_Horizontal",
+ "kicad_tag": "8.0.9",
+ "source_url": "https://gitlab.com/kicad/libraries/kicad-footprints/-/raw/8.0.9/Connector_JST.pretty/JST_GH_SM04B-GHS-TB_1x04-1MP_P1.25mm_Horizontal.kicad_mod",
+ "source_sha256": "58ca5a735bbfefc2143646693ef7ff520ee30be55b57db09f903c70e79f6e500",
+ "fetched": "2026-11-06",
+ "descr": "JST GH series connector, SM04B-GHS-TB (http://www.jst-mfg.com/product/pdf/eng/eGH.pdf), generated with kicad-footprint-generator",
+ "attr": "smd",
+ "pads": [
+  {
+   "number": "1",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -1.875,
+    -1.85,
+    0.0
+   ],
+   "size": [
+    0.6,
+    1.7
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "2",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -0.625,
+    -1.85,
+    0.0
+   ],
+   "size": [
+    0.6,
+    1.7
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "3",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    0.625,
+    -1.85,
+    0.0
+   ],
+   "size": [
+    0.6,
+    1.7
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "4",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    1.875,
+    -1.85,
+    0.0
+   ],
+   "size": [
+    0.6,
+    1.7
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "MP",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -3.725,
+    1.35,
+    0.0
+   ],
+   "size": [
+    1.0,
+    2.7
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "MP",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    3.725,
+    1.35,
+    0.0
+   ],
+   "size": [
+    1.0,
+    2.7
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  }
+ ]
+}

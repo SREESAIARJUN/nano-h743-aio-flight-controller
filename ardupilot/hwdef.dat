@@ -181,13 +181,34 @@ define HAL_I2C_H7_100_TIMINGR 0x4080231E
 # timeout with SDA low, SCL is toggled push-pull 10 clocks at ~50 kHz.
 
 # ---------------------------------------------------------------------------
-# FDCAN1 - DroneCAN via TCAN334 (FDCAN uses its own message RAM, no DMA)
-# TCAN334 STB has an internal pull-up: it must be actively driven LOW or the
-# transceiver stays in standby and the bus is dead.
+# FDCAN1 - DroneCAN via U7 TCAN334GDCNR (FDCAN uses its own message RAM, no DMA)
+#
+# Rev 14.0 (schematic: tools/sch_can_block.py, analysis/can_phy_analysis.py):
+# - Transceiver is the TCAN334*G* (CAN FD 5 Mbit/s grade).  The plain TCAN334
+#   is a 1 Mbit/s classic-CAN part (TI SLLSEJ9 device comparison table).
+# - Correction: earlier revisions said STB has an internal pull-UP and the bus
+#   is dead unless PD3 is driven low.  The TI pin table says the opposite:
+#   STB (pin 8) "Drive high for low power standby mode, integrated pull
+#   down"; SHDN (pin 5, tied to GND on the board) also has a pull-down.  So
+#   during reset / bootloader (PD3 Hi-Z) the transceiver is in NORMAL mode,
+#   and TXD's integrated pull-up holds the bus recessive while PD1 is Hi-Z -
+#   a node in reset never disturbs the bus.  PD3 is still driven LOW after
+#   init.  ArduPilot never touches GPIO_CAN1_SILENT itself; GPIO(70) lets a
+#   script / relay put the transceiver in standby (HIGH, 20 uA).
+# - Split 120R termination (R45/R46 60.4R + C46 4.7 nF) behind bridged
+#   solder jumpers JP1/JP2, D4 PESD2CANFD24V-T at connector J3 (JST-GH,
+#   1 +5V / 2 CANH / 3 CANL / 4 GND).
 # ---------------------------------------------------------------------------
 PD0 CAN1_RX CAN1
 PD1 CAN1_TX CAN1
 PD3 GPIO_CAN1_SILENT OUTPUT PUSHPULL SPEED_LOW LOW GPIO(70)
+# CAN FD data-phase default (CAN_P1_FDBITRATE default = this value).  FDCAN
+# kernel clock = PLL1_Q = 24/3 x 120 / 12 = 80 MHz.  Legal on this hardware:
+# 1, 2, 4, 5 Mbit/s.  8 Mbit/s (offered by the ArduPilot parameter) exceeds the
+# TCAN334G 5 Mbit/s rating and puts the TDC secondary sample point (TDCO
+# 10 mtq = 125 ns) on the 125 ns bit edge.  4 = ArduPilot's H7 default, pinned
+# here so a change of upstream default cannot select an illegal rate.
+CANFD_SUPPORTED 4
 
 # ---------------------------------------------------------------------------
 # SDMMC1 - microSD, 4-bit bus

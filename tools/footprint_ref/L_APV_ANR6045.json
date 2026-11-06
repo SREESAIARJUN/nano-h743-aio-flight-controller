@@ -1,0 +1,50 @@
+{
+ "_comment": "Vendored pad table of the stock KiCad 8.0.9 footprint, extracted once from the official kicad-footprints repository (Rev 13.0, L1 PNLS6045) so tools/verify_mcu_core_sch.py S11 can check the land pattern offline. Units mm, footprint frame (y down), 'at' = [x, y, rotation_deg]; numbered pads only (paste-only sub-pads omitted).",
+ "lib_id": "Inductor_SMD:L_APV_ANR6045",
+ "kicad_tag": "8.0.9",
+ "source_url": "https://gitlab.com/kicad/libraries/kicad-footprints/-/raw/8.0.9/Inductor_SMD.pretty/L_APV_ANR6045.kicad_mod",
+ "source_sha256": "9d807f8d76afbccd1ad2a7435639d3006abd2538b7efbcf6ef32468aab266c49",
+ "fetched": "2026-11-06",
+ "descr": "Inductor, APV, ANR6045, 6.0x6.0x4.5mm, (http://en.apvind.com/public/upload/20240407/3375c395e460caa8519b4d637d9113ce.pdf), generated with kicad-footprint-generator gen_inductor.py",
+ "attr": "smd",
+ "pads": [
+  {
+   "number": "1",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -2.25,
+    0.0,
+    0.0
+   ],
+   "size": [
+    1.7,
+    5.7
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "2",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    2.25,
+    0.0,
+    0.0
+   ],
+   "size": [
+    1.7,
+    5.7
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  }
+ ]
+}

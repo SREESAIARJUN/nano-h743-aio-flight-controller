@@ -1,0 +1,48 @@
+{
+ "_comment": "Vendored pad table of the stock KiCad 8.0.9 footprint, extracted once from the official kicad-footprints repository (Rev 14.0) so tools/verify_mcu_core_sch.py S11 can check the DroneCAN land patterns offline. Units mm, footprint frame (y down), 'at' = [x, y, rotation_deg].",
+ "lib_id": "Jumper:SolderJumper-2_P1.3mm_Bridged_RoundedPad1.0x1.5mm",
+ "kicad_tag": "8.0.9",
+ "source_url": "https://gitlab.com/kicad/libraries/kicad-footprints/-/raw/8.0.9/Jumper.pretty/SolderJumper-2_P1.3mm_Bridged_RoundedPad1.0x1.5mm.kicad_mod",
+ "source_sha256": "237e190ab27893a21b4dc8f2ca16b28d40c5e6ed851a43b962e97303d5462497",
+ "fetched": "2026-11-06",
+ "descr": "SMD Solder Jumper, 1x1.5mm, rounded Pads, 0.3mm gap, bridged with 1 copper strip",
+ "attr": "smd",
+ "pads": [
+  {
+   "number": "1",
+   "type": "smd",
+   "shape": "custom",
+   "at": [
+    -0.65,
+    0.0,
+    0.0
+   ],
+   "size": [
+    1.0,
+    0.5
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "2",
+   "type": "smd",
+   "shape": "custom",
+   "at": [
+    0.65,
+    0.0,
+    0.0
+   ],
+   "size": [
+    1.0,
+    0.5
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Mask"
+   ]
+  }
+ ]
+}

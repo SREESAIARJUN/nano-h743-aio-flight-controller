@@ -1,0 +1,536 @@
+{
+ "assumptions": {
+  "ardupilot": {
+   "bitrate_range": [
+    10000,
+    1000000
+   ],
+   "canfd_supported_default_h7": 4,
+   "fd_table": [
+    [
+     1,
+     4,
+     14,
+     5,
+     5,
+     75
+    ],
+    [
+     2,
+     2,
+     14,
+     5,
+     5,
+     75
+    ],
+    [
+     4,
+     1,
+     14,
+     5,
+     5,
+     75
+    ],
+    [
+     5,
+     1,
+     11,
+     4,
+     4,
+     75
+    ],
+    [
+     8,
+     1,
+     6,
+     3,
+     3,
+     70
+    ]
+   ],
+   "fdbitrate_values": [
+    1,
+    2,
+    4,
+    5,
+    8
+   ],
+   "fdcansel": "STM32_FDCANSEL_PLL1_Q_CK",
+   "max_bs1": 16,
+   "max_bs2": 8,
+   "max_sp_permill": 900,
+   "pll1_divm": 3,
+   "pll1_divn": 120,
+   "pll1_divq": 12,
+   "source": "read from /tmp/r14ap/ap",
+   "tdco_mtq": 10
+  },
+  "board": {
+   "conn_pF": 1.0,
+   "er_eff": 3.2,
+   "j_to_u_mm": 25.0,
+   "trace_pF_per_mm": 0.08
+  },
+  "bus": {
+   "cable_m": 1.0,
+   "cable_pF_per_m": 50.0,
+   "nodes_max": 8
+  },
+  "connector": {
+   "part": "JST SM04B-GHS-TB",
+   "pin_current_A": 1.0,
+   "pinout": {
+    "1": "+5V",
+    "2": "CANH",
+    "3": "CANL",
+    "4": "GND"
+   }
+  },
+  "crystal_aging_ppm": 5.0,
+  "crystal_ppm_total": 30.0,
+  "esd": {
+   "cd_max_pF": 6.0,
+   "cd_typ_pF": 5.2,
+   "dcd_rel": 0.005,
+   "iec_kV": 23.0,
+   "ir_max_nA": 50.0,
+   "part": "PESD2CANFD24V-TR",
+   "rdyn_ohm": 0.7,
+   "vbr_max_V": 35.5,
+   "vbr_min_V": 25.5,
+   "vcl_1A_max_V": 42.0,
+   "vrwm_V": 24.0
+  },
+  "fdcan_clk_hz": 80000000.0,
+  "hse_hz": 24000000.0,
+  "iso11898_2": {
+   "cm_range_V": [
+    -2.0,
+    7.0
+   ],
+   "rl_max_ohm": 130.0,
+   "rl_min_ohm": 100.0
+  },
+  "tcan334g": {
+   "bus_abs_max_V": 14.0,
+   "bus_cm_range_V": 12.0,
+   "ci_pF": 20.0,
+   "cid_pF": 10.0,
+   "data_rate_max_bps": 5000000.0,
+   "icc_dom_mA": 55.0,
+   "icc_rec_mA": 3.5,
+   "iec_contact_kV": 12.0,
+   "loop_delay_max_ns": 135.0,
+   "part": "TCAN334GDCNR",
+   "pins": {
+    "SHDN": "integrated pull-down (high = shutdown)",
+    "STB": "integrated pull-down (high = standby)",
+    "TXD": "integrated pull-up (recessive)"
+   },
+   "rl_spec_ohm": 60.0,
+   "tBUS_SYM_5_ns": [
+    155.0,
+    210.0
+   ],
+   "tREC_SYM_2_ns": [
+    400.0,
+    550.0
+   ],
+   "tREC_SYM_5_ns": [
+    120.0,
+    220.0
+   ],
+   "tTXD_DTO_ms": [
+    1.2,
+    3.8
+   ],
+   "vcc_max": 3.6,
+   "vcc_min": 3.0,
+   "vo_rec_V": 1.85,
+   "vod_dom_V": [
+    1.5,
+    3.0
+   ]
+  },
+  "termination": {
+   "c_part": "TDK CGA3EAC0G2A472JT000E C0G 100 V",
+   "c_split_F": 4.7e-09,
+   "p_rating_W": 0.2,
+   "part": "YAGEO AC0603FR-7W60R4L (0603 anti-surge, 200 mW)",
+   "r_ohm": 60.4,
+   "tol": 0.01
+  },
+  "vcc": {
+   "max": 3.465,
+   "min": 3.135,
+   "nom": 3.3,
+   "note": "+3V3 rail +/-5 %"
+  }
+ },
+ "config": {
+  "canfd_supported": 4,
+  "claims_stb_pullup": false,
+  "params": {
+   "CAN_D1_PROTOCOL": 1.0,
+   "CAN_P1_BITRATE": 1000000.0,
+   "CAN_P1_DRIVER": 1.0,
+   "CAN_P1_FDBITRATE": 4.0
+  },
+  "pins": {
+   "PD0": "CAN1_RX",
+   "PD1": "CAN1_TX",
+   "PD3": "GPIO_CAN1_SILENT"
+  },
+  "states_stb_pulldown": true,
+  "stb_default": "LOW"
+ },
+ "data_phase": {
+  "1": {
+   "legal_on_this_board": true,
+   "osc_conditions_ppm": {
+    "1_nominal_resync": 5000.0,
+    "2_nominal_error_flag": 3875.968992248062,
+    "3_data_resync": 12500.0,
+    "4_data_to_nominal": 3921.5686274509803,
+    "5_data_resync_ps": 12500.0
+   },
+   "osc_tol_ppm": 3875.968992248062,
+   "tdc": {
+    "margin_early_ns": 45.0,
+    "margin_late_ns": 875.0,
+    "ok": true,
+    "rec_min_scaled_ns": 120.0,
+    "ssp_after_edge_ns": 125.0,
+    "tbit_ns": 1000.0,
+    "tdco_ns": 125.0,
+    "window_ns": [
+     80.0,
+     1000.0
+    ]
+   },
+   "timing": {
+    "bitrate": 1000000.0,
+    "bs1": 14,
+    "bs2": 5,
+    "prescaler": 4,
+    "sample_point": 0.75,
+    "sjw": 5,
+    "table_sp_pct": 75,
+    "tq_per_bit": 20
+   }
+  },
+  "2": {
+   "legal_on_this_board": true,
+   "osc_conditions_ppm": {
+    "1_nominal_resync": 5000.0,
+    "2_nominal_error_flag": 3875.968992248062,
+    "3_data_resync": 12500.0,
+    "4_data_to_nominal": 5063.291139240507,
+    "5_data_resync_ps": 12500.0
+   },
+   "osc_tol_ppm": 3875.968992248062,
+   "tdc": {
+    "margin_early_ns": 45.0,
+    "margin_late_ns": 375.0,
+    "ok": true,
+    "rec_min_scaled_ns": 120.0,
+    "ssp_after_edge_ns": 125.0,
+    "tbit_ns": 500.0,
+    "tdco_ns": 125.0,
+    "window_ns": [
+     80.0,
+     500.0
+    ]
+   },
+   "timing": {
+    "bitrate": 2000000.0,
+    "bs1": 14,
+    "bs2": 5,
+    "prescaler": 2,
+    "sample_point": 0.75,
+    "sjw": 5,
+    "table_sp_pct": 75,
+    "tq_per_bit": 20
+   }
+  },
+  "4": {
+   "legal_on_this_board": true,
+   "osc_conditions_ppm": {
+    "1_nominal_resync": 5000.0,
+    "2_nominal_error_flag": 3875.968992248062,
+    "3_data_resync": 12500.0,
+    "4_data_to_nominal": 5925.925925925925,
+    "5_data_resync_ps": 12500.0
+   },
+   "osc_tol_ppm": 3875.968992248062,
+   "tdc": {
+    "margin_early_ns": 45.0,
+    "margin_late_ns": 125.0,
+    "ok": true,
+    "rec_min_scaled_ns": 120.0,
+    "ssp_after_edge_ns": 125.0,
+    "tbit_ns": 250.0,
+    "tdco_ns": 125.0,
+    "window_ns": [
+     80.0,
+     250.0
+    ]
+   },
+   "timing": {
+    "bitrate": 4000000.0,
+    "bs1": 14,
+    "bs2": 5,
+    "prescaler": 1,
+    "sample_point": 0.75,
+    "sjw": 5,
+    "table_sp_pct": 75,
+    "tq_per_bit": 20
+   }
+  },
+  "5": {
+   "legal_on_this_board": true,
+   "osc_conditions_ppm": {
+    "1_nominal_resync": 5000.0,
+    "2_nominal_error_flag": 3875.968992248062,
+    "3_data_resync": 12500.0,
+    "4_data_to_nominal": 6134.9693251533745,
+    "5_data_resync_ps": 12500.0
+   },
+   "osc_tol_ppm": 3875.968992248062,
+   "tdc": {
+    "margin_early_ns": 45.0,
+    "margin_late_ns": 75.0,
+    "ok": true,
+    "rec_min_scaled_ns": 120.0,
+    "ssp_after_edge_ns": 125.0,
+    "tbit_ns": 200.0,
+    "tdco_ns": 125.0,
+    "window_ns": [
+     80.0,
+     200.0
+    ]
+   },
+   "timing": {
+    "bitrate": 5000000.0,
+    "bs1": 11,
+    "bs2": 4,
+    "prescaler": 1,
+    "sample_point": 0.75,
+    "sjw": 4,
+    "table_sp_pct": 75,
+    "tq_per_bit": 16
+   }
+  },
+  "8": {
+   "legal_on_this_board": false,
+   "osc_conditions_ppm": {
+    "1_nominal_resync": 5000.0,
+    "2_nominal_error_flag": 3875.968992248062,
+    "3_data_resync": 15000.0,
+    "4_data_to_nominal": 6482.982171799027,
+    "5_data_resync_ps": 15000.0
+   },
+   "osc_tol_ppm": 3875.968992248062,
+   "tdc": {
+    "margin_early_ns": 45.0,
+    "margin_late_ns": 0.0,
+    "ok": false,
+    "rec_min_scaled_ns": 192.0,
+    "ssp_after_edge_ns": 125.0,
+    "tbit_ns": 125.0,
+    "tdco_ns": 125.0,
+    "window_ns": [
+     80.0,
+     125.0
+    ]
+   },
+   "timing": {
+    "bitrate": 8000000.0,
+    "bs1": 6,
+    "bs2": 3,
+    "prescaler": 1,
+    "sample_point": 0.7,
+    "sjw": 3,
+    "table_sp_pct": 70,
+    "tq_per_bit": 10
+   }
+  }
+ },
+ "esd": {
+  "C_diff_bus_pF": 137.0,
+  "C_diff_node_pF": 14.0,
+  "C_line_to_gnd_pF": 29.0,
+  "dc_fault_gap_V": [
+   14.0,
+   25.5
+  ],
+  "esd_unbalance_pF": 0.03,
+  "frac_of_5M_bit": 0.05264638104849084,
+  "recessive_settle_ns": 10.529276209698168,
+  "standoff_vs_cm": {
+   "bus_cm_V": 12.0,
+   "vrwm_V": 24.0
+  },
+  "tau_ns": 8.22
+ },
+ "fdcan_clk_hz": 80000000.0,
+ "gates": [
+  {
+   "detail": "24 MHz / M3 x N120 / Q12 = 80.000 MHz (STM32_FDCANSEL_PLL1_Q_CK)",
+   "gate": "C1 FDCAN kernel clock = PLL1_Q = 80 MHz",
+   "pass": true
+  },
+  {
+   "detail": "{'prescaler': 8, 'sjw': 1, 'bs1': 8, 'bs2': 1, 'tq_per_bit': 10, 'sample_point': 0.9, 'bitrate': 1000000.0}",
+   "gate": "T1 nominal 1000000 bit/s has an exact ArduPilot solution",
+   "pass": true
+  },
+  {
+   "detail": "CAN_P1_BITRATE 1000000, ArduPilot range [10000, 1000000]",
+   "gate": "T2 TXD dominant time-out allows the configured rate (min 9.2 kbit/s)",
+   "pass": true
+  },
+  {
+   "detail": "legal [1, 2, 4, 5] Mbit/s (8 Mbit/s: above the 5 Mbit/s TCAN334G rating and SSP on the bit edge)",
+   "gate": "T3 CAN_P1_FDBITRATE 4 is legal on TCAN334G + 80 MHz FDCAN",
+   "pass": true
+  },
+  {
+   "detail": "3876 ppm allowed vs 35 ppm Y1 (x111 margin)",
+   "gate": "T4 oscillator tolerance at the configured rates > crystal budget",
+   "pass": true
+  },
+  {
+   "detail": "SSP = delay + 125 ns, window +80..+250 ns (margins 45 / 125 ns); loop delay <= 135 ns is measured by the FDCAN, not assumed",
+   "gate": "T5 TDC: secondary sample point inside the received bit at 4 Mbit/s",
+   "pass": true
+  },
+  {
+   "detail": "CANFD_SUPPORTED 4 (ArduPilot H7 default 4; options [1, 2, 4, 5, 8])",
+   "gate": "T6 hwdef CANFD_SUPPORTED pins the default FD rate to a legal value",
+   "pass": true
+  },
+  {
+   "detail": "two-ended bus RL 60.4 R vs VOD spec load 60 R",
+   "gate": "R1 split termination 119.6..122.0 R inside ISO 11898-2 RL 100..130 R",
+   "pass": true
+  },
+  {
+   "detail": "f = 1/(2 pi x 30.2 R x 4.7 nF) = 1.12 MHz",
+   "gate": "R2 split-cap common-mode corner below the 1 Mbit/s fundamental",
+   "pass": true
+  },
+  {
+   "detail": "dominant 38.4 mW, miswire {'H_to_5V_recessive': 49.3, 'H_to_5V_CANL_dominant': 96.2, 'L_to_5V_recessive': 49.3} mW",
+   "gate": "R3 resistor power, dominant + +5V miswire <= 50 % of 200 mW",
+   "pass": true
+  },
+  {
+   "detail": "VRWM 24 V vs CM +/-12 V, IR <= 50 nA",
+   "gate": "E1 ESD stand-off >= bus common-mode range (no conduction in normal operation)",
+   "pass": true
+  },
+  {
+   "detail": "C_diff node 14.0 pF, bus 137 pF, tau 8.2 ns, settle 10.5 ns = 5.3 % of 200 ns",
+   "gate": "E2 per-node bus capacitance small at 5 Mbit/s (recessive settle < 20 % of bit, 8 nodes)",
+   "pass": true
+  },
+  {
+   "detail": "dCd = 0.030 pF (0.5 % of 6 pF)",
+   "gate": "E3 ESD capacitance matched (mode conversion negligible)",
+   "pass": true
+  },
+  {
+   "detail": "PESD2CANFD24V-T 23 kV + TCAN334G on-chip 12 kV contact",
+   "gate": "E4 IEC 61000-4-2 level 4 (8 kV contact / 15 kV air) at the connector",
+   "pass": true
+  },
+  {
+   "detail": "{'PD0': 'CAN1_RX', 'PD1': 'CAN1_TX', 'PD3': 'GPIO_CAN1_SILENT'}",
+   "gate": "M1 hwdef CAN1_RX PD0, CAN1_TX PD1, GPIO_CAN1_SILENT PD3",
+   "pass": true
+  },
+  {
+   "detail": "PD3 default LOW",
+   "gate": "M2 STB driven LOW (normal mode) after init",
+   "pass": true
+  },
+  {
+   "detail": "reset/boot: PD3 Hi-Z -> STB pull-down -> normal mode; PD1 Hi-Z -> TXD pull-up -> recessive",
+   "gate": "M3 hwdef no longer claims an STB pull-up (DS: integrated pull-DOWN)",
+   "pass": true
+  },
+  {
+   "detail": "3.135..3.465 V in 3.0..3.6 V",
+   "gate": "M4 +3V3 inside TCAN334G VCC range",
+   "pass": true
+  },
+  {
+   "detail": "{'CAN_P1_DRIVER': 1.0, 'CAN_D1_PROTOCOL': 1.0, 'CAN_P1_BITRATE': 1000000.0, 'CAN_P1_FDBITRATE': 4.0}",
+   "gate": "M5 defaults.parm enables DroneCAN on CAN1 at 1 Mbit/s",
+   "pass": true
+  },
+  {
+   "detail": "25 mm: t_pd 0.15 ns vs t_r/6 1.67 ns -> no 120 R controlled impedance needed on-board",
+   "gate": "L1 J3 -> D4 -> U7 run is lumped (t_pd < t_r/6)",
+   "pass": true
+  }
+ ],
+ "info": [
+  "ArduPilot uses BRP 8 (nominal) vs 1 (data): CiA 601-3 recommends equal prescalers; tolerance conditions above already include the ratio, still >= x10 margin",
+  "+14 V abs-max fault: 630 mW per resistor (> rating) - out of envelope, see report note",
+  "DC-fault gap 14.0..25.5 V: diode does not conduct below VBR(min); TCAN334G abs-max is 14 V. J3 carries only +5V/CANH/CANL/GND (keyed GH) - never VBAT.",
+  "+3V3 load: 3.5 mA recessive, 55 mA max dominant (50 % duty ~29 mA avg)"
+ ],
+ "legal_fdbitrate_mbit": [
+  1,
+  2,
+  4,
+  5
+ ],
+ "nominal": {
+  "bitrate": 1000000.0,
+  "bs1": 8,
+  "bs2": 1,
+  "prescaler": 8,
+  "sample_point": 0.9,
+  "sjw": 1,
+  "tq_per_bit": 10
+ },
+ "result": "PASS",
+ "revision": "14.0",
+ "termination": {
+  "R_cm_ohm": 30.2,
+  "R_term_ohm": {
+   "max": 122.008,
+   "min": 119.592,
+   "nom": 120.8
+  },
+  "bus_RL_two_ends_ohm": 60.4,
+  "dominant": {
+   "I_mA": 25.085289985952237,
+   "P_per_R_mW": 38.38809528153297
+  },
+  "f_cm_corner_Hz": 1121283.2400443521,
+  "fault_14V": {
+   "I_mA": 101.59542444310657,
+   "P_per_R_mW": 629.6607328553445,
+   "note": "+14 V is the TCAN334G abs-max; a battery-voltage short is outside the transceiver rating anyway - prevented by keyed JST-GH, VBAT never on J3"
+  },
+  "miswire_5V": {
+   "H_to_5V_CANL_dominant": {
+    "I_mA": 39.71837581109104,
+    "P_per_R_mW": 96.23682219884307
+   },
+   "H_to_5V_recessive": {
+    "I_mA": 28.429995317412537,
+    "P_per_R_mW": 49.307375717169016
+   },
+   "L_to_5V_recessive": {
+    "I_mA": 28.429995317412537,
+    "P_per_R_mW": 49.307375717169016
+   }
+  },
+  "mode_conversion_LCL_dB_worst": 40.0
+ }
+}

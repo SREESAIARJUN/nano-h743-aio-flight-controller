@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Nano H743 AIO - MCU core schematic generator (Revision 7.0, DShot termination
-Rev 10.0, dual-IMU block Rev 11.0, DPS310 baro Rev 12.0)
+Rev 10.0, dual-IMU block Rev 11.0, DPS310 baro Rev 12.0, AT7456E OSD + 9/12 V
+VTX BEC + DJI VTX connector Rev 13.0)
 
 Generates, deterministically:
   kicad/nano-h743-aio.kicad_sym   project-local symbol library
@@ -49,6 +50,52 @@ Scope of the sheet ("MCU core: HSE clock and analog supply"):
       PinNumbering (no Infineon PG-VLGA-8 footprint in the KiCad library; the
       Bosch BMP280 land pattern has the same 2.0x2.5 body, 0.65 pitch, 1.6 mm
       row spacing and clockwise 1..8 numbering as the DPS310 PG-VLGA-8-2).
+  * Rev 13.0: AT7456E analog OSD on SPI2 + 9 V / 12 V 2 A VTX BEC + DJI VTX
+    connector (hwdef: SPIDEV osd SPI2 8*MHZ, PD10 VTX_PWR GPIO(81) HIGH,
+    PD11 VTX_12V_SEL GPIO(82) LOW, PC5 VTX_VSENSE ADC1 INP8, PE7 UART7_RX).
+      - U5 AT7456E (ZHONGKEWEI, LCSC C82351).  Pinout AT7456E-S402-V1.1 p.6
+        (= LCSC symbol): 1/2/14/15/16/27/28 NC, 3 DVDD, 4 DGND, 5 CLKIN,
+        6 XFB, 7 CLKOUT, 8 /CS, 9 SDIN, 10 SCLK, 11 SDOUT, 12 LOS, 13 SYNC_IN,
+        17 /VSYNC, 18 /HSYNC, 19 /RESET, 20 AGND, 21 AVDD, 22 VIN, 23 PGND,
+        24 PVDD, 25 SAG, 26 VOUT, 29 EP (= AGND).  +3V3 -> FB5 -> +3V3_OSD on
+        DVDD/AVDD/PVDD (3.15-5.25 V, DS p.2); C27 10uF + C28/C29/C30 100nF.
+        Y3 27 MHz (YXC X322527MOB4SI, C70595, CL 12 pF) CLKIN-XFB, no load
+        caps (DS Fig.2).  R29 10k /RESET pull-up.  33R source termination
+        R30 SCK / R31 MOSI / R32 CS at U1, R33 MISO at U5 (pin 1 = hwdef net).
+        Video (DS Fig.2, 3.3 V): VIDEO_IN -> R27 75R to GND, C31 100n -> VIN;
+        VOUT -> C32 22u, SAG -> C33 22u -> OSD_VOUT_AC -> R28 75R -> VIDEO_OUT.
+        LOS, /VSYNC, /HSYNC, SYNC_IN, CLKOUT unused (AP_OSD_MAX7456 polls STAT).
+        Footprint: DS p.38 HTSSOP28 EP is D1 6.20 REF x E2 2.75 REF, so the
+        stock Package_SO:HTSSOP-28-1EP_4.4x9.7mm_P0.65mm_EP2.75x6.2mm (exact
+        EP match) is used, not the EasyEDA 6.7 x 2.9 mm generic EP.
+      - U6 TPS62933DRLR (TI SLUSEA4D, C3200405, SOT-583-8: 1 RT, 2 EN, 3 VIN,
+        4 GND, 5 SW, 6 BST, 7 SS, 8 FB).  VBAT -> C34/C35 10u 50V + C36 100n
+        -> VIN; RT NC = 500 kHz; SS C38 33 nF (4.8 ms); BST C37 100 nF;
+        L1 10 uH DMBJ PNLS6045-100M (C2849537) -> +VTX with C39-C41 22u 25V
+        + C42 100n.  FB: R34 102k / R35 10.0k (8.96 V), R36 26.7k switched in
+        parallel by Q1 2N7002 (C8545; 1 G 2 S 3 D) -> 12.02 V.  Q1 gate: R37 1k
+        from VTX_12V_SEL + R38 100k pull-down (high-Z -> 9 V).  EN: VTX_PWR ->
+        R39 1k, no pull-down (internal pull-up -> VTX on during boot).  Sense:
+        R40 10k / R41 1k (x11.0 = defaults.parm BATT2_VOLT_MULT) + C43 100n.
+        Footprint KiCad 8 Package_TO_SOT_SMD:SOT-583-8 (drawn from SLUSEA4D).
+      - J1 JST SM06B-SRSS-TB (C160405), DJI FC-side order 1 +VTX, 2 GND,
+        3 VTX_TXD (R42 100R from USART1_TX), 4 VTX_RXD (R43 100R to
+        USART1_RX), 5 GND, 6 VTX_SBUS (R44 1k to UART7_RX).  J2 = +VTX/GND
+        solder pair for > 1 A loads (JST SH is 1 A per contact), no part
+        placed (Assembly field), footprint Connector_Wire 0.25 mm^2 x2.
+      - New refs: U5, U6, Y3, FB5, L1, Q1, J1, J2, C27-C43, R27-R44 (R13
+        stays unused).  Off-sheet global labels VIDEO_IN, VIDEO_OUT, VBAT;
+        PWR_FLAGs on +3V3_OSD, +VTX, VBAT.
+  * Rev 14.0 (sheet grown A2 -> A1; block in the new right-hand column,
+    tools/sch_can_block.py): DroneCAN / CAN FD PHY on FDCAN1.
+      U7 TCAN334GDCNR (LCSC C191005, 5 Mbit/s G grade; the non-G TCAN334 is
+      1 Mbit/s): TXD <- CAN1_TX (PD1), RXD -> CAN1_RX (PD0), STB <-
+      GPIO_CAN1_SILENT (PD3, integrated pull-DOWN), SHDN -> GND; C44 100 nF +
+      C45 1 uF at VCC.  Split termination JP1 - R45 60.4R - CAN1_SPLIT -
+      R46 60.4R - JP2 with C46 4.7 nF C0G to GND (JP1/JP2 bridged solder
+      jumpers, cut both to un-terminate).  D4 PESD2CANFD24V-T (LCSC C552486)
+      at J3 JST-GH SM04B-GHS-TB (1 +5V, 2 CANH, 3 CANL, 4 GND, MP GND).
+      Values/limits from analysis/can_phy_analysis.py.
   * Every GPIO that ardupilot/hwdef.dat assigns is broken out with a global
     label named after its hwdef function, so the schematic netlist and the
     firmware pin map can never silently diverge (tools/verify_mcu_core_sch.py
@@ -62,7 +109,11 @@ Usage:  python3 tools/gen_mcu_core_sch.py [--out DIR]
 """
 import os
 import re
+import sys
 import uuid
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import sch_can_block as can  # noqa: E402  (Rev 14.0 DroneCAN block)
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 KDIR = os.path.join(REPO, "kicad")
@@ -398,6 +449,149 @@ def sym_dps310(prefix):
                    10.16, 7.62, DPS310_PINS)
 
 
+# Rev 13.0: AT7456E analog OSD (HTSSOP-28 + exposed pad).  Numbers/names =
+# AT7456E-S402-V1.1 datasheet p.6 pin table = LCSC C82351 EasyEDA symbol
+# (CS#/VSYNC#/HSYNC#/RESET# written with KiCad overbars).  EP (29) is
+# internally AGND (DS p.6 "EP" row).  Body 30.48 x 30.48 so the vertical
+# pin names never touch the side pin names.
+AT7456E_PINS = (
+    ("8", "~{CS}", "input", -17.78, 7.62, 0),
+    ("10", "SCLK", "input", -17.78, 5.08, 0),
+    ("9", "SDIN", "input", -17.78, 2.54, 0),
+    ("11", "SDOUT", "tri_state", -17.78, 0, 0),          # Hi-Z while /CS high (DS p.6)
+    ("19", "~{RESET}", "input", -17.78, -2.54, 0),
+    ("5", "CLKIN", "input", -17.78, -5.08, 0),
+    ("6", "XFB", "passive", -17.78, -7.62, 0),           # crystal feedback node
+    ("7", "CLKOUT", "output", -17.78, -10.16, 0),
+    ("22", "VIN", "input", 17.78, 7.62, 180),
+    ("26", "VOUT", "output", 17.78, 5.08, 180),
+    ("25", "SAG", "input", 17.78, 2.54, 180),
+    ("12", "LOS", "open_collector", 17.78, -2.54, 180),
+    ("17", "~{VSYNC}", "open_collector", 17.78, -5.08, 180),
+    ("18", "~{HSYNC}", "open_collector", 17.78, -7.62, 180),
+    ("13", "SYNC_IN", "input", 17.78, -10.16, 180),
+    ("1", "NC", "passive", -10.16, 17.78, 270),
+    ("2", "NC", "passive", -7.62, 17.78, 270),
+    ("3", "DVDD", "power_in", -2.54, 17.78, 270),
+    ("21", "AVDD", "power_in", 2.54, 17.78, 270),
+    ("24", "PVDD", "power_in", 7.62, 17.78, 270),
+    ("14", "NC", "passive", -10.16, -17.78, 90),
+    ("15", "NC", "passive", -7.62, -17.78, 90),
+    ("16", "NC", "passive", -5.08, -17.78, 90),
+    ("4", "DGND", "power_in", -2.54, -17.78, 90),
+    ("20", "AGND", "power_in", 0, -17.78, 90),
+    ("23", "PGND", "power_in", 2.54, -17.78, 90),
+    ("29", "EP", "power_in", 5.08, -17.78, 90),
+    ("27", "NC", "passive", 7.62, -17.78, 90),
+    ("28", "NC", "passive", 10.16, -17.78, 90),
+)
+# DS p.38 HTSSOP28 drawing: exposed pad D1 6.20 REF x E2 2.75 REF, body
+# 9.70 x 4.40, e 0.65 -> the stock KiCad land pattern with the SAME exposed
+# pad (the EasyEDA C82351 footprint's 6.7 x 2.9 EP is a generic oversize).
+FP_AT7456E = "Package_SO:HTSSOP-28-1EP_4.4x9.7mm_P0.65mm_EP2.75x6.2mm"
+DS_AT7456E = "https://www.lcsc.com/datasheet/lcsc_datasheet_1810301815_ZHONGKEWEI-AT7456E_C82351.pdf"
+
+# Rev 13.0: TI TPS62933 (SOT-583 DRL-8), SLUSEA4D Table 7-1 = LCSC C3200405
+# symbol: 1 RT, 2 EN, 3 VIN, 4 GND, 5 SW, 6 BST, 7 SS, 8 FB.
+TPS62933_PINS = (
+    ("3", "VIN", "power_in", -10.16, 5.08, 0),
+    ("2", "EN", "input", -10.16, 0, 0),
+    ("1", "RT", "input", -10.16, -2.54, 0),
+    ("7", "SS", "passive", -10.16, -5.08, 0),
+    ("6", "BST", "passive", 10.16, 5.08, 180),
+    ("5", "SW", "power_out", 10.16, 2.54, 180),
+    ("8", "FB", "input", 10.16, -2.54, 180),
+    ("4", "GND", "power_in", 0, -10.16, 90),
+)
+# KiCad 8 Package_TO_SOT_SMD:SOT-583-8 is drawn from SLUSEA4D (its descr is
+# the TPS62933 datasheet): 8 x 0.67 x 0.3 mm pads, 0.5 mm pitch, 1.48 mm row
+# span = the DRL0008A "LAND PATTERN EXAMPLE".
+FP_TPS62933 = "Package_TO_SOT_SMD:SOT-583-8"
+DS_TPS62933 = "https://www.ti.com/lit/ds/symlink/tps62933.pdf"
+
+# 2N7002 SOT-23, LCSC C8545 symbol: 1 G, 2 S, 3 D
+NMOS_PINS = (
+    ("1", "G", "passive", -5.08, 0, 0),
+    ("3", "D", "passive", 2.54, 5.08, 270),
+    ("2", "S", "passive", 2.54, -5.08, 90),
+)
+FP_SOT23 = "Package_TO_SOT_SMD:SOT-23"
+# JST SH 1.0 mm 6-pin side entry (SM06B-SRSS-TB, LCSC C160405)
+FP_JST_SH6 = "Connector_JST:JST_SH_SM06B-SRSS-TB_1x06-1MP_P1.00mm_Horizontal"
+# DMBJ PNLS6045 (6.0 x 6.0 x 4.5 mm, terminals 1.65 max x 5.0 max per the
+# DMBJ PNLS datasheet sec. 4 table) -> stock 6045 land pattern 2 x 1.7 x 5.7
+# mm at +/-2.25 mm (KiCad 8 has no DMBJ footprint; APV ANR6045 = same body).
+FP_L6045 = "Inductor_SMD:L_APV_ANR6045"
+FP_C0805 = "Capacitor_SMD:C_0805_2012Metric"
+FP_C1206 = "Capacitor_SMD:C_1206_3216Metric"
+# J2: two plated through-holes for a soldered 0.25 mm^2 (AWG 24) VTX power pair
+FP_WIRE2 = "Connector_Wire:SolderWire-0.25sqmm_1x02_P4.2mm_D0.65mm_OD1.7mm"
+
+
+def sym_at7456e(prefix):
+    return _sym_ic(prefix, "AT7456E", "U", "AT7456E", FP_AT7456E, DS_AT7456E,
+                   "Single-channel monochrome OSD with EEPROM (MAX7456 compatible), SPI, 3.15-5.25 V, HTSSOP-28-EP",
+                   15.24, 15.24, AT7456E_PINS)
+
+
+def sym_tps62933(prefix):
+    return _sym_ic(prefix, "TPS62933", "U", "TPS62933", FP_TPS62933, DS_TPS62933,
+                   "3.8-30 V 3 A synchronous buck, Vref 0.8 V, RT float = 500 kHz, SOT-583-8",
+                   7.62, 7.62, TPS62933_PINS)
+
+
+def sym_l(prefix):
+    g = " ".join(
+        "(arc (start 0 %s) (mid 0.635 %s) (end 0 %s) (stroke (width 0) (type default)) (fill (type none)))"
+        % (f(2.54 - i * 1.27), f(1.905 - i * 1.27), f(1.27 - i * 1.27)) for i in range(4))
+    return sym_two_pin(prefix, "L", "L", "Inductor", g)
+
+
+def sym_nmos(prefix):
+    n = "Q_NMOS_GSD"
+    g = " ".join([
+        "(polyline (pts (xy -2.54 0) (xy -1.778 0)) (stroke (width 0) (type default)) (fill (type none)))",
+        "(polyline (pts (xy -1.778 -1.905) (xy -1.778 1.905)) (stroke (width 0.254) (type default)) (fill (type none)))",
+        "(polyline (pts (xy -1.27 -2.032) (xy -1.27 2.032)) (stroke (width 0.254) (type default)) (fill (type none)))",
+        "(polyline (pts (xy -1.27 1.524) (xy 2.54 1.524) (xy 2.54 2.54)) (stroke (width 0) (type default)) (fill (type none)))",
+        "(polyline (pts (xy -1.27 -1.524) (xy 2.54 -1.524) (xy 2.54 -2.54)) (stroke (width 0) (type default)) (fill (type none)))",
+        "(polyline (pts (xy -1.27 0) (xy 0.762 0) (xy 0.762 -1.524)) (stroke (width 0) (type default)) (fill (type none)))",
+        "(polyline (pts (xy -1.016 0) (xy -0.254 0.508) (xy -0.254 -0.508) (xy -1.016 0)) (stroke (width 0) (type default)) (fill (type outline)))",
+        "(circle (center 0.635 0) (radius 2.794) (stroke (width 0.254) (type default)) (fill (type none)))",
+    ])
+    pins = " ".join(pin_s(t, x, y, r, 2.54, nm, num) for (num, nm, t, x, y, r) in NMOS_PINS)
+    return "\n".join([
+        "(symbol %s (pin_names (offset 0) hide) (exclude_from_sim no) (in_bom yes) (on_board yes)" % q(prefix + n),
+        prop("Reference", "Q", 5.08, 1.27),
+        prop("Value", n, 5.08, -1.27),
+        prop("Footprint", "", 0, 0, hide=True),
+        prop("Datasheet", "~", 0, 0, hide=True),
+        prop("Description", "N-channel MOSFET, pins 1 G, 2 S, 3 D (SOT-23)", 0, 0, hide=True),
+        "(symbol %s %s)" % (q(n + "_0_1"), g),
+        "(symbol %s %s)" % (q(n + "_1_1"), pins),
+        ")"])
+
+
+def sym_conn(prefix, npins):
+    """Generic single-row connector, pin 1 at the top, pins on the left."""
+    n = "Conn_01x%02d" % npins
+    bot = -(npins - 1) * 2.54 - 1.27
+    g = ("(rectangle (start -1.27 1.27) (end 1.27 %s) (stroke (width 0.254) (type default)) "
+         "(fill (type background)))" % f(bot))
+    pins = " ".join(pin_s("passive", -5.08, -i * 2.54, 0, 3.81, "Pin_%d" % (i + 1), str(i + 1))
+                    for i in range(npins))
+    return "\n".join([
+        "(symbol %s (pin_names (offset 1.016) hide) (exclude_from_sim no) (in_bom yes) (on_board yes)" % q(prefix + n),
+        prop("Reference", "J", 0, 2.54),
+        prop("Value", n, 0, bot - 1.27),
+        prop("Footprint", "", 0, 0, hide=True),
+        prop("Datasheet", "~", 0, 0, hide=True),
+        prop("Description", "Generic connector, single row, 01x%02d" % npins, 0, 0, hide=True),
+        "(symbol %s %s)" % (q(n + "_0_1"), g),
+        "(symbol %s %s)" % (q(n + "_1_1"), pins),
+        ")"])
+
+
 def sym_power(prefix, n, kind):
     """kind: 'gnd' (arrow down) or 'rail' (bar up)."""
     if kind == "gnd":
@@ -440,9 +634,11 @@ def sym_pwr_flag(prefix):
 def all_symbols(prefix):
     return [sym_mcu(prefix), sym_r(prefix), sym_c(prefix), sym_fb(prefix),
             sym_crystal(prefix), sym_icm42688(prefix), sym_xo(prefix), sym_dps310(prefix),
+            sym_at7456e(prefix), sym_tps62933(prefix), sym_l(prefix), sym_nmos(prefix),
+            sym_conn(prefix, 6), sym_conn(prefix, 2),
             sym_power(prefix, "GND", "gnd"),
             sym_power(prefix, "+3V3", "rail"), sym_power(prefix, "+3.3VA", "rail"),
-            sym_pwr_flag(prefix)]
+            sym_pwr_flag(prefix)] + can.symbols(sys.modules[__name__], prefix)
 
 
 # Pin connection offsets in schematic coordinates (Y down) for each symbol
@@ -454,7 +650,14 @@ PIN_OFFS = {
     "ICM-42688-P": {p[0]: (p[3], -p[4]) for p in ICM_PINS},
     "XO_OE_4p": {p[0]: (p[3], -p[4]) for p in XO_PINS},
     "DPS310": {p[0]: (p[3], -p[4]) for p in DPS310_PINS},
+    "AT7456E": {p[0]: (p[3], -p[4]) for p in AT7456E_PINS},
+    "TPS62933": {p[0]: (p[3], -p[4]) for p in TPS62933_PINS},
+    "L": {"1": (0, -3.81), "2": (0, 3.81)},
+    "Q_NMOS_GSD": {p[0]: (p[3], -p[4]) for p in NMOS_PINS},
+    "Conn_01x06": {str(i + 1): (-5.08, i * 2.54) for i in range(6)},
+    "Conn_01x02": {str(i + 1): (-5.08, i * 2.54) for i in range(2)},
 }
+PIN_OFFS.update(can.pin_offs())       # Rev 14.0 TCAN334G / ESD array / GH4 / solder jumper
 
 
 # ---------------------------------------------------------------------------
@@ -609,6 +812,44 @@ BARO = {"ref": "U4", "fb": "FB4", "rail": "+3V3_BARO", "c_bulk": "C24", "c_vdd":
 R2K2 = {"MPN": "0402WGF2201TCE", "Manufacturer": "UNI-ROYAL", "LCSC": "C25879"}
 R33 = {"MPN": "0402WGF330JTCE", "Manufacturer": "UNI-ROYAL", "LCSC": "C25105"}
 
+# Rev 13.0 part dicts (LCSC numbers checked against the JLC catalogue
+# 2026-11-06; same parts as existing refs where the value matches).
+R10K = {"MPN": "0402WGF1002TCE", "Manufacturer": "UNI-ROYAL", "LCSC": "C25744"}    # as R3/R17
+R1K = {"MPN": "0402WGF1001TCE", "Manufacturer": "UNI-ROYAL", "LCSC": "C11702"}     # as R16
+R100 = {"MPN": "0402WGF1000TCE", "Manufacturer": "UNI-ROYAL", "LCSC": "C25076"}    # as R4..R7
+R75 = {"MPN": "0402WGF750JTCE", "Manufacturer": "UNI-ROYAL", "LCSC": "C25133"}
+R102K = {"MPN": "0402WGF1023TCE", "Manufacturer": "UNI-ROYAL", "LCSC": "C26991"}
+R26K7 = {"MPN": "0402WGF2672TCE", "Manufacturer": "UNI-ROYAL", "LCSC": "C25876"}
+R100K = {"MPN": "0402WGF1003TCE", "Manufacturer": "UNI-ROYAL", "LCSC": "C25741"}
+FB_BLM = {"MPN": "BLM15AX601SN1D", "Manufacturer": "Murata", "LCSC": "C76886"}     # as FB1..FB4
+C100N = {"MPN": "CL05B104KO5NNNC", "Manufacturer": "Samsung", "LCSC": LCSC_100N}  # 16V X7R
+C100N50 = {"MPN": "CL05B104KB54PNC", "Manufacturer": "Samsung", "LCSC": "C307331"}  # 50V X7R
+C10U_0603 = {"MPN": "CL10A106KP8NNNC", "Manufacturer": "Samsung", "LCSC": "C19702"}  # as C17/C20
+C10U_50V = {"MPN": "CL31A106KBHNNNE", "Manufacturer": "Samsung", "LCSC": "C13585"}
+C22U_0805 = {"MPN": "CL21A226MAQNNNE", "Manufacturer": "Samsung", "LCSC": "C45783"}  # 25V X5R
+C22U_25V = {"MPN": "CL31A226KAHNNNE", "Manufacturer": "Samsung", "LCSC": "C12891"}
+C33N = {"MPN": "CC0402KRX7R9BB333", "Manufacturer": "YAGEO", "LCSC": "C106862"}   # 50V X7R
+
+# Rev 13.0: AT7456E OSD on SPI2.  SPI tuples (ref, MCU/hwdef net, OSD net,
+# U5 pin): pin 1 = MCU net, pin 2 = OSD-pin net (Rev 11 convention).
+OSD = {"ref": "U5", "fb": "FB5", "rail": "+3V3_OSD", "xtal": "Y3", "c_bulk": "C27",
+       "c_dec": (("C28", "3", "DVDD"), ("C29", "21", "AVDD"), ("C30", "24", "PVDD")),
+       "r_reset": "R29", "reset_net": "OSD_RESET_N", "clkin_net": "OSD_CLKIN", "xfb_net": "OSD_XFB",
+       "spi": (("R30", "SPI2_SCK", "OSD_SCLK", "10"), ("R31", "SPI2_MOSI", "OSD_SDIN", "9"),
+               ("R32", "OSD1_CS", "OSD_CS_N", "8"), ("R33", "SPI2_MISO", "OSD_SDOUT", "11")),
+       "nc": ("1", "2", "7", "12", "13", "14", "15", "16", "17", "18", "27", "28"),
+       "gnd": ("4", "20", "23", "29")}
+# Rev 13.0: 9 V / 12 V VTX BEC (U6 TPS62933) and DJI 6-pin VTX connector J1.
+BEC = {"ref": "U6", "rail": "+VTX", "vin": "VBAT", "en_r": "R39", "en_net": "BEC_EN",
+       "fb_top": "R34", "fb_bot": "R35", "fb_sw_r": "R36", "q": "Q1", "g_r": "R37", "g_pd": "R38",
+       "sense_top": "R40", "sense_bot": "R41", "sense_c": "C43",
+       "vref": 0.8, "r_top": 102e3, "r_bot": 10e3, "r_sw": 26.7e3, "sense": (10e3, 1e3)}
+# DJI-standard FC-side order: (J1 pin, net, series R, MCU/hwdef net)
+VTX_J1 = (("1", "+VTX", None, None), ("2", "GND", None, None),
+          ("3", "VTX_TXD", "R42", "USART1_TX"), ("4", "VTX_RXD", "R43", "USART1_RX"),
+          ("5", "GND", None, None), ("6", "VTX_SBUS", "R44", "UART7_RX"))
+DEFAULTS_PARM = os.path.join(REPO, "ardupilot", "defaults.parm")
+
 
 FP_C0402 = "Capacitor_SMD:C_0402_1005Metric"
 FP_C0603 = "Capacitor_SMD:C_0603_1608Metric"
@@ -757,6 +998,15 @@ def build():
     # ---------------- DPS310 barometer on I2C1 (Rev 12.0) ----------------
     baro_block(sh, hw)
 
+    # ---------------- AT7456E OSD on SPI2 (Rev 13.0) ----------------
+    osd_block(sh, hw)
+
+    # ---------------- 9 V / 12 V VTX BEC + DJI VTX connector (Rev 13.0) ----------------
+    bec_vtx_block(sh, hw)
+
+    # ---------------- DroneCAN / CAN FD PHY (Rev 14.0, A1 right-hand column) ----------------
+    can.place(sys.modules[__name__], sh, hw, 609.6, 25.4)
+
     # ---------------- power flags ----------------
     fx, fy = 345.44, 40.64
     for i, net in enumerate(["+3V3", "GND", "+3.3VA"]):
@@ -781,6 +1031,22 @@ def build():
     sh.pwr_flag(x, fy)
     sh.wire(x, fy, x, fy + 5.08)
     sh.label(BARO["rail"], x, fy + 5.08)
+    # Rev 13.0: +3V3_OSD (via FB5), +VTX (U6 output through L1, passive) and
+    # VBAT (off-sheet power stage) - second flag row, clear of the baro title.
+    for i, net in enumerate([OSD["rail"], BEC["rail"], BEC["vin"]]):
+        x, y = fx + 5.08 + i * 15.24, fy + 15.24
+        sh.pwr_flag(x, y)
+        sh.wire(x, y, x, y + 5.08)
+        if net == BEC["vin"]:
+            sh.glabel(net, x, y + 5.08)
+        else:
+            sh.label(net, x, y + 5.08)
+    # Rev 14.0: +5V on DroneCAN connector J3 pin 1 comes from the (future)
+    # power sheet; flag it so ERC knows the net is driven.
+    x, y = fx + 5.08 + 3 * 15.24, fy + 15.24
+    sh.pwr_flag(x, y)
+    sh.wire(x, y, x, y + 5.08)
+    sh.power(can.CAN["vbus"], x, y + 5.08, 0)
 
     # ---------------- design notes ----------------
     notes = (
@@ -1034,6 +1300,332 @@ def baro_block(sh, hw):
     sh.text(notes, 444.5, 152.4)
 
 
+def _gnd_side(sh, px, py, dx=-2.54):
+    """Horizontal stub + sideways GND symbol (value hidden) for connector
+    pins that sit 2.54 mm apart, where an upright GND symbol and its text
+    would run into the neighbouring pin's label."""
+    ex = px + dx
+    sh.wire(px, py, ex, py)
+    sh.pwr_n += 1
+    sh.symbol("GND", "#PWR%03d" % sh.pwr_n, "GND", ex, py, rot=270 if dx < 0 else 90, pins=("1",),
+              in_bom=False, ref_xy=(ex, py + 6.35), val_xy=(ex - 3.81, py), hide_val=True)
+
+
+def defaults_parm(path=DEFAULTS_PARM):
+    out = {}
+    if os.path.exists(path):
+        for line in open(path):
+            m = re.match(r"^\s*([A-Z][A-Z0-9_]*)\s+(\S+)", line.split("#", 1)[0])
+            if m:
+                out[m.group(1)] = m.group(2)
+    return out
+
+
+def osd_block(sh, hw):
+    """Rev 13.0 AT7456E analog OSD on SPI2, sheet strip x 280-585 / y 197-250."""
+    funcs = {net_for_hwdef(v): k for k, v in hw.items()}
+    for net, port in (("SPI2_SCK", "PB13"), ("SPI2_MISO", "PB14"), ("SPI2_MOSI", "PB15"), ("OSD1_CS", "PB12")):
+        if funcs.get(net) != port:
+            raise SystemExit("OSD block: %s must be on %s in hwdef.dat (got %s)" % (net, port, funcs.get(net)))
+    if not re.search(r"^SPIDEV\s+osd\s+SPI2\s+\S+\s+OSD1_CS\s+MODE0\b", open(HWDEF).read(), re.M):
+        raise SystemExit("OSD block: hwdef.dat lacks 'SPIDEV osd SPI2 ... OSD1_CS MODE0'")
+
+    tx, ty = 281.94, 198.12
+    sh.text("AT7456E analog OSD on SPI2 (Rev 13.0): 33R source termination, 27 MHz crystal, "
+            "FB5-filtered +3V3_OSD, DS Fig.2 3.3 V video network", tx, ty, 2.0)
+    # ---- U5 ----
+    ux, uy = 452.12, 223.52
+    sh.symbol("AT7456E", OSD["ref"], "AT7456E", ux, uy, footprint=FP_AT7456E,
+              fields={"MPN": "AT7456E", "Manufacturer": "ZHONGKEWEI", "LCSC": "C82351",
+                      "Spec": "OSD, MAX7456 register compatible; pinout AT7456E-S402-V1.1 p.6; EP = AGND; "
+                              "DVDD/AVDD/PVDD 3.15-5.25 V (DS p.2) on +3V3_OSD; SCLK max 10 MHz (DS p.4)"},
+              pins=tuple(p[0] for p in AT7456E_PINS),
+              ref_xy=(ux - 15.24, uy - 16.51), val_xy=(ux + 12.7, uy + 19.05))
+    o = PIN_OFFS["AT7456E"]
+
+    def pt(num):
+        return ux + o[num][0], uy + o[num][1]
+    for _, _, onet, num in OSD["spi"]:
+        sh.attach(onet, *pt(num), -5.08, 0)
+    sh.attach(OSD["reset_net"], *pt("19"), -5.08, 0)
+    sh.attach(OSD["clkin_net"], *pt("5"), -5.08, 0)
+    sh.attach(OSD["xfb_net"], *pt("6"), -5.08, 0)
+    sh.attach("OSD_VIN", *pt("22"), 5.08, 0)
+    sh.attach("OSD_VOUT", *pt("26"), 5.08, 0)
+    sh.attach("OSD_SAG", *pt("25"), 5.08, 0)
+    for num in OSD["nc"]:
+        sh.noconnect(*pt(num))
+    # DVDD (3) / AVDD (21) / PVDD (24) -> +3V3_OSD bus, one label
+    sup = [pt(n) for _, n, _ in OSD["c_dec"]]
+    for (x_, y_) in sup:
+        sh.wire(x_, y_, x_, y_ - 2.54)
+    for (x1_, y1_), (x2_, _) in zip(sup, sup[1:]):
+        sh.wire(x1_, y1_ - 2.54, x2_, y1_ - 2.54)
+    sh.junction(sup[1][0], sup[1][1] - 2.54)
+    sh.label(OSD["rail"], sup[-1][0], sup[-1][1] - 2.54)
+    # DGND (4) / AGND (20) / PGND (23) / EP (29) -> GND bus, one GND symbol
+    gnd = [pt(n) for n in OSD["gnd"]]
+    for (x_, y_) in gnd:
+        sh.wire(x_, y_, x_, y_ + 2.54)
+    for (x1_, y1_), (x2_, _) in zip(gnd, gnd[1:]):
+        sh.wire(x1_, y1_ + 2.54, x2_, y1_ + 2.54)
+    for (x_, y_) in gnd[1:-1]:
+        sh.junction(x_, y_ + 2.54)
+    sh.power("GND", gnd[0][0], gnd[0][1] + 2.54, 0)
+
+    # ---- U1-side parts (left part of the strip) ----
+    ry = 223.52
+    for j, (ref, mnet, onet, num) in enumerate(OSD["spi"]):
+        at_osd = mnet.endswith("MISO")
+        passive(sh, "R", ref, "33R", 287.02 + j * 20.32, ry, mnet, onet, FP_R0402,
+                dict(R33, Spec="33R 1%% 0402 - %s source termination, place at %s" % (
+                    mnet, "U5 pin 11 SDOUT (OSD drives MISO)" if at_osd else "U1 pin")),
+                kind="global", kind2="label")
+    passive(sh, "R", OSD["r_reset"], "10k", 368.3, ry, OSD["rail"], OSD["reset_net"], FP_R0402,
+            dict(R10K, Spec="10k 1% 0402 - U5 /RESET pull-up (power-up with /RESET high allowed, DS p.20; "
+                            "AP_OSD_MAX7456 resets via VM0[1])"))
+    yx = 396.24
+    sh.symbol("Crystal_GND24", OSD["xtal"], "27MHz CL=12pF", yx, ry, footprint=FP_XTAL,
+              fields={"MPN": "X322527MOB4SI", "Manufacturer": "YXC", "LCSC": "C70595",
+                      "Spec": "27.000 MHz, CL 12 pF, ESR<=50R, +/-10 ppm, +/-20 ppm -40..85C; no load caps "
+                              "(AT7456E DS Fig.2); pins 1/3 OSC, 2/4 GND (LCSC C70595 symbol)"},
+              pins=("1", "2", "3", "4"), ref_xy=(yx + 2.54, ry - 7.62), val_xy=(yx + 2.54, ry + 8.89))
+    sh.attach(OSD["clkin_net"], yx - 3.81, ry, -2.54, 0)
+    sh.attach(OSD["xfb_net"], yx + 3.81, ry, 2.54, 0)
+    sh.attach("GND", yx, ry + 5.08, 0, 2.54)
+    sh.attach("GND", yx, ry - 5.08, 0, -2.54)
+
+    # ---- supply filter + decoupling (right of U5, upper row) ----
+    px, r1, r2 = 495.3, 213.36, 236.22
+    passive(sh, "FerriteBead", OSD["fb"], "600R@100MHz", px - 5.08, r1, "+3V3", OSD["rail"], FP_L0402,
+            dict(FB_BLM, Spec="600R@100MHz, Rdc 0.34R max, 500 mA - OSD supply filter (same part as FB1-FB4); "
+                              "U5 72.5 mA max (DS p.2) -> <= 25 mV drop"))
+    passive(sh, "C", OSD["c_bulk"], "10uF", px + 20.32, r1, OSD["rail"], "GND", FP_C0603,
+            dict(C10U_0603, Spec="10 uF X5R 10V 0603 - +3V3_OSD bulk (same part as C17/C20)"))
+    for j, (ref, num, nm) in enumerate(OSD["c_dec"]):
+        passive(sh, "C", ref, "100nF", px + (2 + j) * 15.24 + 5.08, r1, OSD["rail"], "GND", FP_C0402,
+                dict(C100N, Spec="100 nF X7R 16V 0402 - at U5 pin %s %s (DS p.6: 0.1 uF per supply)" % (num, nm)))
+    # ---- video network (lower row): DS Fig.2 3.3 V circuit ----
+    passive(sh, "R", "R27", "75R", px, r2, "VIDEO_IN", "GND", FP_R0402,
+            dict(R75, Spec="75R 1% 0402 - camera CVBS termination at U5 VIN (DS Fig.2)"), kind="global")
+    passive(sh, "C", "C31", "100nF", px + 15.24, r2, "VIDEO_IN", "OSD_VIN", FP_C0402,
+            dict(C100N, Spec="100 nF X7R 0402 - VIN AC coupling into the sync-tip clamp (DS p.10: 0.1 uF)"),
+            kind="global", kind2="label")
+    passive(sh, "C", "C32", "22uF", px + 30.48, r2, "OSD_VOUT", "OSD_VOUT_AC", FP_C0805,
+            dict(C22U_0805, Spec="22 uF X5R 25V 0805 - COUT (DS Table 2: 22u/22u -> 0.4 % line-time distortion)"))
+    passive(sh, "C", "C33", "22uF", px + 45.72, r2, "OSD_SAG", "OSD_VOUT_AC", FP_C0805,
+            dict(C22U_0805, Spec="22 uF X5R 25V 0805 - CSAG (DS Table 2 / Fig.2)"))
+    passive(sh, "R", "R28", "75R", px + 60.96, r2, "OSD_VOUT_AC", "VIDEO_OUT", FP_R0402,
+            dict(R75, Spec="75R 1% 0402 - CVBS back-termination to the analog VTX (DS Fig.2)"),
+            kind="label", kind2="global")
+
+    notes = (
+        "OSD BLOCK (Rev 13.0) - U5 AT7456E (LCSC C82351), datasheet AT7456E-S402-V1.1 (DS)\n"
+        "- Pinout DS p.6: 1/2/14-16/27/28 NC, 3 DVDD, 4 DGND, 5 CLKIN, 6 XFB, 7 CLKOUT, 8 /CS, 9 SDIN, 10 SCLK, 11 SDOUT,\n"
+        "  12 LOS, 13 SYNC_IN, 17 /VSYNC, 18 /HSYNC, 19 /RESET, 20 AGND, 21 AVDD, 22 VIN, 23 PGND, 24 PVDD, 25 SAG, 26 VOUT, EP=AGND.\n"
+        "- All three supplies on +3V3_OSD (3.15-5.25 V, DS p.2): SDOUT swings 0..3.3 V into PB14 and every MCU-driven\n"
+        "  input stays inside its VDVDD+0.3 V abs max. AVDD min 3.15 V needs +3V3 >= 3.18 V at the FB5 input.\n"
+        "- SPI2 MODE0 (SDIN sampled on SCLK rise, SDOUT on fall, DS p.4). hwdef SPIDEV osd 8*MHZ -> 80 MHz/16 = 5 MHz\n"
+        "  (tCP 200 ns vs 100 ns min). AP_OSD_MAX7456 polls STAT: LOS, /VSYNC, /HSYNC, SYNC_IN, CLKOUT unused (NC).\n"
+        "- NVM read (CMM=0x50) needs >= 22 us on the AT7456E (DS p.36) vs 0.5 us MAX7456: see ardupilot/patches/0003.\n"
+        "- 27 MHz crystal Y3 straight between CLKIN/XFB with no load caps (DS Fig.2); VIN 75R + 100 nF AC coupling;\n"
+        "  VOUT -> C32 22u, SAG -> C33 22u -> R28 75R back-termination -> VIDEO_OUT (2.0 V/V gain, Zout 0.22R, DS p.3).\n"
+        "LAYOUT RULES\n"
+        "- R30-R32 within 3 mm of U1 pins 52/54/51; R33 within 3 mm of U5 pin 11. SPI2 over solid In1 GND.\n"
+        "- C28/C29/C30 within 1 mm of U5 pins 3/21/24; EP 29 soldered to GND with >= 6 vias (thermal + AGND star);\n"
+        "  DGND 4 / AGND 20 / PGND 23 return into the EP island - never as the only ground path (DS p.6).\n"
+        "- Y3 within 3 mm of pins 5/6, GND guard, no SPI/video traces under it. VIDEO_IN/OUT 75R-ish traces,\n"
+        "  >= 3x width from SPI2 and from the BEC SW node / L1; C31 and R28 at U5 pins 22 / 26.\n"
+    )
+    sh.text(notes, 281.94, 104.14)
+
+
+VTX_BEC_REPORT = os.path.join(REPO, "analysis", "osd_vtx_bec_report.json")
+
+
+def bec_note_values(v9, v12, ratio, path=VTX_BEC_REPORT):
+    """Sheet-note numbers for the BEC: corner ranges / dropout / tSS from the
+    'schematic_values' block of analysis/osd_vtx_bec_report.json (Vref
+    784-816 mV x 1 % resistor corners, hot dropout at 2 A).  The nominal
+    values are re-derived here from the placed parts and must agree with the
+    report, so a drifted analysis cannot silently annotate the sheet.
+    Falls back to the Vref-only spread (SLUSEA4D 8.5) if the report is absent."""
+    out = {"r9": (v9 * 0.784 / 0.8, v9 * 0.816 / 0.8), "r12": (v12 * 0.784 / 0.8, v12 * 0.816 / 0.8),
+           "vin12": None, "src": "Vref 784-816 mV only (analysis report absent)"}
+    if os.path.exists(path):
+        import json
+        sv = json.load(open(path)).get("schematic_values")
+        if sv:
+            if (abs(sv["vtx_9V"] - v9) > 0.006 or abs(sv["vtx_12V"] - v12) > 0.006
+                    or abs(sv["sense_ratio"] - ratio) > 1e-6):
+                raise SystemExit("VTX block: analysis/osd_vtx_bec_report.json (%.2f/%.2f V, x%s) disagrees with "
+                                 "the schematic divider (%.2f/%.2f V, x%.1f)"
+                                 % (sv["vtx_9V"], sv["vtx_12V"], sv["sense_ratio"], v9, v12, ratio))
+            out = {"r9": tuple(sv["vtx_9V_range"]), "r12": tuple(sv["vtx_12V_range"]),
+                   "vin12": sv.get("vin_min_12V_V"),
+                   "src": "Vref 784-816 mV + 1 % R corners, analysis/osd_vtx_bec_report.json"}
+    return out
+
+
+def bec_vtx_block(sh, hw):
+    """Rev 13.0 9 V / 12 V VTX BEC (U6) + DJI 6-pin VTX connector, lower right."""
+    funcs = {net_for_hwdef(v): k for k, v in hw.items()}
+    for net, port in (("VTX_PWR", "PD10"), ("VTX_12V_SEL", "PD11"), ("VTX_VSENSE", "PC5"),
+                      ("UART7_RX", "PE7"), ("USART1_TX", "PA9"), ("USART1_RX", "PA10")):
+        if funcs.get(net) != port:
+            raise SystemExit("VTX block: %s must be on %s in hwdef.dat (got %s)" % (net, port, funcs.get(net)))
+    vref, rt, rb, rs = BEC["vref"], BEC["r_top"], BEC["r_bot"], BEC["r_sw"]
+    v9 = vref * (1 + rt / rb)
+    v12 = vref * (1 + rt / (rb * rs / (rb + rs)))
+    ratio = (BEC["sense"][0] + BEC["sense"][1]) / BEC["sense"][1]
+    mult = defaults_parm().get("BATT2_VOLT_MULT")
+    if mult is None or abs(float(mult) - ratio) > 1e-6 * ratio:
+        raise SystemExit("VTX block: sense divider x%.3f != defaults.parm BATT2_VOLT_MULT %s" % (ratio, mult))
+
+    sh.text("9 V / 12 V 2 A VTX BEC (Rev 13.0): TPS62933 500 kHz, Q1 FB switch (fails to 9 V), "
+            "DJI 6-pin SH1.0 VTX connector", 396.24, 288.29, 2.0)
+    # ---- row 1: U6, L1, BST, SS, input caps, J2 ----
+    y1, y2, y3 = 307.34, 332.74, 358.14
+    ux = 424.18
+    sh.symbol("TPS62933", BEC["ref"], "TPS62933", ux, y1, footprint=FP_TPS62933,
+              fields={"MPN": "TPS62933DRLR", "Manufacturer": "Texas Instruments", "LCSC": "C3200405",
+                      "Spec": "VIN 3.8-30 V, 3 A, Vref 0.8 V +/-2% (SLUSEA4D 8.5); RT NC = 500 kHz; "
+                              "EN internal pull-up (floating = ON); SS 33 nF = 4.8 ms"},
+              pins=tuple(p[0] for p in TPS62933_PINS),
+              ref_xy=(ux - 7.62, y1 - 8.89), val_xy=(ux + 2.54, y1 + 8.89))
+    o = PIN_OFFS["TPS62933"]
+
+    def pt(num):
+        return ux + o[num][0], y1 + o[num][1]
+    sh.attach(BEC["vin"], *pt("3"), -5.08, 0, "global")
+    sh.attach(BEC["en_net"], *pt("2"), -5.08, 0)
+    sh.noconnect(*pt("1"))                          # RT floating -> 500 kHz
+    sh.attach("BEC_SS", *pt("7"), -5.08, 0)
+    sh.attach("BEC_BST", *pt("6"), 5.08, 0)
+    sh.attach("BEC_SW", *pt("5"), 5.08, 0)
+    sh.attach("BEC_FB", *pt("8"), 5.08, 0)
+    sh.attach("GND", *pt("4"), 0, 2.54)
+
+    px = 457.2
+    sh.symbol("L", "L1", "10uH", px, y1, footprint=FP_L6045,
+              fields={"MPN": "PNLS6045-100M", "Manufacturer": "DMBJ", "LCSC": "C2849537",
+                      "Spec": "10 uH 20%, Isat 4.5 A, DCR 57 mR (+/-30%), 6.0x6.0x4.5 mm shielded; ripple "
+                              "0.84 A p-p at 9 V / 16.8 V in (TI DS Table 10-2: 12 uH at 12 V)"},
+              ref_xy=(px + 2.54, y1 - 1.27), val_xy=(px + 2.54, y1 + 1.27))
+    sh.attach("BEC_SW", px, y1 - 3.81, 0, -2.54)
+    sh.attach(BEC["rail"], px, y1 + 3.81, 0, 2.54)
+    passive(sh, "C", "C37", "100nF", px + 15.24, y1, "BEC_BST", "BEC_SW", FP_C0402,
+            dict(C100N, Spec="100 nF X7R 16V 0402 - bootstrap BST-SW (SLUSEA4D 10.2.2.5: >= 16 V, X5R+)"))
+    passive(sh, "C", "C38", "33nF", px + 30.48, y1, "BEC_SS", "GND", FP_C0402,
+            dict(C33N, Spec="33 nF X7R 50V 0402 - soft start tSS = Css*0.8V/5.5uA = 4.8 ms "
+                            "(SLUSEA4D Eq.6; min 6.8 nF, never float)"))
+    for j, ref in enumerate(("C34", "C35")):
+        passive(sh, "C", ref, "10uF", px + (3 + j) * 15.24, y1, BEC["vin"], "GND", FP_C1206,
+                dict(C10U_50V, Spec="10 uF X5R 50V 1206 - U6 input bulk (50 V keeps capacitance at 16.8-25.2 V)"),
+                kind="global", kind2="label")
+    passive(sh, "C", "C36", "100nF", px + 76.2, y1, BEC["vin"], "GND", FP_C0402,
+            dict(C100N50, Spec="100 nF X7R 50V 0402 - HF bypass at U6 VIN pin 3 / GND pin 4"),
+            kind="global", kind2="label")
+    jx = 558.8
+    sh.symbol("Conn_01x02", "J2", "VTX_PWR_PADS", jx, y1, footprint=FP_WIRE2,
+              fields={"Assembly": "none - bare plated pads, no part placed (no LCSC)",
+                      "Spec": "+VTX / GND solder pair for > 1 A loads (DJI O3 16 W = 1.33 A @ 12 V, "
+                              "1.78 A @ 9 V) - JST SH J1 is rated 1 A per contact"},
+              ref_xy=(jx + 2.54, y1 - 2.54), val_xy=(jx + 2.54, y1 + 5.08))
+    oj = PIN_OFFS["Conn_01x02"]
+    sh.attach(BEC["rail"], jx + oj["1"][0], y1 + oj["1"][1], -2.54, 0)
+    _gnd_side(sh, jx + oj["2"][0], y1 + oj["2"][1])
+
+    # ---- row 2: EN, FB divider + Q1 select, output caps ----
+    passive(sh, "R", BEC["en_r"], "1k", 401.32, y2, "VTX_PWR", BEC["en_net"], FP_R0402,
+            dict(R1K, Spec="1k 1% 0402 - VTX_PWR -> U6 EN; no pull-down: EN internal pull-up keeps the VTX "
+                           "ON while PD10 is high-Z (reset/bootloader)"), kind="global", kind2="label")
+    passive(sh, "R", BEC["fb_top"], "102k", 416.56, y2, BEC["rail"], "BEC_FB", FP_R0402,
+            dict(R102K, Spec="102k 1% 0402 - FB top (Vout = 0.8 V x (1 + Rtop/Rbot), SLUSEA4D Eq.1)"))
+    passive(sh, "R", BEC["fb_bot"], "10k", 431.8, y2, "BEC_FB", "GND", FP_R0402,
+            dict(R10K, Spec="10.0k 1%% 0402 - FB bottom: Q1 off -> %.2f V" % v9))
+    passive(sh, "R", BEC["fb_sw_r"], "26.7k", 447.04, y2, "BEC_FB", "BEC_FB_SW", FP_R0402,
+            dict(R26K7, Spec="26.7k 1%% 0402 - switched FB bottom: Q1 on -> 10k||26.7k = 7.275k -> %.2f V" % v12))
+    qx = 477.52
+    sh.symbol("Q_NMOS_GSD", BEC["q"], "2N7002", qx, y2, footprint=FP_SOT23,
+              fields={"MPN": "2N7002", "Manufacturer": "Jiangsu Changjing", "LCSC": "C8545",
+                      "Spec": "60 V N-MOSFET, SOT-23 1 G / 2 S / 3 D (LCSC C8545); sinks 0.8 V/26.7k = 30 uA; "
+                              "gate 3.27 V when driven > Vgs(th) 2.5 V"},
+              pins=("1", "2", "3"), ref_xy=(qx + 5.08, y2 - 1.27), val_xy=(qx + 5.08, y2 + 1.27))
+    oq = PIN_OFFS["Q_NMOS_GSD"]
+    sh.attach("BEC_FB_SW", qx + oq["3"][0], y2 + oq["3"][1], 0, -2.54)
+    sh.attach("GND", qx + oq["2"][0], y2 + oq["2"][1], 0, 2.54)
+    sh.attach("BEC_VSEL_G", qx + oq["1"][0], y2 + oq["1"][1], -2.54, 0)
+    passive(sh, "R", BEC["g_r"], "1k", 492.76, y2, "VTX_12V_SEL", "BEC_VSEL_G", FP_R0402,
+            dict(R1K, Spec="1k 1% 0402 - VTX_12V_SEL (PD11) -> Q1 gate"), kind="global", kind2="label")
+    passive(sh, "R", BEC["g_pd"], "100k", 513.08, y2, "BEC_VSEL_G", "GND", FP_R0402,
+            dict(R100K, Spec="100k 1% 0402 - Q1 gate pull-down: PD11 high-Z -> Q1 off -> 9 V (failsafe)"))
+    for j, ref in enumerate(("C39", "C40", "C41")):
+        passive(sh, "C", ref, "22uF", 528.32 + j * 12.7, y2, BEC["rail"], "GND", FP_C1206,
+                dict(C22U_25V, Spec="22 uF X5R 25V 1206 - +VTX output (TI DS Table 10-2: >= 10 uF effective at 12 V)"))
+    passive(sh, "C", "C42", "100nF", 566.42, y2, BEC["rail"], "GND", FP_C0402,
+            dict(C100N50, Spec="100 nF X7R 50V 0402 - +VTX HF bypass at L1 / J1"))
+
+    # ---- row 3: rail sense, VTX UART/SBUS series resistors, J1 ----
+    passive(sh, "R", BEC["sense_top"], "10k", 401.32, y3, BEC["rail"], "VTX_VSENSE", FP_R0402,
+            dict(R10K, Spec="10k 1%% 0402 - +VTX sense top: x%.1f = BATT2_VOLT_MULT (defaults.parm)" % ratio),
+            kind="label", kind2="global")
+    passive(sh, "R", BEC["sense_bot"], "1k", 421.64, y3, "VTX_VSENSE", "GND", FP_R0402,
+            dict(R1K, Spec="1k 1%% 0402 - +VTX sense bottom: %.2f V -> %.3f V at PC5 (ADC1 INP8)" % (v12, v12 / ratio)),
+            kind="global", kind2="label")
+    passive(sh, "C", BEC["sense_c"], "100nF", 441.96, y3, "VTX_VSENSE", "GND", FP_C0402,
+            dict(C100N, Spec="100 nF X7R 0402 - VTX_VSENSE ADC anti-alias (909R x 100n = 91 us)"),
+            kind="global", kind2="label")
+    rx = 462.28
+    j = 0
+    for pin, net, ref, mnet in VTX_J1:
+        if ref is None:
+            continue
+        val, fl = ("1k", dict(R1K, Spec="1k 1% 0402 - UART7_RX (PE7, FT) <- J1 pin 6 SBUS / DJI HDL: limits clamp "
+                                         "current from 5 V logic to < 2 mA")) if mnet == "UART7_RX" else \
+            ("100R", dict(R100, Spec="100R 1%% 0402 - %s <-> J1 pin %s: hot-plug / ESD current limit, "
+                                     "100R x 20 pF = 2 ns at 2 Mbaud" % (mnet, pin)))
+        passive(sh, "R", ref, val, rx + j * 20.32, y3, mnet, net, FP_R0402, fl, kind="global", kind2="label")
+        j += 1
+    jx, jy = 548.64, 351.79
+    sh.symbol("Conn_01x06", "J1", "SM06B-SRSS-TB", jx, jy, footprint=FP_JST_SH6,
+              fields={"MPN": "SM06B-SRSS-TB(LF)(SN)", "Manufacturer": "JST", "LCSC": "C160405",
+                      "Spec": "JST SH 1.0 mm 6-pin side entry, 1 A/contact; DJI FC-side order 1 VIN, 2 GND, "
+                              "3 FC TX, 4 FC RX, 5 GND, 6 SBUS/HDL"},
+              pins=("1", "2", "3", "4", "5", "6"), ref_xy=(jx - 2.54, jy - 3.81), val_xy=(jx + 2.54, jy + 15.24))
+    oj = PIN_OFFS["Conn_01x06"]
+    for pin, net, _, _ in VTX_J1:
+        x_, y_ = jx + oj[pin][0], jy + oj[pin][1]
+        if net == "GND":
+            _gnd_side(sh, x_, y_)
+        else:
+            sh.attach(net, x_, y_, -2.54, 0)
+
+    nv = bec_note_values(v9, v12, ratio)
+    notes = (
+        "VTX BEC + CONNECTOR (Rev 13.0) - U6 TPS62933DRLR (LCSC C3200405), TI SLUSEA4D\n"
+        "- VBAT -> U6 (VIN 3.8-30 V, 2S-6S) -> L1 10uH -> +VTX. Vout = 0.8 V x (1 + 102k/Rbot): Q1 off Rbot 10k = %.2f V,\n"
+        "  Q1 on 10k||26.7k = %.2f V. Corners %.2f-%.2f / %.2f-%.2f V (%s).\n"
+        "  12 V corner can exceed HDZero's 12 V max: HDZero stays on 9 V.\n"
+        "- Failsafe: PD11 high-Z (reset, bootloader) -> R38 100k holds Q1 off -> 9 V. 12 V only while firmware drives\n"
+        "  VTX_12V_SEL high (RELAY3, default 0); 12->9 V trips 115%% OVP harmlessly (FB 1.07 V, DS 9.3.11).\n"
+        "- EN: VTX_PWR (PD10) -> R39 1k; internal pull-up => VTX on while PD10 is high-Z; RELAY2_DEFAULT 1 (defaults.parm).\n"
+        "- 12 V regulates only from %s V in at 2 A (Dmax 0.93 at 500 kHz, hot) => 4S only; 9 V needs ~10 V (3S ok).\n"
+        "- Sense R40 10k / R41 1k: x%.1f = BATT2_VOLT_MULT, BATT2_VOLT_PIN 8 = PC5 ADC1_INP8 (STM32H743xx.py:1289).\n"
+        "- J1 JST SH 1 A/contact: DJI O3 (16 W) must use the J2 solder pair for +VTX/GND; J1 then carries data only.\n"
+        "LAYOUT RULES\n"
+        "- C34/C35/C36 at U6 pins 3/4 (shortest VIN-GND loop); SW node (pin 5, L1, C37) minimal copper, no vias,\n"
+        "  >= 5 mm from U5/Y3, video and IMU parts; L1 pad-to-pad, output caps C39-C42 return to U6 GND pin 4.\n"
+        "- FB network R34/R35/R36/Q1 at U6 pin 8, away from SW; Kelvin-sense +VTX at C39. R40/R41/C43 at U1 PC5.\n"
+        "- U6 thermal: RthJA 60.2 K/W (EVM) -> pour GND around pin 4 with vias. J1/J2 at the board edge, +VTX >= 1 mm.\n"
+    ) % (v9, v12, nv["r9"][0], nv["r9"][1], nv["r12"][0], nv["r12"][1], nv["src"],
+         ("%.2f" % nv["vin12"]) if nv["vin12"] else "~13.3", ratio)
+    lines = notes.rstrip("\n").split("\n")
+    half = (len(lines) + 1) // 2
+    sh.text("\n".join(lines[:half]) + "\n", 25.4, 385.445)
+    sh.text("\n".join(lines[half:]) + "\n", 177.8, 385.445)
+
+
 def write_lib(kdir=KDIR):
     body = "\n".join(all_symbols(""))
     out = "(kicad_symbol_lib (version 20231120) (generator \"nano_h743_gen_mcu_core\") (generator_version \"8.0\")\n%s\n)\n" % body
@@ -1046,13 +1638,13 @@ def write_sch(sh, kdir=KDIR):
     out = "\n".join([
         "(kicad_sch (version 20231120) (generator \"nano_h743_gen_mcu_core\") (generator_version \"8.0\")",
         "(uuid %s)" % q(ROOT_UUID),
-        "(paper \"A2\")",
-        "(title_block (title \"Nano H743 AIO - MCU core: HSE, VDDA filter, dual IMU, baro\")",
-        "  (date \"2026-11-06\") (rev \"12.0\") (company \"Sreesai Arjun Engineering\")",
+        "(paper \"A1\")",
+        "(title_block (title \"Nano H743 AIO - MCU core: IMU, baro, OSD, VTX BEC, DroneCAN\")",
+        "  (date \"2026-11-06\") (rev \"14.0\") (company \"Sreesai Arjun Engineering\")",
         "  (comment 1 \"STM32H743VIT6 480 MHz: HSE 24 MHz, PLL1 M3 N120 P2\")",
-        "  (comment 2 \"Y1 CL 12 pF; VDDA FB1+R2 2R2; U2/U3 ICM-42688-P, Y2 32.768 kHz CLKIN; U4 DPS310 I2C1 0x76\")",
+        "  (comment 2 \"U2/U3 ICM-42688-P; U4 DPS310; U5 AT7456E OSD; U6 9/12 V VTX BEC; J1 DJI\")",
         "  (comment 3 \"Generated: tools/gen_mcu_core_sch.py + hwdef.dat\")",
-        "  (comment 4 \"Production Revision 12.0 / 150\"))",
+        "  (comment 4 \"Production Revision 14.0 / 150; U7 TCAN334G CAN FD, J3 DroneCAN\"))",
         "(lib_symbols\n%s\n)" % libsyms,
         "\n".join(sh.items),
         "(sheet_instances (path \"/\" (page \"1\")))",

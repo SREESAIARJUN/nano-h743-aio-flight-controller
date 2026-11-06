@@ -1,0 +1,69 @@
+{
+ "_comment": "Vendored pad table of the stock KiCad 8.0.9 footprint, extracted once from the official kicad-footprints repository (Rev 13.0, Q1 2N7002) so tools/verify_mcu_core_sch.py S11 can check the land pattern offline. Units mm, footprint frame (y down), 'at' = [x, y, rotation_deg]; numbered pads only (paste-only sub-pads omitted).",
+ "lib_id": "Package_TO_SOT_SMD:SOT-23",
+ "kicad_tag": "8.0.9",
+ "source_url": "https://gitlab.com/kicad/libraries/kicad-footprints/-/raw/8.0.9/Package_TO_SOT_SMD.pretty/SOT-23.kicad_mod",
+ "source_sha256": "a54642244a74ae2e4b69a97c6e05798894c06421f0a1d39449b76481416485a6",
+ "fetched": "2026-11-06",
+ "descr": "SOT, 3 Pin (JEDEC TO-236 Var AB https://www.jedec.org/document_search?search_api_views_fulltext=TO-236), generated with kicad-footprint-generator ipc_gullwing_generator.py",
+ "attr": "smd",
+ "pads": [
+  {
+   "number": "1",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -0.9375,
+    -0.95,
+    0.0
+   ],
+   "size": [
+    1.475,
+    0.6
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "2",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -0.9375,
+    0.95,
+    0.0
+   ],
+   "size": [
+    1.475,
+    0.6
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "3",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    0.9375,
+    0.0,
+    0.0
+   ],
+   "size": [
+    1.475,
+    0.6
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  }
+ ]
+}

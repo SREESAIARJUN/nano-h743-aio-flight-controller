@@ -1,0 +1,2088 @@
+{
+ "revision": "13.0",
+ "title": "AT7456E OSD on SPI2, 6-pin digital VTX connector and switchable 9 V / 12 V 2 A VTX BEC (U5, U6, J1)",
+ "result": "PASS",
+ "gates": [
+  {
+   "gate": "C1 SPI2 kernel clock = PLL1_Q = 80 MHz",
+   "pass": true,
+   "detail": "STM32_SPI123SEL_PLL1_Q_CK, PLL1 M=3 N=120 Q=12 -> 80.000 MHz (libraries/AP_HAL_ChibiOS/hwdef/common/stm32h7_mcuconf.h)"
+  },
+  {
+   "gate": "C2 derive_freq_flag_bus(80 MHz, 8 MHz) -> MBR 3 (/16) = 5.000 MHz (SPEED_LOW, used by AP_OSD_MAX7456)",
+   "pass": true,
+   "detail": "stock 10*MHZ -> MBR 2 = 10.000 MHz; highspeed -> 5.000 MHz"
+  },
+  {
+   "gate": "C3 AT7456E SCLK timing at 5.0 MHz: tCP/tCH/tCL/tDS margins >= 25 % of spec",
+   "pass": true,
+   "detail": "tCP 200 (min 100) / tCH 100, tCL 100 (min 40) / setup 99.4 (tDS 30) ns; at 10 MHz tCP margin 0 ns, tCH margin 10 ns"
+  },
+  {
+   "gate": "C4 SDOUT -> PB14 setup at the H7 sampling edge (tDO1 25 ns, 33 R x 8 pF, H7 tsu 5 ns)",
+   "pass": true,
+   "detail": "69.4 ns spare at 5 MHz (19.4 ns at 10 MHz)"
+  },
+  {
+   "gate": "B1 transfer_frame() burst fits the 512-byte buffer (replay 484 B, bound 495 B)",
+   "pass": true,
+   "detail": "stop at 480 + <= 12 B/char + 4 B auto-increment exit"
+  },
+  {
+   "gate": "B2 OSD SCLK time per 100 ms thread period < 2 %",
+   "pass": true,
+   "detail": "774 us per flush = 0.77 %; full PAL redraw in 3 flushes (300 ms); do_transfer timeout 35.8 ms"
+  },
+  {
+   "gate": "N1 patch 0003 applies to the unmodified upstream libraries/AP_OSD/AP_OSD_MAX7456.cpp and waits >= 40 us between CMM = 0x50 and the first CMDO",
+   "pass": true,
+   "detail": "git apply --check rc 0 (tree 3534fb88c9, file unmodified True); slices [(0, 2), (2, 4), (6, 1000000)]; CMM->CMDO 43.8 us worst (DS typ 30); VM0->CMAH 42.2 us (DS typ 30); rx parse (9, 4) == expected (9, 4)"
+  },
+  {
+   "gate": "V1 VIN: 75 R termination + 100 nF clamp coupling (DS p.10), level inside 0.5..1.2 Vpp, clamp peak < AVDD",
+   "pass": true,
+   "detail": "1.00 Vpp at VIN, sync tip 0.56 V, peak 1.76 V at 1.2 Vpp; clamp settles in 2.0 ms (32 lines)"
+  },
+  {
+   "gate": "V2 VOUT: 2x gain into 75 R back-termination + 75 R load = 1 Vpp; swing <= 2.4 Vpp min",
+   "pass": true,
+   "detail": "VOUT 2.00 Vpp (1.2 Vpp in at max gain: 2.53 Vpp), load 0.999 Vpp, |Gamma| 0.0015"
+  },
+  {
+   "gate": "V3 COUT = CSAG = 22 uF -> LTD <= 0.5 % (DS Table 2: 0.4 %; with DC-bias derating)",
+   "pass": true,
+   "detail": "nominal 0.40 %, derated 16.5 uF -> 0.47 %, -20 % tol 13.2 uF -> 0.53 %"
+  },
+  {
+   "gate": "V4 +3V3_OSD >= 3.15 V (AT7456E min) at nominal +3V3 incl. FB5 drop; video top < PVDD",
+   "pass": true,
+   "detail": "3.272 V at 72.5 mA x 0.39 R; video top 2.70 V; +3V3 must hold within -3.7 % (headroom at that corner 0.41 V)"
+  },
+  {
+   "gate": "R1 FB divider nominal 8.96 V / 12.02 V (Vout = 0.8 (1 + RTOP/RBOT), DS Eq. 1)",
+   "pass": true,
+   "detail": "8.960 V / 12.016 V"
+  },
+  {
+   "gate": "R2 9 V corners (Vref 784..816 mV, 1 % R, IFB, Q1 IDSS) inside every VTX input range",
+   "pass": true,
+   "detail": "8.615 .. 9.331 V (VTX min 7.4 V, HDZero max 12 V)"
+  },
+  {
+   "gate": "R3 12 V corners inside the DJI / Walksnail input ranges",
+   "pass": true,
+   "detail": "11.540 .. 12.500 V"
+  },
+  {
+   "gate": "R4 12->9 V step trips OVP (non-latching, DS 9.3.11) and 9->12 V step stays above 65 % UVP",
+   "pass": true,
+   "detail": "12->9 FB/Vref >= 124 % (> OVP 118 %): HS off until Vout < 10.30 V (0.12 ms at Walksnail load, 0.5 s unloaded); 9->12 FB/Vref 68.9..80.7 % (> UVP 65 %, < OVP)"
+  },
+  {
+   "gate": "Q1 2N7002 on: VGS >= Vth(max) + 0.5 V through R37/R38 at +3V3 -5 %; Rds error < 0.5 %",
+   "pass": true,
+   "detail": "VGS 3.10 V vs Vth max 2.5 V, Rds <= 29 R at 31 uA -> 3.3 mV on 12 V"
+  },
+  {
+   "gate": "Q2 2N7002 off: IDSS x RTOP error on 9 V < 1 % (25 C, 80 nA DS max); gate held < Vth(min)",
+   "pass": true,
+   "detail": "8.2 mV at 25 C; hot-estimate (x2 per 10 C above 25 C (engineering rule, not in [CJ]); evaluated at 85 C) 5120 nA -> 522 mV; gate 25 mV with GPIO high-Z"
+  },
+  {
+   "gate": "D1 12 V regulated on 4S down to empty (3.2 V/cell) at 2 A, hot",
+   "pass": true,
+   "detail": "Vin_min 12 V/2 A hot: fixed 13.38 V, foldback 12.61 V; 1.2 MHz would need 15.21 V (Dmax 0.811)"
+  },
+  {
+   "gate": "D2 9 V regulated on 3S and 4S down to empty at 2 A, hot; 2S passes through",
+   "pass": true,
+   "detail": "Vin_min 9 V/2 A hot: fixed 10.07 V, foldback 9.49 V; 2S nominal -> 6.91 V"
+  },
+  {
+   "gate": "D3 12 V interlock: allow >= 13.6 V covers fixed-frequency Vin_min, drop at 13.0 V >= foldback Vin_min",
+   "pass": true,
+   "detail": "fixed 13.38 V, foldback 12.61 V (hot, 2 A); hysteresis 0.6 V"
+  },
+  {
+   "gate": "L1 inductor peak at 2 A (L -20 %, 4S full) < Isat 4.5 A; K at VIN_MAX inside 20..60 % (DS 10.2.2.7)",
+   "pass": true,
+   "detail": "peak 2.58 A; K 0.25..0.31 of 3 A; min ripple 0.38 A >= 0.30 A (subharmonic rule)"
+  },
+  {
+   "gate": "K1 effective Cout (3 x 22 uF, -10 % tol, DC bias) >= TI min 10 uF at 12 V and 9 V (Table 10-2)",
+   "pass": true,
+   "detail": "12 V 23.8 uF, 9 V 29.7 uF (TI typ 15 uF); ripple 11.1 / 10.9 mVpp; tSS 4.1..5.9 ms, inrush 70 mA"
+  },
+  {
+   "gate": "K2 VIN: 4S + 30 % ESC overshoot <= 30 V recommended; CSS >= 6.8 nF",
+   "pass": true,
+   "detail": "21.8 V (abs max 32 V); Cin_eff 11.0 uF, Icin 1.00 A rms, Vin ripple 101 mVpp"
+  },
+  {
+   "gate": "T1 U6 junction temperature at 2 A (hot Rds) <= 130 C",
+   "pass": true,
+   "detail": "P_ic 0.47 W: 35 C amb x 60.2 K/W -> 63 C; 105 C board x PsiJB 19.2 -> 114 C"
+  },
+  {
+   "gate": "J1 every VTX: BEC 2 A covers it; > 1 A/contact loads (DJI O3) are routed to J2 pads",
+   "pass": true,
+   "detail": "J1 over 1 A: ['Caddx_Vista@9V 1.00A', 'DJI_O3@12V 1.33A', 'DJI_O3@9V 1.79A']"
+  },
+  {
+   "gate": "S1 R40/R41 ratio 11.0 == BATT2_VOLT_MULT; 12 V -> 1.092 V; full scale 36.3 V > 4S 16.8 V",
+   "pass": true,
+   "detail": "LSB 8.9 mV at +VTX, ratio tol +/-1.84 %, tau 0.091 ms"
+  },
+  {
+   "gate": "S2 supervisor ADC check after 10 ms >= soft start 5.9 ms + 0.1 % settle 0.63 ms",
+   "pass": true,
+   "detail": "CSS 33 nF, ISS 4.5 uA min"
+  },
+  {
+   "gate": "P1 VTX powered and at 9 V in every boot phase (reset, bootloader, early init, AP_Relay::init)",
+   "pass": true,
+   "detail": "EN low 0.7 mV < 1.10 V, EN high 3.13 V in 1.28..5.5 V; R38 holds Q1 gate at 25 mV"
+  },
+  {
+   "gate": "F1 SPIDevice.cpp derive_freq_flag_bus: bus_clocks[busid-1]/2, halve while > request (i<7), MBR = i; SPI2_CLOCK = STM32_SPI2CLK; ctor SPEED_LOW",
+   "pass": true,
+   "detail": "libraries/AP_HAL_ChibiOS/SPIDevice.cpp:259, libraries/AP_HAL_ChibiOS/SPIDevice.cpp:268"
+  },
+  {
+   "gate": "F2 stm32h7_mcuconf.h SPI123SEL = PLL1_Q_CK, PLL1 (24 MHz, 480 MHz) M3 N120 Q12; hal_lld_type1.h SPI2CLK = PLL1_Q",
+   "pass": true,
+   "detail": "libraries/AP_HAL_ChibiOS/hwdef/common/stm32h7_mcuconf.h:333, libraries/AP_HAL_ChibiOS/hwdef/common/stm32h7_mcuconf.h:212, modules/ChibiOS/os/hal/ports/STM32/STM32H7xx/hal_lld_type1.h:2598"
+  },
+  {
+   "gate": "F3 AP_OSD_MAX7456 check_font_char: VM0, CMAH, CMM=READ_NVR, 54 x (CMAL, CMDO) in ONE transfer_fullduplex, rx from index 9 step 4; no set_speed(); 512 B buffer; 100 ms thread",
+   "pass": true,
+   "detail": "libraries/AP_OSD/AP_OSD_MAX7456.cpp:193; layout {'MAX7456ADD_VM0': 0, 'MAX7456ADD_CMAH': 2, 'MAX7456ADD_CMM': 4, 'first_CMDO_addr': 8, 'first_CMDO_data': 9, 'stride': 4}; libraries/AP_OSD/AP_OSD.cpp:401"
+  },
+  {
+   "gate": "F4 AP_Relay: RELAYn_PIN_DEFAULT #ifndef; convert_params -> FUNCTION Relay when pin >= 0; init() drives RELAYn_DEFAULT (param default OFF) -> RELAY2_DEFAULT 1 required",
+   "pass": true,
+   "detail": "libraries/AP_Relay/AP_Relay.cpp:317, libraries/AP_Relay/AP_Relay_Params.cpp:67"
+  },
+  {
+   "gate": "F5 ADC: STM32H743xx.py ADC1 PC5 -> channel 8; AnalogIn 3.3 V full scale; BattMonitor VOLT_PIN/MULT; delay_microseconds = chThdSleep at 1 MHz tick",
+   "pass": true,
+   "detail": "libraries/AP_HAL_ChibiOS/hwdef/scripts/STM32H743xx.py:1281, libraries/AP_HAL_ChibiOS/AnalogIn.cpp:44, libraries/AP_HAL_ChibiOS/Scheduler.cpp:162"
+  },
+  {
+   "gate": "A1 hwdef SPIDEV osd SPI2 OSD1_CS MODE0 8*MHZ 8*MHZ; PB12 OSD1_CS; SPI2 on PB13/14/15; OSD type 1",
+   "pass": true,
+   "detail": "[('MODE0', '8*MHZ', '8*MHZ')], SPI2 [('PB13', 'SPI2_SCK'), ('PB14', 'SPI2_MISO'), ('PB15', 'SPI2_MOSI')]"
+  },
+  {
+   "gate": "A2 hwdef PD10 VTX_PWR OUTPUT HIGH GPIO(81), PD11 VTX_12V_SEL OUTPUT LOW GPIO(82), RELAY2/3_PIN_DEFAULT 81/82; defaults RELAY2_DEFAULT 1, RELAY3_DEFAULT 0",
+   "pass": true,
+   "detail": "PD10 ['PUSHPULL', 'SPEED_LOW', 'HIGH', 'GPIO(81)'], PD11 ['PUSHPULL', 'SPEED_LOW', 'LOW', 'GPIO(82)'], RELAY_PIN_DEFAULT ['81']/['82'], RELAY_DEFAULT 1/0"
+  },
+  {
+   "gate": "A4 hwdef PC5 VTX_VSENSE ADC1 SCALE(1); defaults BATT2_MONITOR 1, BATT2_VOLT_PIN 8, BATT2_VOLT_MULT 11.0",
+   "pass": true,
+   "detail": "[('ADC1', '1')], params {'BATT2_MONITOR': '1', 'BATT2_VOLT_PIN': '8', 'BATT2_VOLT_MULT': '11.0'}"
+  },
+  {
+   "gate": "A5 hwdef PE7 UART7_RX UART7 NODMA (no TX), SERIAL_ORDER ends with UART7 (SERIAL4)",
+   "pass": true,
+   "detail": "PE7 [' NODMA'], SERIAL_ORDER ['OTG1', 'USART1', 'USART2', 'USART3', 'UART7']"
+  },
+  {
+   "gate": "A3 generated hwdef.h: SPIDesc osd 8*MHZ MODE0, GPIO 81/82 on PD10/PD11 (OUTPUT HIGH/LOW), UART7 NODMA, ADC channel 8 = PC5; bootloader leaves PD10/PD11 INPUT, PB12 high",
+   "pass": true,
+   "detail": "rc 0/0, osd [('1', '4', 'PAL_LINE(GPIOB,12U)', 'SPIDEV_MODE0', '8*MHZ', '8*MHZ')], gpio81 [('true', '0', 'PAL_LINE(GPIOD,10U)')], gpio82 [('true', '0', 'PAL_LINE(GPIOD,11U)')], uart7 [('RX', 'false, 0, 0'), ('TX', 'false, 0, 0')], adc [('8', '8', '3.30/4096', 'PC5', 'VTX_VSENSE')], bl {'PD10': {'MODER': 'PIN_MODE_INPUT(10U)', 'PUPDR': 'PIN_PUPDR_FLOATING(10U)'}, 'PD11': {'MODER': 'PIN_MODE_INPUT(11U)', 'PUPDR': 'PIN_PUPDR_FLOATING(11U)'}, 'PB12': {'MODER': 'PIN_MODE_OUTPUT(12U)', 'ODR': 'PIN_ODR_HIGH(12U)'}}"
+  }
+ ],
+ "findings": [
+  {
+   "finding": "NVM-UP upstream AP_OSD_MAX7456::check_font_char single burst vs AT7456E NVM read (would FAIL)",
+   "detail": "first CMDO read requested 2.4 us (data clocked out by 3.2 us) after CMM = 0x50 at 10 MHz, 4.8 / 6.4 us at this board's 5 MHz; AT7456E needs >= 22 us min, 30 us typ (DS p.36; MAX7456 0.5 us).  At 5 MHz the first 3 reads precede 22 us and 4 precede 30 us (at 10 MHz: 7 / 9) -> stale shadow RAM, check fails, update_font() rewrites all 256 chars (>= 3.8 s, NVM endurance 100000)"
+  },
+  {
+   "finding": "NVM-VM0 upstream VM0 = 0 -> CMAH/CMM gap vs AT7456E display-off time",
+   "detail": "6.4 us at 5 MHz (3.2 at 10 MHz) vs up to 30 us typ (DS p.36); CMAH/CMM are ignored while VM0[3] is still set (DS p.29).  Harmless at boot (init() soft-reset leaves VM0 = 0) but the first character of a runtime font change (flush() -> update_font(), display on) is re-written needlessly"
+  }
+ ],
+ "warnings": [
+  {
+   "warn": "V3b LTD at -20 % capacitance tolerance",
+   "detail": "0.53 % > 0.5 % (cosmetic line tilt); 47 uF parts give 0.3 %"
+  },
+  {
+   "warn": "V4b +3V3 tolerance vs AT7456E 3.15 V minimum",
+   "detail": "at the repo's generic -5 % rail corner +3V3_OSD = 3.107 V < 3.15 V; the +3V3 regulator must be <= -3.7 % (typ. LDO/buck +/-2..3 % is fine)"
+  },
+  {
+   "warn": "R3b HDZero Race V3 (4..12 V max) must not use the 12 V setting",
+   "detail": "12 V mode reaches 12.50 V worst case (12.02 V nominal) > 12 V; keep RELAY3 = 0 (9 V) for HDZero"
+  },
+  {
+   "warn": "L1b Isat < IHS_LIMIT max",
+   "detail": "PNLS6045-100M Isat 4.5 A < 5.8 A high-side limit: an output short can saturate L1 before hiccup (DS 10.2.2.7 'ideally Isat >= IHS_LIMIT'); valley limit + hiccup still protect the IC. Higher-Isat 6x6 10 uH part if short-circuit robustness is required"
+  },
+  {
+   "warn": "S3 +/-6 % rail window vs worst-case error",
+   "detail": "rail 4.1 % + divider 1.8 % + VDDA 5.0 % = 10.9 % worst (RSS 6.7 %) > 6 %: use >= +/-12 % or a tighter +3V3 spec"
+  }
+ ],
+ "assumptions": {
+  "rail_3v3": {
+   "nom": 3.3,
+   "tol_frac": 0.05,
+   "note": "+3V3 rail +/-5 % (repo convention, analysis/baro_i2c_analysis.py A['vdd'])"
+  },
+  "clock": {
+   "hse_hz": 24000000.0,
+   "mcu_clockrate_mhz": 480,
+   "pll1_m": 3,
+   "pll1_n": 120,
+   "pll1_q": 12,
+   "spi123sel": "STM32_SPI123SEL_PLL1_Q_CK",
+   "source": "[AP] stm32h7_mcuconf.h 24 MHz block + HAL_CUSTOM_MCU_CLOCKRATE 480000000 (chibios_hwdef.py emits it from MCU_CLOCKRATE_MHZ 480)"
+  },
+  "spi": {
+   "hwdef_lowspeed_hz": 8000000.0,
+   "hwdef_highspeed_hz": 8000000.0,
+   "stock_osd_hz": 10000000.0,
+   "mbr_max": 7,
+   "h7_miso_setup_ns": 5.0,
+   "mcu_pin_pF": 5.0,
+   "trace_pF": 3.0,
+   "r_series_ohm": 33.0,
+   "note": "SPI2 duty is exactly 50 % (even prescaler of the kernel clock, RM0433 SPI MBR)"
+  },
+  "at7456e": {
+   "vdd_min": 3.15,
+   "vdd_max": 5.25,
+   "i_total_max_mA": 72.5,
+   "sclk_max_hz": 10000000.0,
+   "tCP_ns": 100.0,
+   "tCH_ns": 40.0,
+   "tCL_ns": 40.0,
+   "tCSS0_ns": 30.0,
+   "tCSS1_ns": 30.0,
+   "tCSW_ns": 100.0,
+   "tDS_ns": 30.0,
+   "tDH_ns": 0.0,
+   "tDO1_ns": 25.0,
+   "sclk_duty": [
+    0.4,
+    0.6
+   ],
+   "nvm_read_us": {
+    "max7456_min": 0.5,
+    "min": 22.0,
+    "typ": 30.0
+   },
+   "osd_disable_us": {
+    "max7456_min": 0.0,
+    "min": 18.0,
+    "typ": 30.0
+   },
+   "sw_reset_us": {
+    "min": 28.0,
+    "typ": 40.0
+   },
+   "fixed_delay_rule": "p.36 note 3: when fixed delays are used, design to the typical value",
+   "busy_ignore_rule": "p.29 CMM register: NVM read/write commands are ignored while VM0[3] = 1 or STAT[5] = 1; p.34 read procedure waits 30 us after VM0[3] = 0",
+   "nvm_endurance_stores": 100000,
+   "vin_range_vpp": [
+    0.5,
+    1.2
+   ],
+   "vin_sync_detect_vpp": [
+    0.5,
+    2.0
+   ],
+   "vin_clamp_sync_tip_V": 0.56,
+   "vin_coupling_uF_required": 0.1,
+   "clamp_settling_lines": 32,
+   "gain": [
+    1.89,
+    2.0,
+    2.11
+   ],
+   "vout_swing_min_vpp": 2.4,
+   "vout_sync_tip_V": 0.7,
+   "zout_ohm": 0.22,
+   "ltd_max_pct": 0.5,
+   "sag_table": [
+    [
+     470,
+     null,
+     0.2
+    ],
+    [
+     100,
+     null,
+     0.4
+    ],
+    [
+     100,
+     22,
+     0.3
+    ],
+    [
+     47,
+     47,
+     0.3
+    ],
+    [
+     22,
+     22,
+     0.4
+    ],
+    [
+     10,
+     10,
+     0.6
+    ]
+   ]
+  },
+  "video": {
+   "source_ohm": 75.0,
+   "camera_vpp": 1.0,
+   "load_ohm": 75.0,
+   "r27_ohm": 75.0,
+   "r28_ohm": 75.0,
+   "c31_uF": 0.1,
+   "cout_uF": 22.0,
+   "csag_uF": 22.0,
+   "cout_tol": 0.2,
+   "cout_bias_retention": 0.75,
+   "cout_bias_source": "assumed: 0805 10 V X5R 22 uF at ~1.3 V DC (VOUT black level) keeps ~75 % (typical Samsung CL21A226M DC-bias curve); UNVERIFIED",
+   "line_us": {
+    "PAL": 64.0,
+    "NTSC": 63.556
+   }
+  },
+  "bec": {
+   "vref_V": [
+    0.784,
+    0.8,
+    0.816
+   ],
+   "ifb_max_A": 1.5e-07,
+   "r_tol": 0.01,
+   "rtop": 102000.0,
+   "rbot": 10000.0,
+   "rsw": 26700.0,
+   "r_gate_series": 1000.0,
+   "r_gate_pd": 100000.0,
+   "fsw_hz": [
+    450000.0,
+    500000.0,
+    550000.0
+   ],
+   "toff_min_s": 1.4e-07,
+   "ton_max_s": 7e-06,
+   "dmax_fixed": 0.923,
+   "dmax_foldback": 0.98,
+   "rds_hs_ohm": 0.076,
+   "rds_ls_ohm": 0.032,
+   "rds_hot_factor": 1.4,
+   "ihs_limit_A": [
+    4.2,
+    5.0,
+    5.8
+   ],
+   "ovp_frac": [
+    1.12,
+    1.15,
+    1.18
+   ],
+   "uvp_frac": 0.65,
+   "iss_A": [
+    4.5e-06,
+    5.5e-06,
+    6.5e-06
+   ],
+   "css_F": 3.3e-08,
+   "css_min_F": 6.8e-09,
+   "en_rise_V": [
+    1.21,
+    1.28
+   ],
+   "en_fall_V": [
+    1.1,
+    1.17
+   ],
+   "en_ip_A": 7e-07,
+   "en_abs_max_V": 6.0,
+   "en_rec_max_V": 5.5,
+   "r_en_series": 1000.0,
+   "vin_rec_max_V": 30.0,
+   "vin_abs_max_V": 32.0,
+   "iout_rated_A": 3.0,
+   "iout_design_A": 2.0,
+   "rth_ja_evm": 60.2,
+   "psi_jb": 19.2,
+   "tj_max_C": 150.0,
+   "tj_margin_C": 20.0,
+   "sw_edge_ns": 5.0,
+   "iq_A": 1.2e-05,
+   "table_10_2_12V": {
+    "L_uH": 12,
+    "cout_typ_uF": 15,
+    "cout_min_uF": 10
+   },
+   "k_ripple_window": [
+    0.2,
+    0.6
+   ],
+   "ripple_min_frac_of_3A": 0.1,
+   "inductor": {
+    "part": "DMBJ PNLS6045-100M (LCSC C2849537)",
+    "L_uH": 10.0,
+    "L_tol": 0.2,
+    "isat_A": 4.5,
+    "dcr_ohm": 0.057,
+    "dcr_hot_ohm": 0.065,
+    "source": "LCSC C2849537 listing (Isat 4.5 A, DCR 57 mOhm), /tmp/rev13_bec_vtx.md"
+   },
+   "cout": {
+    "n": 3,
+    "uF": 22.0,
+    "part": "Samsung CL31A226KAHNNNE 25 V X5R 1206 (C12891)",
+    "retention_at_12V": 0.4,
+    "retention_at_9V": 0.5,
+    "tol": 0.1,
+    "source": "assumed DC-bias retention (1206 25 V X5R): 40 % at 12 V, 50 % at 9 V; UNVERIFIED, conservative vs Samsung typical curves"
+   },
+   "cin": {
+    "n": 2,
+    "uF": 10.0,
+    "retention_at_16V8": 0.55,
+    "part": "Samsung CL31A106KBHNNNE 50 V X5R 1206 (C13585)",
+    "source": "assumed 55 % at 16.8 V on a 50 V part; UNVERIFIED"
+   }
+  },
+  "q1": {
+   "part": "2N7002 JSCJ (LCSC C8545)",
+   "vth_V": [
+    1.0,
+    1.6,
+    2.5
+   ],
+   "idss_25C_A": 8e-08,
+   "rds_5V_max_ohm": 7.0,
+   "coss_pF": 25.0,
+   "idss_hot_rule": "x2 per 10 C above 25 C (engineering rule, not in [CJ]); evaluated at 85 C",
+   "t_hot_C": 85.0
+  },
+  "mcu_gpio": {
+   "voh_drop_V": 0.0,
+   "ilkg_A": 2.5e-07,
+   "ilkg_source": "STM32H743 DS12110 I/O static characteristics, FT input leakage (sub-uA class); 0.25 uA taken as bound - UNVERIFIED",
+   "reset_mode": "RM0433 GPIOx_MODER reset value 0xFFFF FFFF for ports C..K = analog (high-Z, no pull) until firmware board init"
+  },
+  "battery": {
+   "cell_V": {
+    "full": 4.2,
+    "nominal": 3.7,
+    "empty": 3.2
+   },
+   "packs": [
+    2,
+    3,
+    4
+   ],
+   "esc_overshoot_frac": 0.3,
+   "overshoot_source": "analysis/baro_i2c_analysis.py A['esc'] overshoot_frac"
+  },
+  "interlock": {
+   "allow_12V_V": 13.6,
+   "allow_hold_s": 2.0,
+   "drop_12V_V": 13.0,
+   "drop_hold_s": 0.3,
+   "source": "/tmp/rev13_spec.md D.2 (ardupilot/scripts/vtx_bec.lua policy)"
+  },
+  "vtx": {
+   "DJI_O3": {
+    "P_W": 16.0,
+    "vin": [
+     7.4,
+     26.4
+    ]
+   },
+   "Caddx_Vista": {
+    "P_W": 9.0,
+    "vin": [
+     7.4,
+     26.4
+    ]
+   },
+   "Walksnail_Avatar_HD_Pro": {
+    "P_W": 4.5,
+    "vin": [
+     6.0,
+     25.2
+    ]
+   },
+   "HDZero_Race_V3": {
+    "P_W": 5.8,
+    "vin": [
+     4.0,
+     12.0
+    ]
+   }
+  },
+  "connector": {
+   "J1": "JST SM06B-SRSS-TB (C160405)",
+   "contact_A": 1.0,
+   "pinout": {
+    "1": "+VTX",
+    "2": "GND",
+    "3": "VTX_TXD",
+    "4": "VTX_RXD",
+    "5": "GND",
+    "6": "VTX_SBUS"
+   },
+   "J2": "2-pad +VTX/GND solder pair for > 1 A loads",
+   "J2_A": 3.0,
+   "source": "JST SH series page (1 A AC/DC, AWG 28); J2 = bare pads + AWG 22..24 lead"
+  },
+  "sense": {
+   "r40": 10000.0,
+   "r41": 1000.0,
+   "c43_F": 1e-07,
+   "tol": 0.01,
+   "adc_bits": 12,
+   "ap_fullscale_V": 3.3,
+   "fw_window_frac": 0.06,
+   "fw_settle_ms": 10.0,
+   "fw_source": "/tmp/rev13_spec.md D.3 (+/-6 % window after 10 ms soft start)"
+  },
+  "osd_driver": {
+   "thread_period_ms": 100.0,
+   "spi_buffer": 512,
+   "stop_at": 480,
+   "pal_rows": 16,
+   "ntsc_rows": 13,
+   "cols": 30,
+   "nvm_chars": 256,
+   "nvm_bytes": 54,
+   "nvm_write_poll_ms": 15.0,
+   "required_delay_us": 40.0
+  }
+ },
+ "spi_clock": {
+  "kernel": {
+   "hse_hz": 24000000.0,
+   "pll1_m": 3,
+   "pll1_n": 120,
+   "pll1_q": 12,
+   "spi123sel": "STM32_SPI123SEL_PLL1_Q_CK",
+   "f_spi123_hz": 80000000.0,
+   "source": "libraries/AP_HAL_ChibiOS/hwdef/common/stm32h7_mcuconf.h",
+   "cites": {
+    "SPI123SEL": "libraries/AP_HAL_ChibiOS/hwdef/common/stm32h7_mcuconf.h:333",
+    "PLL1_480": "libraries/AP_HAL_ChibiOS/hwdef/common/stm32h7_mcuconf.h:212",
+    "SPI2CLK=PLL1_Q": "modules/ChibiOS/os/hal/ports/STM32/STM32H7xx/hal_lld_type1.h:2598"
+   }
+  },
+  "divisor": {
+   "request_hz": 8000000.0,
+   "mbr": 3,
+   "divisor": 16,
+   "sclk_hz": 5000000.0
+  },
+  "divisor_highspeed": {
+   "request_hz": 8000000.0,
+   "mbr": 3,
+   "divisor": 16,
+   "sclk_hz": 5000000.0
+  },
+  "stock_10MHz": {
+   "request_hz": 10000000.0,
+   "mbr": 2,
+   "divisor": 8,
+   "sclk_hz": 10000000.0
+  },
+  "rate_table": [
+   {
+    "request_hz": 40000000.0,
+    "mbr": 0,
+    "divisor": 2,
+    "sclk_hz": 40000000.0
+   },
+   {
+    "request_hz": 20000000.0,
+    "mbr": 1,
+    "divisor": 4,
+    "sclk_hz": 20000000.0
+   },
+   {
+    "request_hz": 12000000.0,
+    "mbr": 2,
+    "divisor": 8,
+    "sclk_hz": 10000000.0
+   },
+   {
+    "request_hz": 10000000.0,
+    "mbr": 2,
+    "divisor": 8,
+    "sclk_hz": 10000000.0
+   },
+   {
+    "request_hz": 9990000.0,
+    "mbr": 3,
+    "divisor": 16,
+    "sclk_hz": 5000000.0
+   },
+   {
+    "request_hz": 8000000.0,
+    "mbr": 3,
+    "divisor": 16,
+    "sclk_hz": 5000000.0
+   },
+   {
+    "request_hz": 6000000.0,
+    "mbr": 3,
+    "divisor": 16,
+    "sclk_hz": 5000000.0
+   },
+   {
+    "request_hz": 5000000.0,
+    "mbr": 3,
+    "divisor": 16,
+    "sclk_hz": 5000000.0
+   },
+   {
+    "request_hz": 4990000.0,
+    "mbr": 4,
+    "divisor": 32,
+    "sclk_hz": 2500000.0
+   },
+   {
+    "request_hz": 2500000.0,
+    "mbr": 4,
+    "divisor": 32,
+    "sclk_hz": 2500000.0
+   }
+  ],
+  "timing": {
+   "sclk_hz": 5000000.0,
+   "tCP_ns": 200.0,
+   "tCH_ns": 100.0,
+   "tCL_ns": 100.0,
+   "margin_tCP_ns": 100.0,
+   "margin_tCH_ns": 60.0,
+   "margin_tCL_ns": 60.0,
+   "mosi_setup_ns": 99.4192,
+   "margin_tDS_ns": 69.4192,
+   "miso_setup_margin_ns": 69.4192,
+   "series_rc_ns": 0.264,
+   "within_10MHz": true
+  },
+  "timing_10MHz": {
+   "sclk_hz": 10000000.0,
+   "tCP_ns": 100.0,
+   "tCH_ns": 50.0,
+   "tCL_ns": 50.0,
+   "margin_tCP_ns": 0.0,
+   "margin_tCH_ns": 10.0,
+   "margin_tCL_ns": 10.0,
+   "mosi_setup_ns": 49.4192,
+   "margin_tDS_ns": 19.419199999999996,
+   "miso_setup_margin_ns": 19.4192,
+   "series_rc_ns": 0.264,
+   "within_10MHz": true
+  }
+ },
+ "osd_bandwidth": {
+  "cases": {
+   "full_screen": {
+    "dirty_chars": 480,
+    "first_flush_bytes": 484,
+    "first_flush_chars": 237,
+    "flushes_to_complete": 3,
+    "time_to_complete_ms": 300.0
+   },
+   "checkerboard": {
+    "dirty_chars": 240,
+    "first_flush_bytes": 480,
+    "first_flush_chars": 80,
+    "flushes_to_complete": 3,
+    "time_to_complete_ms": 300.0
+   },
+   "one_char": {
+    "dirty_chars": 1,
+    "first_flush_bytes": 6,
+    "first_flush_chars": 1,
+    "flushes_to_complete": 1,
+    "time_to_complete_ms": 100.0
+   }
+  },
+  "worst_flush_bytes_replay": 484,
+  "worst_flush_bytes_bound": 495,
+  "buffer_bytes": 512,
+  "flush_sclk_time_us": 774.4,
+  "duty_per_period_pct": 0.7744,
+  "do_transfer_timeout_us": 35840,
+  "font_check_burst_bytes": 222,
+  "font_check_burst_us": 355.2,
+  "font_write_burst_bytes": 222,
+  "boot_font_check_ms_no_rewrite": 90.9312,
+  "boot_font_rewrite_all_s_min": 3.84
+ },
+ "nvm_read": {
+  "upstream_5MHz": {
+   "sclk_hz": 5000000.0,
+   "byte_us": 1.5999999999999999,
+   "first_cmdo_request_us": 4.8,
+   "first_cmdo_data_end_us": 6.4,
+   "reads_before_22us_min": 3,
+   "reads_before_30us_typ": 4,
+   "vm0_to_cmm_us": 6.3999999999999995,
+   "ok_max7456": true,
+   "ok_at7456e": false,
+   "rows_first_12": [
+    {
+     "x": 0,
+     "t_request_us": 4.8,
+     "t_data_end_us": 6.4,
+     "before_min": true,
+     "before_typ": true
+    },
+    {
+     "x": 1,
+     "t_request_us": 11.2,
+     "t_data_end_us": 12.8,
+     "before_min": true,
+     "before_typ": true
+    },
+    {
+     "x": 2,
+     "t_request_us": 17.6,
+     "t_data_end_us": 19.2,
+     "before_min": true,
+     "before_typ": true
+    },
+    {
+     "x": 3,
+     "t_request_us": 24.0,
+     "t_data_end_us": 25.6,
+     "before_min": false,
+     "before_typ": true
+    },
+    {
+     "x": 4,
+     "t_request_us": 30.4,
+     "t_data_end_us": 32.0,
+     "before_min": false,
+     "before_typ": false
+    },
+    {
+     "x": 5,
+     "t_request_us": 36.8,
+     "t_data_end_us": 38.4,
+     "before_min": false,
+     "before_typ": false
+    },
+    {
+     "x": 6,
+     "t_request_us": 43.2,
+     "t_data_end_us": 44.8,
+     "before_min": false,
+     "before_typ": false
+    },
+    {
+     "x": 7,
+     "t_request_us": 49.6,
+     "t_data_end_us": 51.2,
+     "before_min": false,
+     "before_typ": false
+    },
+    {
+     "x": 8,
+     "t_request_us": 56.0,
+     "t_data_end_us": 57.6,
+     "before_min": false,
+     "before_typ": false
+    },
+    {
+     "x": 9,
+     "t_request_us": 62.4,
+     "t_data_end_us": 64.0,
+     "before_min": false,
+     "before_typ": false
+    },
+    {
+     "x": 10,
+     "t_request_us": 68.8,
+     "t_data_end_us": 70.4,
+     "before_min": false,
+     "before_typ": false
+    },
+    {
+     "x": 11,
+     "t_request_us": 75.2,
+     "t_data_end_us": 76.8,
+     "before_min": false,
+     "before_typ": false
+    }
+   ]
+  },
+  "upstream_10MHz": {
+   "sclk_hz": 10000000.0,
+   "byte_us": 0.7999999999999999,
+   "first_cmdo_request_us": 2.4,
+   "first_cmdo_data_end_us": 3.2,
+   "reads_before_22us_min": 7,
+   "reads_before_30us_typ": 9,
+   "vm0_to_cmm_us": 3.1999999999999997,
+   "ok_max7456": true,
+   "ok_at7456e": false,
+   "rows_first_12": [
+    {
+     "x": 0,
+     "t_request_us": 2.4,
+     "t_data_end_us": 3.2,
+     "before_min": true,
+     "before_typ": true
+    },
+    {
+     "x": 1,
+     "t_request_us": 5.6,
+     "t_data_end_us": 6.4,
+     "before_min": true,
+     "before_typ": true
+    },
+    {
+     "x": 2,
+     "t_request_us": 8.8,
+     "t_data_end_us": 9.6,
+     "before_min": true,
+     "before_typ": true
+    },
+    {
+     "x": 3,
+     "t_request_us": 12.0,
+     "t_data_end_us": 12.8,
+     "before_min": true,
+     "before_typ": true
+    },
+    {
+     "x": 4,
+     "t_request_us": 15.2,
+     "t_data_end_us": 16.0,
+     "before_min": true,
+     "before_typ": true
+    },
+    {
+     "x": 5,
+     "t_request_us": 18.4,
+     "t_data_end_us": 19.2,
+     "before_min": true,
+     "before_typ": true
+    },
+    {
+     "x": 6,
+     "t_request_us": 21.6,
+     "t_data_end_us": 22.4,
+     "before_min": true,
+     "before_typ": true
+    },
+    {
+     "x": 7,
+     "t_request_us": 24.8,
+     "t_data_end_us": 25.6,
+     "before_min": false,
+     "before_typ": true
+    },
+    {
+     "x": 8,
+     "t_request_us": 28.0,
+     "t_data_end_us": 28.8,
+     "before_min": false,
+     "before_typ": true
+    },
+    {
+     "x": 9,
+     "t_request_us": 31.2,
+     "t_data_end_us": 32.0,
+     "before_min": false,
+     "before_typ": false
+    },
+    {
+     "x": 10,
+     "t_request_us": 34.4,
+     "t_data_end_us": 35.2,
+     "before_min": false,
+     "before_typ": false
+    },
+    {
+     "x": 11,
+     "t_request_us": 37.6,
+     "t_data_end_us": 38.4,
+     "before_min": false,
+     "before_typ": false
+    }
+   ]
+  },
+  "patch": {
+   "path": "ardupilot/patches/0003-osd-at7456e-nvm-read-delay.patch",
+   "present": true,
+   "files": [
+    "libraries/AP_OSD/AP_OSD_MAX7456.cpp"
+   ],
+   "touches_only_osd": true,
+   "added_delay_macros": {
+    "MAX7456_NVM_READ_DELAY_US": "40",
+    "MAX7456_OSD_DISABLE_DELAY_US": "40"
+   },
+   "upstream_file_unmodified": true,
+   "tree_head": "3534fb88c94ad087ae785404af7bde3b939706b7",
+   "tree_repo_prefix": "autopilot/",
+   "git_apply_check_tree": {
+    "rc": 0,
+    "out": ""
+   },
+   "git_apply_check_copy": {
+    "rc": 0,
+    "out": ""
+   },
+   "applies": true,
+   "patched_layout": {
+    "regs_before_loop": [
+     "MAX7456ADD_VM0",
+     "MAX7456ADD_CMAH",
+     "MAX7456ADD_CMM"
+    ],
+    "loop_regs": [
+     "MAX7456ADD_CMAL",
+     "MAX7456ADD_CMDO"
+    ],
+    "layout": {
+     "MAX7456ADD_VM0": 0,
+     "MAX7456ADD_CMAH": 2,
+     "MAX7456ADD_CMM": 4,
+     "first_CMDO_addr": 8,
+     "first_CMDO_data": 9,
+     "stride": 4
+    },
+    "sequence": [
+     {
+      "op": "xfer",
+      "start": 0,
+      "len": "2"
+     },
+     {
+      "op": "wait",
+      "us": 40.0,
+      "expr": "MAX7456_OSD_DISABLE_DELAY_US"
+     },
+     {
+      "op": "xfer",
+      "start": 2,
+      "len": "4"
+     },
+     {
+      "op": "wait",
+      "us": 40.0,
+      "expr": "MAX7456_NVM_READ_DELAY_US"
+     },
+     {
+      "op": "xfer",
+      "start": 6,
+      "len": "buffer_offset - 6"
+     }
+    ],
+    "rx_parse_start": 9,
+    "rx_parse_stride": 4
+   },
+   "patched_timing": {
+    "ok": true,
+    "slices": [
+     [
+      0,
+      2
+     ],
+     [
+      2,
+      4
+     ],
+     [
+      6,
+      1000000
+     ]
+    ],
+    "last_slice": "to buffer_offset",
+    "cmm_to_first_cmdo_request_us": 43.79999999999999,
+    "vm0_to_cmah_us": 42.2,
+    "waits_between_cmm_and_cmdo_us": [
+     40.0
+    ],
+    "waits_between_vm0_and_cmah_us": [
+     40.0
+    ],
+    "rx_index_ok": true,
+    "rx_parse": [
+     9,
+     4
+    ],
+    "rx_expected": [
+     9,
+     4
+    ]
+   },
+   "patched_timing_10MHz": {
+    "ok": true,
+    "slices": [
+     [
+      0,
+      2
+     ],
+     [
+      2,
+      4
+     ],
+     [
+      6,
+      1000000
+     ]
+    ],
+    "last_slice": "to buffer_offset",
+    "cmm_to_first_cmdo_request_us": 41.40000000000001,
+    "vm0_to_cmah_us": 40.6,
+    "waits_between_cmm_and_cmdo_us": [
+     40.0
+    ],
+    "waits_between_vm0_and_cmah_us": [
+     40.0
+    ],
+    "rx_index_ok": true,
+    "rx_parse": [
+     9,
+     4
+    ],
+    "rx_expected": [
+     9,
+     4
+    ]
+   },
+   "other_functions_unchanged": true
+  },
+  "boot_font_check_ms_patched_no_rewrite": 111.41120000000001,
+  "verdict_upstream": "FAIL (finding, recorded - not a gate)",
+  "verdict_patched": "PASS"
+ },
+ "video": {
+  "osd_rail": {
+   "I_max_mA": 72.5,
+   "FB5_Rdc_max_ohm": 0.39,
+   "V_osd_nom_V": 3.271725,
+   "V_osd_min_at_rail_tol_V": 3.106725,
+   "AT7456E_min_V": 3.15,
+   "rail_tol_needed_frac": 0.03688636363636366
+  },
+  "input": {
+   "termination_ohm": 75.0,
+   "coupling_uF": 0.1,
+   "vin_pp_V": 1.0,
+   "range_vpp": [
+    0.5,
+    1.2
+   ],
+   "clamp_sync_tip_V": 0.56,
+   "vin_peak_V_at_1V2pp": 1.76,
+   "source_tau_ms": 0.00375,
+   "clamp_settle_ms_PAL": 2.048,
+   "note": "100 nF is the clamp hold capacitor required by DS p.10 (settling scales with C, LTD inversely); the DC restore happens every line, so there is no field-rate HPF tilt"
+  },
+  "output": {
+   "gain": [
+    1.89,
+    2.0,
+    2.11
+   ],
+   "vout_pp_V": 2.0,
+   "vout_pp_at_1V2_in_max_gain_V": 2.5319999999999996,
+   "swing_min_vpp": 2.4,
+   "sync_tip_V": 0.7,
+   "vout_top_V": 2.7,
+   "headroom_to_PVDD_min_V": 0.4067249999999998,
+   "load_vpp_V": 0.998535481294102,
+   "back_termination_gamma": 0.0014645187058980086,
+   "sag_table": [
+    {
+     "COUT_uF": 470,
+     "CSAG_uF": null,
+     "LTD_typ_pct": 0.2
+    },
+    {
+     "COUT_uF": 100,
+     "CSAG_uF": null,
+     "LTD_typ_pct": 0.4
+    },
+    {
+     "COUT_uF": 100,
+     "CSAG_uF": 22,
+     "LTD_typ_pct": 0.3
+    },
+    {
+     "COUT_uF": 47,
+     "CSAG_uF": 47,
+     "LTD_typ_pct": 0.3
+    },
+    {
+     "COUT_uF": 22,
+     "CSAG_uF": 22,
+     "LTD_typ_pct": 0.4
+    },
+    {
+     "COUT_uF": 10,
+     "CSAG_uF": 10,
+     "LTD_typ_pct": 0.6
+    }
+   ],
+   "COUT_eff_uF": 16.5,
+   "COUT_eff_low_uF": 13.200000000000001,
+   "LTD_nominal_pct": 0.4,
+   "LTD_dc_bias_pct": 0.47297340018967443,
+   "LTD_dc_bias_tol_pct": 0.5295759668043398,
+   "LTD_limit_pct": 0.5
+  }
+ },
+ "bec": {
+  "Vout_nominal_V": {
+   "9": 8.959999999999999,
+   "12": 12.016179775280902
+  },
+  "Vout_corners_V": {
+   "9": [
+    8.615378924752475,
+    9.331040054545454
+   ],
+   "12": [
+    11.539897654439994,
+    12.499595299755764
+   ]
+  },
+  "q1": {
+   "vgs_on_min_V": 3.103960396039604,
+   "vth_max_V": 2.5,
+   "overdrive_V": 0.603960396039604,
+   "rds_on_bound_ohm": 28.97540983606557,
+   "id_on_A": 3.056179775280899e-05,
+   "vds_on_V": 0.0008855406152145882,
+   "err_12V_from_rds_V": 0.0033130361401330077,
+   "idss_25C_A": 8e-08,
+   "idss_hot_A": 5.12e-06,
+   "err_9V_leak_25C_V": 0.00816,
+   "err_9V_leak_hot_V": 0.52224,
+   "vg_off_highZ_V": 0.024999999999999998,
+   "vth_min_V": 1.0,
+   "coss_pole_ns": 667.5
+  },
+  "transitions": {
+   "12to9_FB_over_Vref_min": 1.240208469507982,
+   "OVP_max": 1.18,
+   "12to9_OVP_trips": true,
+   "9to12_FB_over_Vref_min": 0.6892664349949178,
+   "9to12_FB_over_Vref_max": 0.8065963518604551,
+   "UVP": 0.65,
+   "9to12_above_UVP": true,
+   "ovp_release_V": 10.303999999999998,
+   "12to9_decay_ms_per_load": {
+    "DJI_O3": 0.03394686897916939,
+    "Caddx_Vista": 0.060349989296301136,
+    "Walksnail_Avatar_HD_Pro": 0.12069997859260227,
+    "HDZero_Race_V3": 0.09364653511495005
+   },
+   "12to9_decay_s_unloaded_divider": 0.45452487510560424,
+   "note": "DS 9.3.11: OVP turns the high-side FET off, non-latching; DS 9.3.12: hiccup needs FB < 65 % AND current limit for > 256 us"
+  },
+  "dropout": {
+   "Dmax_fixed": 0.923,
+   "Dmax_foldback": 0.98,
+   "I_A": 2.0,
+   "Vin_min_V": {
+    "9V_25C_fixed": 9.988,
+    "9V_25C_foldback": 9.412,
+    "9V_hot_fixed": 10.069,
+    "9V_hot_foldback": 9.49,
+    "12V_25C_fixed": 13.299,
+    "12V_25C_foldback": 12.531,
+    "12V_hot_fixed": 13.38,
+    "12V_hot_foldback": 12.609
+   },
+   "Dmax_1200kHz": 0.8109999999999999,
+   "Vin_min_12V_1200kHz_hot_V": 15.210474692084961,
+   "table": [
+    {
+     "pack": "2S",
+     "state": "full",
+     "VBAT_V": 8.4,
+     "mode_V": 9,
+     "Vout_V": 7.89,
+     "regime": "dropout (pass-through)",
+     "headroom_V": 0.51
+    },
+    {
+     "pack": "2S",
+     "state": "full",
+     "VBAT_V": 8.4,
+     "mode_V": 12,
+     "Vout_V": 7.89,
+     "regime": "dropout (pass-through)",
+     "headroom_V": 0.51
+    },
+    {
+     "pack": "2S",
+     "state": "nominal",
+     "VBAT_V": 7.4,
+     "mode_V": 9,
+     "Vout_V": 6.91,
+     "regime": "dropout (pass-through)",
+     "headroom_V": 0.49
+    },
+    {
+     "pack": "2S",
+     "state": "nominal",
+     "VBAT_V": 7.4,
+     "mode_V": 12,
+     "Vout_V": 6.91,
+     "regime": "dropout (pass-through)",
+     "headroom_V": 0.49
+    },
+    {
+     "pack": "2S",
+     "state": "empty",
+     "VBAT_V": 6.4,
+     "mode_V": 9,
+     "Vout_V": 5.93,
+     "regime": "dropout (pass-through)",
+     "headroom_V": 0.47
+    },
+    {
+     "pack": "2S",
+     "state": "empty",
+     "VBAT_V": 6.4,
+     "mode_V": 12,
+     "Vout_V": 5.93,
+     "regime": "dropout (pass-through)",
+     "headroom_V": 0.47
+    },
+    {
+     "pack": "3S",
+     "state": "full",
+     "VBAT_V": 12.6,
+     "mode_V": 9,
+     "Vout_V": 8.96,
+     "regime": "regulated (fixed 500 kHz)",
+     "headroom_V": 3.64
+    },
+    {
+     "pack": "3S",
+     "state": "full",
+     "VBAT_V": 12.6,
+     "mode_V": 12,
+     "Vout_V": 12.01,
+     "regime": "dropout (pass-through)",
+     "headroom_V": 0.59
+    },
+    {
+     "pack": "3S",
+     "state": "nominal",
+     "VBAT_V": 11.1,
+     "mode_V": 9,
+     "Vout_V": 8.96,
+     "regime": "regulated (fixed 500 kHz)",
+     "headroom_V": 2.14
+    },
+    {
+     "pack": "3S",
+     "state": "nominal",
+     "VBAT_V": 11.1,
+     "mode_V": 12,
+     "Vout_V": 10.54,
+     "regime": "dropout (pass-through)",
+     "headroom_V": 0.56
+    },
+    {
+     "pack": "3S",
+     "state": "empty",
+     "VBAT_V": 9.6,
+     "mode_V": 9,
+     "Vout_V": 8.96,
+     "regime": "regulated (frequency foldback)",
+     "headroom_V": 0.64
+    },
+    {
+     "pack": "3S",
+     "state": "empty",
+     "VBAT_V": 9.6,
+     "mode_V": 12,
+     "Vout_V": 9.07,
+     "regime": "dropout (pass-through)",
+     "headroom_V": 0.53
+    },
+    {
+     "pack": "4S",
+     "state": "full",
+     "VBAT_V": 16.8,
+     "mode_V": 9,
+     "Vout_V": 8.96,
+     "regime": "regulated (fixed 500 kHz)",
+     "headroom_V": 7.84
+    },
+    {
+     "pack": "4S",
+     "state": "full",
+     "VBAT_V": 16.8,
+     "mode_V": 12,
+     "Vout_V": 12.02,
+     "regime": "regulated (fixed 500 kHz)",
+     "headroom_V": 4.78
+    },
+    {
+     "pack": "4S",
+     "state": "nominal",
+     "VBAT_V": 14.8,
+     "mode_V": 9,
+     "Vout_V": 8.96,
+     "regime": "regulated (fixed 500 kHz)",
+     "headroom_V": 5.84
+    },
+    {
+     "pack": "4S",
+     "state": "nominal",
+     "VBAT_V": 14.8,
+     "mode_V": 12,
+     "Vout_V": 12.02,
+     "regime": "regulated (fixed 500 kHz)",
+     "headroom_V": 2.78
+    },
+    {
+     "pack": "4S",
+     "state": "empty",
+     "VBAT_V": 12.8,
+     "mode_V": 9,
+     "Vout_V": 8.96,
+     "regime": "regulated (fixed 500 kHz)",
+     "headroom_V": 3.84
+    },
+    {
+     "pack": "4S",
+     "state": "empty",
+     "VBAT_V": 12.8,
+     "mode_V": 12,
+     "Vout_V": 12.02,
+     "regime": "regulated (frequency foldback)",
+     "headroom_V": 0.78
+    }
+   ],
+   "dropout_headroom_2A_hot_V": 0.5925097913322634,
+   "model": "Vin_min = (Vout + I DCR + (1-D) I Rls)/D + I Rhs (TI Eq. 8/10 with conduction drops); fixed-frequency Dmax at fSW max 550 kHz; hot = Rds x1.4, DCR 65 mOhm; battery sag, traces and shunt not included"
+  },
+  "inductor_caps": {
+   "ripple_rows": [
+    {
+     "mode_V": 9,
+     "Vin_V": 16.8,
+     "L_uH": 8.0,
+     "dIL_App": 1.1614814814814818,
+     "IL_peak_A": 2.580740740740741,
+     "IL_rms_A": 2.027910238641091,
+     "K": 0.3871604938271606
+    },
+    {
+     "mode_V": 9,
+     "Vin_V": 16.8,
+     "L_uH": 10.0,
+     "dIL_App": 0.9291851851851853,
+     "IL_peak_A": 2.4645925925925924,
+     "IL_rms_A": 2.017907024377148,
+     "K": 0.30972839506172845
+    },
+    {
+     "mode_V": 9,
+     "Vin_V": 14.8,
+     "L_uH": 8.0,
+     "dIL_App": 0.9821021021021022,
+     "IL_peak_A": 2.491051051051051,
+     "IL_rms_A": 2.0199943180397266,
+     "K": 0.32736736736736743
+    },
+    {
+     "mode_V": 9,
+     "Vin_V": 14.8,
+     "L_uH": 10.0,
+     "dIL_App": 0.7856816816816818,
+     "IL_peak_A": 2.392840840840841,
+     "IL_rms_A": 2.012819243932296,
+     "K": 0.26189389389389395
+    },
+    {
+     "mode_V": 9,
+     "Vin_V": 11.100000000000001,
+     "L_uH": 8.0,
+     "dIL_App": 0.47983983983984035,
+     "IL_peak_A": 2.2399199199199202,
+     "IL_rms_A": 2.004791058770164,
+     "K": 0.15994661327994678
+    },
+    {
+     "mode_V": 9,
+     "Vin_V": 11.100000000000001,
+     "L_uH": 10.0,
+     "dIL_App": 0.3838718718718722,
+     "IL_peak_A": 2.1919359359359363,
+     "IL_rms_A": 2.0030675977529735,
+     "K": 0.12795729062395741
+    },
+    {
+     "mode_V": 12,
+     "Vin_V": 16.8,
+     "L_uH": 8.0,
+     "dIL_App": 0.9504504601992292,
+     "IL_peak_A": 2.4752252300996145,
+     "IL_rms_A": 2.0187321944992465,
+     "K": 0.3168168200664097
+    },
+    {
+     "mode_V": 12,
+     "Vin_V": 16.8,
+     "L_uH": 10.0,
+     "dIL_App": 0.7603603681593833,
+     "IL_peak_A": 2.3801801840796917,
+     "IL_rms_A": 2.0120086955053043,
+     "K": 0.2534534560531278
+    },
+    {
+     "mode_V": 12,
+     "Vin_V": 14.8,
+     "L_uH": 8.0,
+     "dIL_App": 0.6278319122050969,
+     "IL_peak_A": 2.3139159561025484,
+     "IL_rms_A": 2.008195145522116,
+     "K": 0.20927730406836564
+    },
+    {
+     "mode_V": 12,
+     "Vin_V": 14.8,
+     "L_uH": 10.0,
+     "dIL_App": 0.5022655297640777,
+     "IL_peak_A": 2.2511327648820387,
+     "IL_rms_A": 2.0052487514518242,
+     "K": 0.16742184325469256
+    }
+   ],
+   "IL_peak_max_A": 2.580740740740741,
+   "Isat_A": 4.5,
+   "IHS_LIMIT_max_A": 5.8,
+   "K_nominal_range": [
+    0.2534534560531278,
+    0.30972839506172845
+   ],
+   "K_all_rows_range": [
+    0.12795729062395741,
+    0.30972839506172845
+   ],
+   "ripple_min_A_nominal": 0.3838718718718722,
+   "ripple_min_required_A": 0.30000000000000004,
+   "Cout_eff_uF": {
+    "9": 29.7,
+    "12": 23.76
+   },
+   "Cout_DS_min_uF": 10,
+   "Cout_DS_typ_uF": 15,
+   "Vout_ripple_mVpp": {
+    "9": 10.863089052389467,
+    "12": 11.111701040488557
+   },
+   "tSS_ms": [
+    4.061538461538462,
+    4.8,
+    5.866666666666666
+   ],
+   "inrush_A": {
+    "9": 0.06551999999999998,
+    "12": 0.07029465168539327
+   },
+   "Icin_rms_A": 0.9977753031397177,
+   "Cin_eff_uF": 11.0,
+   "Vin_ripple_mVpp": 100.56116722783389,
+   "TI_12V_reference": {
+    "L_uH": 12,
+    "cout_typ_uF": 15,
+    "cout_min_uF": 10
+   },
+   "L_vs_TI_note": "10 uH vs TI 12 uH (Table 10-2, 12 V / 500 kHz): ripple +20 %, K inside 20..60 %"
+  },
+  "thermal": {
+   "rows": [
+    {
+     "mode_V": 9,
+     "Vin_V": 16.8,
+     "hot_rds": false,
+     "P_ic_W": 0.31856826666666666,
+     "P_L_W": 0.228,
+     "eff_est": 0.9704022827211887
+    },
+    {
+     "mode_V": 9,
+     "Vin_V": 16.8,
+     "hot_rds": true,
+     "P_ic_W": 0.4073149333333333,
+     "P_L_W": 0.26,
+     "eff_est": 0.9640983683911971
+    },
+    {
+     "mode_V": 9,
+     "Vin_V": 14.8,
+     "hot_rds": false,
+     "P_ic_W": 0.3212289513513514,
+     "P_L_W": 0.228,
+     "eff_est": 0.9702624861710231
+    },
+    {
+     "mode_V": 9,
+     "Vin_V": 14.8,
+     "hot_rds": true,
+     "P_ic_W": 0.4150494918918919,
+     "P_L_W": 0.26,
+     "eff_est": 0.9636973543853035
+    },
+    {
+     "mode_V": 9,
+     "Vin_V": 11.1,
+     "hot_rds": false,
+     "P_ic_W": 0.3382016684684685,
+     "P_L_W": 0.228,
+     "eff_est": 0.9693716600834109
+    },
+    {
+     "mode_V": 9,
+     "Vin_V": 11.1,
+     "hot_rds": true,
+     "P_ic_W": 0.44622905585585587,
+     "P_L_W": 0.26,
+     "eff_est": 0.9620841634805394
+    },
+    {
+     "mode_V": 9,
+     "Vin_V": 12.6,
+     "hot_rds": false,
+     "P_ic_W": 0.3288067555555555,
+     "P_L_W": 0.228,
+     "eff_est": 0.9698645570675714
+    },
+    {
+     "mode_V": 9,
+     "Vin_V": 12.6,
+     "hot_rds": true,
+     "P_ic_W": 0.43006897777777775,
+     "P_L_W": 0.26,
+     "eff_est": 0.9629195905398422
+    },
+    {
+     "mode_V": 12,
+     "Vin_V": 16.8,
+     "hot_rds": false,
+     "P_ic_W": 0.3505853881219904,
+     "P_L_W": 0.228,
+     "eff_est": 0.9764907284314563
+    },
+    {
+     "mode_V": 12,
+     "Vin_V": 16.8,
+     "hot_rds": true,
+     "P_ic_W": 0.4521389033707865,
+     "P_L_W": 0.26,
+     "eff_est": 0.9712203136912799
+    },
+    {
+     "mode_V": 12,
+     "Vin_V": 14.8,
+     "hot_rds": false,
+     "P_ic_W": 0.3575727108411783,
+     "P_L_W": 0.228,
+     "eff_est": 0.9762135704728027
+    },
+    {
+     "mode_V": 12,
+     "Vin_V": 14.8,
+     "hot_rds": true,
+     "P_ic_W": 0.4659307551776496,
+     "P_L_W": 0.26,
+     "eff_est": 0.9706792857578956
+    }
+   ],
+   "P_ic_max_W": 0.4659307551776496,
+   "Tj_ambient_case_C": 63.04903146169451,
+   "Tj_hot_board_case_C": 113.94587049941087,
+   "Tj_limit_C": 130.0,
+   "basis": "a) 35 C ambient x RthJA_EVM 60.2 K/W; b) AIO board at its 105 C continuous limit x PsiJB 19.2 K/W (DS 8.4); switching edges 5 ns assumed (not in DS)"
+  }
+ },
+ "connector": [
+  {
+   "vtx": "DJI_O3",
+   "mode_V": 9,
+   "I_A": 1.786,
+   "I_per_GND_contact_A": 0.893,
+   "J1_ok": false,
+   "needs_J2": true,
+   "J2_ok": true,
+   "bec_ok": true,
+   "vin_range_ok": true
+  },
+  {
+   "vtx": "DJI_O3",
+   "mode_V": 12,
+   "I_A": 1.332,
+   "I_per_GND_contact_A": 0.666,
+   "J1_ok": false,
+   "needs_J2": true,
+   "J2_ok": true,
+   "bec_ok": true,
+   "vin_range_ok": true
+  },
+  {
+   "vtx": "Caddx_Vista",
+   "mode_V": 9,
+   "I_A": 1.004,
+   "I_per_GND_contact_A": 0.502,
+   "J1_ok": false,
+   "needs_J2": true,
+   "J2_ok": true,
+   "bec_ok": true,
+   "vin_range_ok": true
+  },
+  {
+   "vtx": "Caddx_Vista",
+   "mode_V": 12,
+   "I_A": 0.749,
+   "I_per_GND_contact_A": 0.374,
+   "J1_ok": true,
+   "needs_J2": false,
+   "J2_ok": true,
+   "bec_ok": true,
+   "vin_range_ok": true
+  },
+  {
+   "vtx": "Walksnail_Avatar_HD_Pro",
+   "mode_V": 9,
+   "I_A": 0.502,
+   "I_per_GND_contact_A": 0.251,
+   "J1_ok": true,
+   "needs_J2": false,
+   "J2_ok": true,
+   "bec_ok": true,
+   "vin_range_ok": true
+  },
+  {
+   "vtx": "Walksnail_Avatar_HD_Pro",
+   "mode_V": 12,
+   "I_A": 0.374,
+   "I_per_GND_contact_A": 0.187,
+   "J1_ok": true,
+   "needs_J2": false,
+   "J2_ok": true,
+   "bec_ok": true,
+   "vin_range_ok": true
+  },
+  {
+   "vtx": "HDZero_Race_V3",
+   "mode_V": 9,
+   "I_A": 0.647,
+   "I_per_GND_contact_A": 0.324,
+   "J1_ok": true,
+   "needs_J2": false,
+   "J2_ok": true,
+   "bec_ok": true,
+   "vin_range_ok": true
+  },
+  {
+   "vtx": "HDZero_Race_V3",
+   "mode_V": 12,
+   "I_A": 0.483,
+   "I_per_GND_contact_A": 0.241,
+   "J1_ok": true,
+   "needs_J2": false,
+   "J2_ok": true,
+   "bec_ok": true,
+   "vin_range_ok": false
+  }
+ ],
+ "sense": {
+  "ratio": 11.0,
+  "ratio_err_frac": 0.018365472910927494,
+  "V_adc_at_12V": 1.092379979570991,
+  "V_adc_at_9V": 0.8145454545454545,
+  "fullscale_input_V": 36.3,
+  "VBAT_max_V": 16.8,
+  "lsb_input_mV": 8.8623046875,
+  "tau_ms": 0.09090909090909088,
+  "settle_0p1pct_ms": 0.6279777526347395,
+  "rail_err_frac": {
+   "9V": 0.040490898944805176,
+   "12V": 0.04052018901424437
+  },
+  "vdda_err_frac": 0.05,
+  "total_err_worst_frac": 0.10888566192517186,
+  "total_err_rss_frac": 0.06692664875064418,
+  "fw_window_frac": 0.06,
+  "recommended_window_frac": 0.12,
+  "c43_charge_share_err": 4e-05,
+  "ap_scaling_note": "hwdef.h HAL_ANALOG_PINS uses 3.30/4096; AnalogIn.cpp VOLTAGE_SCALING 3.3/4095 (0.02 % apart): BATT2_VOLT_MULT = divider ratio 11.0"
+ },
+ "boot_state": [
+  {
+   "phase": "power-on / reset",
+   "VTX_PWR (PD10)": "analog high-Z (RM0433 GPIOx_MODER reset)",
+   "EN": "internal pull-up 0.7 uA vs pin leakage <= 0.25 uA -> ON",
+   "VTX_12V_SEL (PD11)": "analog high-Z",
+   "Q1": "R38 100k pull-down -> OFF -> 9 V"
+  },
+  {
+   "phase": "bootloader",
+   "VTX_PWR (PD10)": {
+    "MODER": "PIN_MODE_INPUT(10U)",
+    "PUPDR": "PIN_PUPDR_FLOATING(10U)"
+   },
+   "EN": "ON",
+   "VTX_12V_SEL (PD11)": {
+    "MODER": "PIN_MODE_INPUT(11U)",
+    "PUPDR": "PIN_PUPDR_FLOATING(11U)"
+   },
+   "Q1": "OFF -> 9 V"
+  },
+  {
+   "phase": "firmware early init (hwdef.h VAL_GPIOD_*)",
+   "VTX_PWR (PD10)": "OUTPUT HIGH",
+   "EN": "ON (3.3 V)",
+   "VTX_12V_SEL (PD11)": "OUTPUT LOW",
+   "Q1": "OFF -> 9 V"
+  },
+  {
+   "phase": "AP_Relay::init() (RELAYn_DEFAULT)",
+   "VTX_PWR (PD10)": "RELAY2_DEFAULT 1",
+   "EN": "ON",
+   "VTX_12V_SEL (PD11)": "RELAY3_DEFAULT 0",
+   "Q1": "OFF -> 9 V"
+  }
+ ],
+ "firmware_evidence": {
+  "checked": true,
+  "spi_bus_clock_half": true,
+  "spi_halving_loop": true,
+  "spi_h7_mbr": true,
+  "spi2_clock_is_STM32_SPI2CLK": true,
+  "spi_ctor_speed_low": true,
+  "spi_timeout_20ms_32us": true,
+  "fullduplex_inplace_do_transfer": true,
+  "osd_upstream_layout": {
+   "regs_before_loop": [
+    "MAX7456ADD_VM0",
+    "MAX7456ADD_CMAH",
+    "MAX7456ADD_CMM"
+   ],
+   "loop_regs": [
+    "MAX7456ADD_CMAL",
+    "MAX7456ADD_CMDO"
+   ],
+   "layout": {
+    "MAX7456ADD_VM0": 0,
+    "MAX7456ADD_CMAH": 2,
+    "MAX7456ADD_CMM": 4,
+    "first_CMDO_addr": 8,
+    "first_CMDO_data": 9,
+    "stride": 4
+   },
+   "sequence": [
+    {
+     "op": "xfer",
+     "start": 0,
+     "len": "buffer_offset"
+    }
+   ],
+   "rx_parse_start": 9,
+   "rx_parse_stride": 4
+  },
+  "osd_single_burst": true,
+  "osd_rx_offset_9_stride_4": true,
+  "osd_no_set_speed": true,
+  "osd_frame_stop": true,
+  "osd_reset_wait_1ms": true,
+  "osd_nvm_poll_15ms": true,
+  "osd_ntsc_alt_quirk": true,
+  "osd_spi_buffer_512": true,
+  "osd_thread_100ms": true,
+  "delay_us_chThdSleep": true,
+  "st_frequency_hz": 1000000,
+  "relay_pin_default_ifndef": true,
+  "relay_init_drives_default": true,
+  "relay_convert_sets_RELAY_when_pin_valid": true,
+  "relay_gpio_output_write": true,
+  "relay_DEFAULT_param_default_off": true,
+  "adc_voltage_scaling_3v3": true,
+  "adc1_PC5_channel": 8,
+  "batt_volt_pin_mult_params": true,
+  "hwdef_ODR_default_HIGH": true,
+  "hwdef_unlisted_pin_INPUT": true,
+  "cites": {
+   "derive_freq_flag_bus": "libraries/AP_HAL_ChibiOS/SPIDevice.cpp:259",
+   "halving_loop": "libraries/AP_HAL_ChibiOS/SPIDevice.cpp:268",
+   "timeout": "libraries/AP_HAL_ChibiOS/SPIDevice.cpp:208",
+   "check_font_char": "libraries/AP_OSD/AP_OSD_MAX7456.cpp:193",
+   "transfer_frame_stop": "libraries/AP_OSD/AP_OSD_MAX7456.cpp:399",
+   "osd_thread_delay": "libraries/AP_OSD/AP_OSD.cpp:401",
+   "delay_microseconds": "libraries/AP_HAL_ChibiOS/Scheduler.cpp:162",
+   "relay_init": "libraries/AP_Relay/AP_Relay.cpp:317",
+   "relay_set_defaults": "libraries/AP_Relay/AP_Relay.cpp:295",
+   "relay_DEFAULT_param": "libraries/AP_Relay/AP_Relay_Params.cpp:67",
+   "VOLTAGE_SCALING": "libraries/AP_HAL_ChibiOS/AnalogIn.cpp:44",
+   "ADC1_map_PC5": "libraries/AP_HAL_ChibiOS/hwdef/scripts/STM32H743xx.py:1281",
+   "get_ODR_value": "libraries/AP_HAL_ChibiOS/hwdef/scripts/chibios_hwdef.py:451"
+  }
+ },
+ "hwdef": {
+  "spidev_osd": [
+   [
+    "MODE0",
+    "8*MHZ",
+    "8*MHZ"
+   ]
+  ],
+  "spidev_osd_hz": [
+   [
+    "MODE0",
+    8000000.0,
+    8000000.0
+   ]
+  ],
+  "VTX_PWR": {
+   "level": "HIGH",
+   "gpio": 81,
+   "tokens": [
+    "PUSHPULL",
+    "SPEED_LOW",
+    "HIGH",
+    "GPIO(81)"
+   ]
+  },
+  "VTX_12V_SEL": {
+   "level": "LOW",
+   "gpio": 82,
+   "tokens": [
+    "PUSHPULL",
+    "SPEED_LOW",
+    "LOW",
+    "GPIO(82)"
+   ]
+  },
+  "RELAY2_PIN_DEFAULT": [
+   "81"
+  ],
+  "RELAY3_PIN_DEFAULT": [
+   "82"
+  ],
+  "VTX_VSENSE": [
+   [
+    "ADC1",
+    "1"
+   ]
+  ],
+  "UART7_RX": [
+   " NODMA"
+  ],
+  "UART7_TX_present": false,
+  "SERIAL_ORDER": [
+   "OTG1",
+   "USART1",
+   "USART2",
+   "USART3",
+   "UART7"
+  ],
+  "OSD_ENABLED": [
+   "1"
+  ],
+  "HAL_OSD_TYPE_DEFAULT": [
+   "1"
+  ],
+  "OSD1_CS": true,
+  "spi2_pins": [
+   [
+    "PB13",
+    "SPI2_SCK"
+   ],
+   [
+    "PB14",
+    "SPI2_MISO"
+   ],
+   [
+    "PB15",
+    "SPI2_MOSI"
+   ]
+  ],
+  "bl_has_vtx_pins": false,
+  "bl_osd_cs": true,
+  "params": {
+   "RELAY2_DEFAULT": "1",
+   "RELAY3_DEFAULT": "0",
+   "BATT2_MONITOR": "1",
+   "BATT2_VOLT_PIN": "8",
+   "BATT2_VOLT_MULT": "11.0",
+   "OSD_TYPE": null,
+   "RELAY2_FUNCTION": null,
+   "RELAY3_FUNCTION": null,
+   "RELAY2_PIN": null,
+   "RELAY3_PIN": null
+  }
+ },
+ "generated_hwdef_h": {
+  "rc": 0,
+  "spidev_osd": [
+   [
+    "1",
+    "4",
+    "PAL_LINE(GPIOB,12U)",
+    "SPIDEV_MODE0",
+    "8*MHZ",
+    "8*MHZ"
+   ]
+  ],
+  "gpio81": [
+   [
+    "true",
+    "0",
+    "PAL_LINE(GPIOD,10U)"
+   ]
+  ],
+  "gpio82": [
+   [
+    "true",
+    "0",
+    "PAL_LINE(GPIOD,11U)"
+   ]
+  ],
+  "relay_pin_defaults": [
+   [
+    "RELAY2_PIN_DEFAULT",
+    "81"
+   ],
+   [
+    "RELAY3_PIN_DEFAULT",
+    "82"
+   ]
+  ],
+  "PD10": {
+   "MODER": "PIN_MODE_OUTPUT(10U)",
+   "ODR": "PIN_ODR_HIGH(10U)"
+  },
+  "PD11": {
+   "MODER": "PIN_MODE_OUTPUT(11U)",
+   "ODR": "PIN_ODR_LOW(11U)"
+  },
+  "PC5_MODER": "PIN_MODE_ANALOG(5U)",
+  "uart7_dma": [
+   [
+    "RX",
+    "false, 0, 0"
+   ],
+   [
+    "TX",
+    "false, 0, 0"
+   ]
+  ],
+  "uart7_rx_stream": [],
+  "serial_list": [
+   "OTG1",
+   "USART1",
+   "USART2",
+   "USART3",
+   "UART7"
+  ],
+  "analog_pins": [
+   [
+    "8",
+    "8",
+    "3.30/4096",
+    "PC5",
+    "VTX_VSENSE"
+   ],
+   [
+    "10",
+    "10",
+    "3.30/4096",
+    "PC0",
+    "BATT_VOLTAGE_SENS"
+   ],
+   [
+    "11",
+    "11",
+    "3.30/4096",
+    "PC1",
+    "BATT_CURRENT_SENS"
+   ]
+  ],
+  "spi2_dma": [
+   [
+    "RX",
+    "STM32_DMA_STREAM_ID(2, 5)"
+   ],
+   [
+    "TX",
+    "STM32_DMA_STREAM_ID(2, 2)"
+   ]
+  ],
+  "osd": [
+   [
+    "OSD_ENABLED",
+    "1"
+   ],
+   [
+    "HAL_OSD_TYPE_DEFAULT",
+    "1"
+   ],
+   [
+    "HAL_WITH_SPI_OSD",
+    "1"
+   ]
+  ],
+  "bl_rc": 0,
+  "bl": {
+   "PD10": {
+    "MODER": "PIN_MODE_INPUT(10U)",
+    "PUPDR": "PIN_PUPDR_FLOATING(10U)"
+   },
+   "PD11": {
+    "MODER": "PIN_MODE_INPUT(11U)",
+    "PUPDR": "PIN_PUPDR_FLOATING(11U)"
+   },
+   "PB12": {
+    "MODER": "PIN_MODE_OUTPUT(12U)",
+    "ODR": "PIN_ODR_HIGH(12U)"
+   }
+  }
+ },
+ "lua_crosscheck": {
+  "present": true,
+  "has_13p6": true,
+  "has_13p0": true,
+  "uses_relay": true,
+  "uses_arming": true
+ },
+ "schematic_values": {
+  "osd_sclk_MHz": 5.0,
+  "vtx_9V": 8.96,
+  "vtx_12V": 12.02,
+  "vtx_9V_range": [
+   8.62,
+   9.33
+  ],
+  "vtx_12V_range": [
+   11.54,
+   12.5
+  ],
+  "vin_min_12V_V": 13.38,
+  "sense_ratio": 11.0,
+  "tss_ms": 4.8,
+  "J1_contact_A": 1.0
+ }
+}

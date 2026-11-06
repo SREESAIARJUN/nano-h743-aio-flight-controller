@@ -1,0 +1,562 @@
+{
+ "_comment": "Vendored pad table of the stock KiCad 8.0.9 footprint, extracted once from the official kicad-footprints repository (Rev 13.0, U5 AT7456E) so tools/verify_mcu_core_sch.py S11 can check the land pattern offline. Units mm, footprint frame (y down), 'at' = [x, y, rotation_deg]; numbered pads only (paste-only sub-pads omitted).",
+ "lib_id": "Package_SO:HTSSOP-28-1EP_4.4x9.7mm_P0.65mm_EP2.75x6.2mm",
+ "kicad_tag": "8.0.9",
+ "source_url": "https://gitlab.com/kicad/libraries/kicad-footprints/-/raw/8.0.9/Package_SO.pretty/HTSSOP-28-1EP_4.4x9.7mm_P0.65mm_EP2.75x6.2mm.kicad_mod",
+ "source_sha256": "57969679d7b64efab4cbcd0aa3d74b0b3d2e66daa07e0749ecafd6ce2b910690",
+ "fetched": "2026-11-06",
+ "descr": "HTSSOP, 28 Pin (https://www.trinamic.com/fileadmin/assets/Support/AppNotes/AN005x-IC_Package_PCB_Footprint_Guidelines_HTSSOP28_rev1.00.pdf), generated with kicad-footprint-generator ipc_gullwing_generator.py",
+ "attr": "smd",
+ "pads": [
+  {
+   "number": "1",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -2.875,
+    -4.225,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "2",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -2.875,
+    -3.575,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "3",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -2.875,
+    -2.925,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "4",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -2.875,
+    -2.275,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "5",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -2.875,
+    -1.625,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "6",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -2.875,
+    -0.975,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "7",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -2.875,
+    -0.325,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "8",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -2.875,
+    0.325,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "9",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -2.875,
+    0.975,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "10",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -2.875,
+    1.625,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "11",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -2.875,
+    2.275,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "12",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -2.875,
+    2.925,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "13",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -2.875,
+    3.575,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "14",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -2.875,
+    4.225,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "15",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    2.875,
+    4.225,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "16",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    2.875,
+    3.575,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "17",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    2.875,
+    2.925,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "18",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    2.875,
+    2.275,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "19",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    2.875,
+    1.625,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "20",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    2.875,
+    0.975,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "21",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    2.875,
+    0.325,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "22",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    2.875,
+    -0.325,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "23",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    2.875,
+    -0.975,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "24",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    2.875,
+    -1.625,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "25",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    2.875,
+    -2.275,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "26",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    2.875,
+    -2.925,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "27",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    2.875,
+    -3.575,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "28",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    2.875,
+    -4.225,
+    0.0
+   ],
+   "size": [
+    1.55,
+    0.4
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "29",
+   "type": "smd",
+   "shape": "rect",
+   "at": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "size": [
+    2.75,
+    6.2
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Mask"
+   ]
+  }
+ ]
+}

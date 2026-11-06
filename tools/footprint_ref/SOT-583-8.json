@@ -1,0 +1,164 @@
+{
+ "_comment": "Vendored pad table of the stock KiCad 8.0.9 footprint, extracted once from the official kicad-footprints repository (Rev 13.0, U6 TPS62933) so tools/verify_mcu_core_sch.py S11 can check the land pattern offline. Units mm, footprint frame (y down), 'at' = [x, y, rotation_deg]; numbered pads only (paste-only sub-pads omitted).",
+ "lib_id": "Package_TO_SOT_SMD:SOT-583-8",
+ "kicad_tag": "8.0.9",
+ "source_url": "https://gitlab.com/kicad/libraries/kicad-footprints/-/raw/8.0.9/Package_TO_SOT_SMD.pretty/SOT-583-8.kicad_mod",
+ "source_sha256": "a69b926dea152d9660d5770f2a36253a5fdb10b37dbe78a3fcc2c816cd2e765e",
+ "fetched": "2026-11-06",
+ "descr": "https://www.ti.com/lit/ds/symlink/tps62933.pdf",
+ "attr": "smd",
+ "pads": [
+  {
+   "number": "1",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -0.74,
+    -0.75,
+    0.0
+   ],
+   "size": [
+    0.67,
+    0.3
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "2",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -0.74,
+    -0.25,
+    0.0
+   ],
+   "size": [
+    0.67,
+    0.3
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "3",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -0.74,
+    0.25,
+    0.0
+   ],
+   "size": [
+    0.67,
+    0.3
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "4",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -0.74,
+    0.75,
+    0.0
+   ],
+   "size": [
+    0.67,
+    0.3
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "5",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    0.74,
+    0.75,
+    0.0
+   ],
+   "size": [
+    0.67,
+    0.3
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "6",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    0.74,
+    0.25,
+    0.0
+   ],
+   "size": [
+    0.67,
+    0.3
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "7",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    0.74,
+    -0.25,
+    0.0
+   ],
+   "size": [
+    0.67,
+    0.3
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "8",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    0.74,
+    -0.75,
+    0.0
+   ],
+   "size": [
+    0.67,
+    0.3
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  }
+ ]
+}

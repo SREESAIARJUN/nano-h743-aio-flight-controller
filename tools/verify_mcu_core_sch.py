@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 """
-Nano H743 AIO - MCU core schematic verifier (Revision 7.0, Rev 11.0 IMU block)
+Nano H743 AIO - MCU core schematic verifier (Revision 7.0, Rev 11.0 IMU block,
+Rev 12.0 baro, Rev 13.0 OSD / VTX BEC / VTX connector)
 
 Gates (exit 0 only if every check passes):
   S1  Committed .kicad_sch / .kicad_sym are byte-identical to a fresh
       regeneration (into a temp dir) from the current hwdef.dat.  The
       committed files are never modified by this script.
   S2  kicad-cli ERC: 0 errors; the only warnings are global_label_dangling on
-      hwdef interface labels whose peripherals live on future sheets.
+      hwdef interface labels whose peripherals live on future sheets (and,
+      Rev 13.0, the off-sheet VIDEO_IN / VIDEO_OUT / VBAT power-stage nets).
   S3  U1 pin numbers/names equal KiCad's official STM32H743VITx symbol
       (independent reference table, NOT the generator's own table).
   S4  Exact netlist: HSE_IN/HSE_OUT/HSE_OUT_MCU, VDDA_FB, +3.3VA, +3V3, GND,
       VCAP, NRST, BOOT0 compared as exact node sets (both ends of every
       passive), every hwdef.dat pin on its official LQFP-100 pin number (S6),
       no unexpected nets, every other GPIO a single no-connect pin, and the
-      only other no-connect pins are the ICM-42688-P RESV pins 2/3/10/11.
+      only other no-connect pins are the ICM-42688-P RESV pins 2/3/10/11,
+      the unused AT7456E pins (NC 1/2/14-16/27/28, CLKOUT 7, LOS 12,
+      SYNC_IN 13, /VSYNC 17, /HSYNC 18) and TPS62933 RT (1, float = 500 kHz).
   S5  Exact values for every BOM part (the expected-value table, the
       netlist components and the generator's placed-reference list must be
       the same set; the count is computed, not hard-coded), key MPNs, no
@@ -43,6 +47,21 @@ Gates (exit 0 only if every check passes):
       installed KiCad library or the network is available, the live stock
       footprint is additionally cross-checked pad-for-pad against the
       vendored copy (set NANO_FP_NO_NETWORK=1 to skip the download).
+  S11 (Rev 13.0) AT7456E OSD (U5), 9 V / 12 V VTX BEC (U6) and DJI VTX
+      connector (J1/J2), independent tables in this file (NOT the
+      generator's OSD/BEC/VTX_J1 dicts): U5/U6/Q1 pin names vs the datasheet /
+      LCSC pinouts, exact node sets of every new net and of the hwdef nets
+      they close (SPI2_*, OSD1_CS, VTX_PWR, VTX_12V_SEL, VTX_VSENSE, USART1_*,
+      UART7_RX), 33R SPI2 source termination (R30-R32 at U1, R33 at U5),
+      FB divider re-computed from the netlist values (Q1 off 8.96 V, on
+      12.02 V), Q1 gate pull-down failsafe (high-Z => 9 V), EN path (no
+      pull-down => internal pull-up keeps the VTX on), sense ratio ==
+      defaults.parm BATT2_VOLT_MULT and BATT2_VOLT_PIN == ADC1 channel of the
+      hwdef VTX_VSENSE port, hwdef/defaults relay pins and levels, J1 DJI
+      pin order, U1 pin numbers PD10=57 PD11=58 PC5=33 PE7=37 PA9=68 PA10=69,
+      and the U5/U6/Q1/J1/J2/L1 land patterns (vendored KiCad 8.0.9 pad
+      tables vs AT7456E DS p.38 / TI DRL0008A / DMBJ PNLS6045 / LCSC
+      C8545 data, live cross-check as in S10).
 
 Usage: python3 tools/verify_mcu_core_sch.py
 """
@@ -70,6 +89,50 @@ DPS310_REF_PINS = {"1": "GND", "2": "CSB", "3": "SDI", "4": "SCK", "5": "SDO",
 # (pad centre mm, top view, y down).  Independent of the KiCad footprint.
 DPS310_PADS = {"1": (0.8, -0.98), "2": (0.8, -0.33), "3": (0.8, 0.33), "4": (0.8, 0.98),
                "5": (-0.8, 0.98), "6": (-0.8, 0.33), "7": (-0.8, -0.33), "8": (-0.8, -0.98)}
+# Rev 13.0 (S11) independent pinouts.  AT7456E: AT7456E-S402-V1.1 p.6 pin
+# table = LCSC C82351 EasyEDA symbol names ('#' = active low; the KiCad
+# symbol's ~{X} overbar is normalised to X# before comparing).
+AT7456E_REF_PINS = {"1": "NC", "2": "NC", "3": "DVDD", "4": "DGND", "5": "CLKIN", "6": "XFB",
+                    "7": "CLKOUT", "8": "CS#", "9": "SDIN", "10": "SCLK", "11": "SDOUT", "12": "LOS",
+                    "13": "SYNC_IN", "14": "NC", "15": "NC", "16": "NC", "17": "VSYNC#", "18": "HSYNC#",
+                    "19": "RESET#", "20": "AGND", "21": "AVDD", "22": "VIN", "23": "PGND", "24": "PVDD",
+                    "25": "SAG", "26": "VOUT", "27": "NC", "28": "NC", "29": "EP"}
+# TPS62933: TI SLUSEA4D Table 7-1 / Figure 7-1 = LCSC C3200405 symbol.
+TPS62933_REF_PINS = {"1": "RT", "2": "EN", "3": "VIN", "4": "GND", "5": "SW", "6": "BST", "7": "SS", "8": "FB"}
+# 2N7002 SOT-23, LCSC C8545 EasyEDA symbol.
+NMOS_REF_PINS = {"1": "G", "2": "S", "3": "D"}
+TPS62933_VREF = 0.800          # SLUSEA4D 8.5 VFB typ (784-816 mV over -40..150 C)
+TPS62933_CSS_MIN = 6.8e-9      # SLUSEA4D Table 7-1: >= 6.8 nF, do not float
+TPS62933_ISS = 5.5e-6          # SLUSEA4D 8.5 ISS typ (Eq.6 tSS = Css * Vref / Iss)
+Q1_VGS_TH_MAX = 2.5            # LCSC C8545 listing Vgs(th)
+MCU_VDD = 3.3
+ADC_VREF = 3.3
+# ArduPilot libraries/AP_HAL_ChibiOS/hwdef/scripts/STM32H743xx.py:1289 ADC1_map
+STM32H743_ADC1_CH = {"PC5": 8, "PC0": 10}
+# Land-pattern reference data (mm), independent of the KiCad footprints:
+AT7456E_EP = (2.75, 6.20)      # AT7456E DS p.38: E2 2.75 REF x D1 6.20 REF
+AT7456E_PITCH = 0.65           # DS p.38 e = 0.65
+DRL_PAD = (0.67, 0.30)         # TI DRL0008A land pattern example: 8X (0.67) x 8X (0.3)
+DRL_PITCH, DRL_SPAN = 0.50, 1.48
+PNLS6045 = {"body": 6.0, "term_len_max": 1.65, "term_w_max": 5.0}   # DMBJ PNLS datasheet sec. 4
+SH_PITCH = 1.00                # JST SH
+WIRE_0P25_COND_D = 0.65        # 0.25 mm^2 conductor diameter (footprint name D0.65mm)
+# Rev 13.0 expected footprints (lib_id), checked against the sheet and the
+# KiCad 8.0.9 library.
+S11_FOOTPRINTS = {
+    "U5": "Package_SO:HTSSOP-28-1EP_4.4x9.7mm_P0.65mm_EP2.75x6.2mm",
+    "U6": "Package_TO_SOT_SMD:SOT-583-8",
+    "Q1": "Package_TO_SOT_SMD:SOT-23",
+    "J1": "Connector_JST:JST_SH_SM06B-SRSS-TB_1x06-1MP_P1.00mm_Horizontal",
+    "J2": "Connector_Wire:SolderWire-0.25sqmm_1x02_P4.2mm_D0.65mm_OD1.7mm",
+    "L1": "Inductor_SMD:L_APV_ANR6045",
+    "Y3": "Crystal:Crystal_SMD_3225-4Pin_3.2x2.5mm",
+    "C32": "Capacitor_SMD:C_0805_2012Metric", "C33": "Capacitor_SMD:C_0805_2012Metric",
+    "C34": "Capacitor_SMD:C_1206_3216Metric", "C35": "Capacitor_SMD:C_1206_3216Metric",
+    "C39": "Capacitor_SMD:C_1206_3216Metric", "C40": "Capacitor_SMD:C_1206_3216Metric",
+    "C41": "Capacitor_SMD:C_1206_3216Metric", "C27": "Capacitor_SMD:C_0603_1608Metric",
+    "FB5": "Inductor_SMD:L_0402_1005Metric",
+}
 KICAD_FP_TAG = "8.0.9"
 FP_REF_DIR = os.path.join(REPO, "tools", "footprint_ref")
 KICAD_FP_DIRS = [os.environ.get("KICAD8_FOOTPRINT_DIR", ""), "/usr/share/kicad/footprints",
@@ -97,13 +160,21 @@ def kicad_footprint_text(lib_id):
 
 
 def parse_pads(txt):
-    """Pad table from .kicad_mod text: {num: {type, shape, at[x,y,rot], size, layers}}."""
+    """Pad table from .kicad_mod text: {num: {type, shape, at[x,y,rot], size, layers[, drill]}}.
+    Numbered pads only (paste-only sub-pads of exposed pads have number "").
+    Rev 13.0: tolerates a (drill ...) or (property pad_prop_...) between
+    size and layers (THT pads, heatsink exposed pads); 'drill' is recorded
+    only when present, so SMD-only tables are unchanged."""
     out = {}
     for m in re.finditer(r'\(pad "(\w+)" (\w+) (\w+)\s*\(at (\S+) (\S+?)(?: (\S+))?\)\s*'
-                         r'\(size (\S+) (\S+)\)\s*\(layers ([^)]*)\)', txt):
-        n, typ, shape, x, y, rot, sx, sy, lay = m.groups()
+                         r'\(size (\S+) (\S+)\)\s*((?:\((?:drill|property)[^)]*\)\s*)*)'
+                         r'\(layers ([^)]*)\)', txt):
+        n, typ, shape, x, y, rot, sx, sy, extra, lay = m.groups()
         out[n] = {"type": typ, "shape": shape, "at": [float(x), float(y), float(rot or 0)],
                   "size": [float(sx), float(sy)], "layers": re.findall(r'"([^"]+)"', lay)}
+        d = re.search(r"\(drill (?:oval )?(\S+)", extra)
+        if d:
+            out[n]["drill"] = float(d.group(1).rstrip(")"))
     return out
 
 
@@ -113,8 +184,7 @@ def vendored_footprint(lib_id):
     if not os.path.exists(p_):
         return p_, None, {}
     meta = json.load(open(p_))
-    return p_, meta, {d["number"]: {k: d[k] for k in ("type", "shape", "at", "size", "layers")}
-                      for d in meta["pads"]}
+    return p_, meta, {d["number"]: {k: v for k, v in d.items() if k != "number"} for d in meta["pads"]}
 
 # Independent pin reference: KiCad official library MCU_ST_STM32H7.kicad_sym,
 # symbol STM32H743VITx (LQFP-100), as packaged by skidl.  Deliberately NOT
@@ -138,6 +208,15 @@ KICAD_REF_PINS = {
     91: "PB5", 92: "PB6", 93: "PB7", 94: "BOOT0", 95: "PB8", 96: "PB9",
     97: "PE0", 98: "PE1", 99: "VSS", 100: "VDD",
 }
+
+
+def rval(v):
+    """'26.7k' -> 26700.0, '100R' -> 100.0, '33nF' -> 3.3e-8, '1k' -> 1000.0."""
+    m = re.match(r"^(\d+(?:\.\d+)?)([kMRmunp]?)(?:F|H)?$", v)
+    if not m:
+        return None
+    mult = {"": 1.0, "R": 1.0, "k": 1e3, "M": 1e6, "m": 1e-3, "u": 1e-6, "n": 1e-9, "p": 1e-12}[m.group(2)]
+    return float(m.group(1)) * mult
 
 
 def check(ok, msg):
@@ -206,9 +285,17 @@ def main():
                   "SPI4_SCK", "SPI4_MOSI", "SPI4_MISO", "IMU2_CS", "IMU2_DRDY", "IMU_CLKIN_MON"}
     check(not (dang & imu_closed), "S9 IMU interface labels are closed on this sheet (not dangling) %s"
           % sorted(dang & imu_closed))
-    check(dang <= hw_labels | esc_labels,
-          "dangling global labels are all hwdef / ESC interface signals (%d) %s"
-          % (len(dang), sorted(dang - hw_labels - esc_labels)[:5]))
+    # Rev 13.0: SPI2/OSD, VTX control/sense and VTX UART nets are closed on
+    # this sheet; VIDEO_IN/VIDEO_OUT (camera / analog VTX pads) and VBAT (power
+    # stage) are off-sheet nets.
+    osd_closed = {"SPI2_SCK", "SPI2_MOSI", "SPI2_MISO", "OSD1_CS", "VTX_PWR", "VTX_12V_SEL", "VTX_VSENSE",
+                  "USART1_TX", "USART1_RX", "UART7_RX"}
+    offsheet = {"VIDEO_IN", "VIDEO_OUT", "VBAT"}
+    check(not (dang & osd_closed), "S11 OSD/VTX interface labels are closed on this sheet (not dangling) %s"
+          % sorted(dang & osd_closed))
+    check(dang <= hw_labels | esc_labels | offsheet,
+          "dangling global labels are all hwdef / ESC / off-sheet video+VBAT signals (%d) %s"
+          % (len(dang), sorted(dang - hw_labels - esc_labels - offsheet)[:5]))
 
     nl = sexpr(open(net).read())
     nets = {}
@@ -254,19 +341,24 @@ def main():
 
     print("S4 exact netlist (all non-interface nets, both ends of every part)")
     caps_3v3 = ["C9", "C10", "C11", "C12", "C13", "C14", "C15", "C23"]
-    all_caps = ["C%d" % i for i in range(1, 27)]
+    # caps whose pin 2 is GND (Rev 13.0: C31 VIN coupling, C32/C33 COUT/CSAG
+    # and C37 BST are series elements, checked in S11)
+    all_caps = ["C%d" % i for i in list(range(1, 31)) + [34, 35, 36] + list(range(38, 44))]
     expected = {
         "HSE_IN": U(12) | {("Y1", "1"), ("C1", "1")},
         "HSE_OUT": {("Y1", "3"), ("C2", "1"), ("R1", "2")},
         "HSE_OUT_MCU": U(13) | {("R1", "1")},
         "VDDA_FB": {("FB1", "2"), ("R2", "1")},
         "+3.3VA": U(20, 21) | {("R2", "2")} | P(["C3", "C4", "C5", "C6"], "1"),
-        "+3V3": U(6, 11, 27, 50, 75, 100) | P(["FB1", "FB2", "FB3", "R17", "FB4", "R23", "R24"], "1")
+        "+3V3": U(6, 11, 27, 50, 75, 100) | P(["FB1", "FB2", "FB3", "R17", "FB4", "R23", "R24", "FB5"], "1")
         | {("Y2", "4")}
         | P(caps_3v3, "1"),
         "GND": U(10, 26, 49, 74, 99, 19) | {("Y1", "2"), ("Y1", "4"), ("R3", "2"), ("Y2", "2")}
         | P(["U2", "U3"], "6") | P(["U2", "U3"], "7") | P(all_caps, "2")
-        | {("U4", "1"), ("U4", "7"), ("U4", "5")},
+        | {("U4", "1"), ("U4", "7"), ("U4", "5")}
+        | P(["U5"], "4") | P(["U5"], "20") | P(["U5"], "23") | P(["U5"], "29") | {("Y3", "2"), ("Y3", "4")}
+        | {("R27", "2"), ("U6", "4"), ("R35", "2"), ("R38", "2"), ("Q1", "2"), ("R41", "2"),
+           ("J1", "2"), ("J1", "5"), ("J2", "2")},
         "VCAP": U(48, 73) | P(["C7", "C8"], "1"),
         "NRST": U(14) | {("C16", "1")},
         "BOOT0": U(94) | {("R3", "1")},
@@ -322,8 +414,45 @@ def main():
     expected["I2C1_SCL"] = expected["I2C1_SCL"] | {("R23", "2"), ("R25", "1")}
     expected["I2C1_SDA"] = expected["I2C1_SDA"] | {("R24", "2"), ("R26", "1")}
     expected.update(baro_exp)
+    # Rev 13.0 (S11): independent expected table.  Series parts: pin 1 =
+    # MCU/hwdef net, pin 2 = device-side net.
+    S11_SERIES = {  # ref: (hwdef net, device net, device ref, device pin)
+        "R30": ("SPI2_SCK", "OSD_SCLK", "U5", "10"), "R31": ("SPI2_MOSI", "OSD_SDIN", "U5", "9"),
+        "R32": ("OSD1_CS", "OSD_CS_N", "U5", "8"), "R33": ("SPI2_MISO", "OSD_SDOUT", "U5", "11"),
+        "R42": ("USART1_TX", "VTX_TXD", "J1", "3"), "R43": ("USART1_RX", "VTX_RXD", "J1", "4"),
+        "R44": ("UART7_RX", "VTX_SBUS", "J1", "6"), "R39": ("VTX_PWR", "BEC_EN", "U6", "2"),
+    }
+    osd_exp = {
+        "+3V3_OSD": {("FB5", "2"), ("C27", "1"), ("C28", "1"), ("C29", "1"), ("C30", "1"), ("R29", "1"),
+                     ("U5", "3"), ("U5", "21"), ("U5", "24")},
+        "OSD_RESET_N": {("R29", "2"), ("U5", "19")},
+        "OSD_CLKIN": {("Y3", "1"), ("U5", "5")},
+        "OSD_XFB": {("Y3", "3"), ("U5", "6")},
+        "VIDEO_IN": {("R27", "1"), ("C31", "1")},
+        "OSD_VIN": {("C31", "2"), ("U5", "22")},
+        "OSD_VOUT": {("U5", "26"), ("C32", "1")},
+        "OSD_SAG": {("U5", "25"), ("C33", "1")},
+        "OSD_VOUT_AC": {("C32", "2"), ("C33", "2"), ("R28", "1")},
+        "VIDEO_OUT": {("R28", "2")},
+        "VBAT": {("U6", "3"), ("C34", "1"), ("C35", "1"), ("C36", "1")},
+        "BEC_SS": {("U6", "7"), ("C38", "1")},
+        "BEC_BST": {("U6", "6"), ("C37", "1")},
+        "BEC_SW": {("U6", "5"), ("C37", "2"), ("L1", "1")},
+        "+VTX": {("L1", "2"), ("C39", "1"), ("C40", "1"), ("C41", "1"), ("C42", "1"), ("R34", "1"),
+                 ("R40", "1"), ("J1", "1"), ("J2", "1")},
+        "BEC_FB": {("U6", "8"), ("R34", "2"), ("R35", "1"), ("R36", "1")},
+        "BEC_FB_SW": {("R36", "2"), ("Q1", "3")},
+        "BEC_VSEL_G": {("Q1", "1"), ("R37", "2"), ("R38", "1")},
+    }
+    for ref, (mcu_net, dnet, d, dpin) in S11_SERIES.items():
+        osd_exp[dnet] = {(ref, "2"), (d, dpin)}
+        expected[mcu_net] = expected[mcu_net] | {(ref, "1")}
+    expected["VTX_12V_SEL"] = expected["VTX_12V_SEL"] | {("R37", "1")}
+    expected["VTX_VSENSE"] = expected["VTX_VSENSE"] | {("R40", "2"), ("R41", "1"), ("C43", "1")}
+    expected.update(osd_exp)
     imu_exp_s9 = dict(imu_exp)
     imu_exp.update(baro_exp)    # excluded from the plain hwdef-pin check below
+    imu_exp.update(osd_exp)
     for k, v in sorted(expected.items()):
         if k in ("HSE_IN", "HSE_OUT", "HSE_OUT_MCU", "VDDA_FB", "+3.3VA", "+3V3", "GND", "VCAP", "NRST", "BOOT0"):
             got = nets.get(k, set())
@@ -340,8 +469,12 @@ def main():
     gpio_nc = {("U1", str(port_to_num[pt])) for pt in port_to_num
                if re.match(r"^P[A-K]\d+$", pt) and pt not in hw and pt not in ("PH0", "PH1")}  # PH0/PH1 = HSE
     imu_nc = {(u, p_) for u in ("U2", "U3") for p_ in ("2", "3", "10", "11")}
+    # Rev 13.0: AT7456E NC (DS p.6) + unused CLKOUT/LOS/SYNC_IN/VSYNC/HSYNC; TPS62933 RT float = 500 kHz
+    imu_nc |= {("U5", p_) for p_ in ("1", "2", "14", "15", "16", "27", "28", "7", "12", "13", "17", "18")}
+    imu_nc |= {("U6", "1")}
     check(nc_got == gpio_nc | imu_nc,
-          "no-connects are exactly the %d unassigned GPIOs + ICM-42688-P RESV 2/3/10/11 (missing %s extra %s)"
+          "no-connects are exactly the %d unassigned GPIOs + ICM-42688-P RESV 2/3/10/11 + AT7456E unused "
+          "(12) + TPS62933 RT (missing %s extra %s)"
           % (len(gpio_nc), sorted((gpio_nc | imu_nc) - nc_got)[:5], sorted(nc_got - gpio_nc - imu_nc)[:5]))
 
     print("S5 values, MPNs, fitted/BOM state")
@@ -358,6 +491,16 @@ def main():
                   "C22": "100nF", "C23": "100nF", "R14": "33R", "R15": "33R", "R16": "1k", "R17": "10k"}
     imu_values.update({r: "33R" for r in IMU_SPI})
     values.update(imu_values)
+    s11_values = {"U5": "AT7456E", "Y3": "27MHz CL=12pF", "FB5": "600R@100MHz", "C27": "10uF",
+                  "C28": "100nF", "C29": "100nF", "C30": "100nF", "R29": "10k",
+                  "R30": "33R", "R31": "33R", "R32": "33R", "R33": "33R",
+                  "R27": "75R", "C31": "100nF", "C32": "22uF", "C33": "22uF", "R28": "75R",
+                  "U6": "TPS62933", "L1": "10uH", "C34": "10uF", "C35": "10uF", "C36": "100nF",
+                  "C37": "100nF", "C38": "33nF", "C39": "22uF", "C40": "22uF", "C41": "22uF", "C42": "100nF",
+                  "R34": "102k", "R35": "10k", "R36": "26.7k", "Q1": "2N7002", "R37": "1k", "R38": "100k",
+                  "R39": "1k", "R40": "10k", "R41": "1k", "C43": "100nF",
+                  "R42": "100R", "R43": "100R", "R44": "1k", "J1": "SM06B-SRSS-TB", "J2": "VTX_PWR_PADS"}
+    values.update(s11_values)
     vbad = [(r, comps.get(r, {}).get("value"), v) for r, v in values.items() if comps.get(r, {}).get("value") != v]
     check(not vbad, "all %d part values exact %s" % (len(values), vbad))
     gen_sheet, _ = gen.build()
@@ -377,15 +520,41 @@ def main():
     mpns.update({r: "0402WGF330JTCE" for r in list(IMU_SPI) + ["R14", "R15", "R25", "R26"]})
     mpns.update({"U4": "DPS310XTSA1", "FB4": "BLM15AX601SN1D", "C24": "CL05A105KA5NQNC",
                  "R23": "0402WGF2201TCE", "R24": "0402WGF2201TCE"})
+    s11_mpns = {"U5": "AT7456E", "Y3": "X322527MOB4SI", "FB5": "BLM15AX601SN1D", "C27": "CL10A106KP8NNNC",
+                "C32": "CL21A226MAQNNNE", "C33": "CL21A226MAQNNNE", "R27": "0402WGF750JTCE", "R28": "0402WGF750JTCE",
+                "R29": "0402WGF1002TCE", "U6": "TPS62933DRLR", "L1": "PNLS6045-100M", "Q1": "2N7002",
+                "C34": "CL31A106KBHNNNE", "C35": "CL31A106KBHNNNE", "C36": "CL05B104KB54PNC",
+                "C42": "CL05B104KB54PNC", "C38": "CC0402KRX7R9BB333", "C39": "CL31A226KAHNNNE",
+                "C40": "CL31A226KAHNNNE", "C41": "CL31A226KAHNNNE", "R34": "0402WGF1023TCE",
+                "R35": "0402WGF1002TCE", "R36": "0402WGF2672TCE", "R38": "0402WGF1003TCE",
+                "R40": "0402WGF1002TCE", "R37": "0402WGF1001TCE", "R39": "0402WGF1001TCE",
+                "R41": "0402WGF1001TCE", "R44": "0402WGF1001TCE", "R42": "0402WGF1000TCE",
+                "R43": "0402WGF1000TCE", "J1": "SM06B-SRSS-TB(LF)(SN)"}
+    s11_mpns.update({r: "0402WGF330JTCE" for r in ("R30", "R31", "R32", "R33")})
+    s11_mpns.update({c: "CL05B104KO5NNNC" for c in ("C28", "C29", "C30", "C31", "C37", "C43")})
+    mpns.update(s11_mpns)
     mbad = [(r, comps.get(r, {}).get("fields", {}).get("MPN"), m) for r, m in mpns.items()
             if comps.get(r, {}).get("fields", {}).get("MPN") != m]
     check(not mbad, "key MPNs (Y1, C1/C2, FB1, R2, VCAP, U1, R4-R7, U2/U3, Y2, FB2/3, R8/9, C17/20, 33R, R16) %s"
           % mbad)
     lcsc = {"U2": "C1850418", "U3": "C1850418", "Y2": "C2901603", "U4": "C130156",
-            "R23": "C25879", "R24": "C25879"}
+            "R23": "C25879", "R24": "C25879",
+            # Rev 13.0
+            "U5": "C82351", "Y3": "C70595", "U6": "C3200405", "L1": "C2849537", "Q1": "C8545", "J1": "C160405",
+            "FB5": "C76886", "C27": "C19702", "C32": "C45783", "C33": "C45783", "C34": "C13585", "C35": "C13585",
+            "C39": "C12891", "C40": "C12891", "C41": "C12891", "C36": "C307331", "C42": "C307331",
+            "C38": "C106862", "R27": "C25133", "R28": "C25133", "R34": "C26991", "R36": "C25876",
+            "R38": "C25741", "R29": "C25744", "R35": "C25744", "R40": "C25744", "R37": "C11702",
+            "R39": "C11702", "R41": "C11702", "R44": "C11702", "R42": "C25076", "R43": "C25076"}
+    lcsc.update({r: "C25105" for r in ("R30", "R31", "R32", "R33")})
+    lcsc.update({c: "C1525" for c in ("C28", "C29", "C30", "C31", "C37", "C43")})
     lbad = [(r, comps.get(r, {}).get("fields", {}).get("LCSC"), c) for r, c in lcsc.items()
             if comps.get(r, {}).get("fields", {}).get("LCSC") != c]
-    check(not lbad, "S9/S10 LCSC U2/U3 C1850418, Y2 C2901603, U4 C130156, R23/R24 C25879 %s" % lbad)
+    check(not lbad, "S9/S10/S11 LCSC numbers (U2/U3, Y2, U4, R23/R24; all %d Rev 13.0 parts) %s"
+          % (len([r for r in lcsc if r in s11_values]), lbad))
+    j2f = comps.get("J2", {}).get("fields", {})
+    check("LCSC" not in j2f and j2f.get("Assembly", "").startswith("none"),
+          "J2 bare solder pads: in BOM with 'Assembly: none ...' and no LCSC part (nothing to place)")
     sch_txt = open(SCH).read()
     check("(dnp yes)" not in sch_txt, "no part marked DNP")
     nobom = re.findall(r'\(in_bom no\).*?\(property "Reference" "([^"]+)"', sch_txt, re.S)

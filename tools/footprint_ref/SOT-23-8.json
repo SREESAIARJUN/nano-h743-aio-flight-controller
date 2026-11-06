@@ -1,0 +1,164 @@
+{
+ "_comment": "Vendored pad table of the stock KiCad 8.0.9 footprint, extracted once from the official kicad-footprints repository (Rev 14.0) so tools/verify_mcu_core_sch.py S11 can check the DroneCAN land patterns offline. Units mm, footprint frame (y down), 'at' = [x, y, rotation_deg].",
+ "lib_id": "Package_TO_SOT_SMD:SOT-23-8",
+ "kicad_tag": "8.0.9",
+ "source_url": "https://gitlab.com/kicad/libraries/kicad-footprints/-/raw/8.0.9/Package_TO_SOT_SMD.pretty/SOT-23-8.kicad_mod",
+ "source_sha256": "d5b050c44c0a631167a14355196810c514dfdf30debb18c3e758a5cc5a5815bb",
+ "fetched": "2026-11-06",
+ "descr": "SOT, 8 Pin (JEDEC MO-178 Var BA https://www.jedec.org/document_search?search_api_views_fulltext=MO-178), generated with kicad-footprint-generator ipc_gullwing_generator.py",
+ "attr": "smd",
+ "pads": [
+  {
+   "number": "1",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -1.1375,
+    -0.975,
+    0.0
+   ],
+   "size": [
+    1.325,
+    0.5
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "2",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -1.1375,
+    -0.325,
+    0.0
+   ],
+   "size": [
+    1.325,
+    0.5
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "3",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -1.1375,
+    0.325,
+    0.0
+   ],
+   "size": [
+    1.325,
+    0.5
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "4",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -1.1375,
+    0.975,
+    0.0
+   ],
+   "size": [
+    1.325,
+    0.5
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "5",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    1.1375,
+    0.975,
+    0.0
+   ],
+   "size": [
+    1.325,
+    0.5
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "6",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    1.1375,
+    0.325,
+    0.0
+   ],
+   "size": [
+    1.325,
+    0.5
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "7",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    1.1375,
+    -0.325,
+    0.0
+   ],
+   "size": [
+    1.325,
+    0.5
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "8",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    1.1375,
+    -0.975,
+    0.0
+   ],
+   "size": [
+    1.325,
+    0.5
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  }
+ ]
+}

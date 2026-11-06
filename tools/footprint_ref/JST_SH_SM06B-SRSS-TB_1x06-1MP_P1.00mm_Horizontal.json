@@ -1,0 +1,145 @@
+{
+ "_comment": "Vendored pad table of the stock KiCad 8.0.9 footprint, extracted once from the official kicad-footprints repository (Rev 13.0, J1 JST SH 6-pin) so tools/verify_mcu_core_sch.py S11 can check the land pattern offline. Units mm, footprint frame (y down), 'at' = [x, y, rotation_deg]; numbered pads only (paste-only sub-pads omitted).",
+ "lib_id": "Connector_JST:JST_SH_SM06B-SRSS-TB_1x06-1MP_P1.00mm_Horizontal",
+ "kicad_tag": "8.0.9",
+ "source_url": "https://gitlab.com/kicad/libraries/kicad-footprints/-/raw/8.0.9/Connector_JST.pretty/JST_SH_SM06B-SRSS-TB_1x06-1MP_P1.00mm_Horizontal.kicad_mod",
+ "source_sha256": "7b4876d5dfc8d94f2838d1ff02377d8338249d53efa8834451d29a38da561aa8",
+ "fetched": "2026-11-06",
+ "descr": "JST SH series connector, SM06B-SRSS-TB (http://www.jst-mfg.com/product/pdf/eng/eSH.pdf), generated with kicad-footprint-generator",
+ "attr": "smd",
+ "pads": [
+  {
+   "number": "1",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -2.5,
+    -2.0,
+    0.0
+   ],
+   "size": [
+    0.6,
+    1.55
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "2",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -1.5,
+    -2.0,
+    0.0
+   ],
+   "size": [
+    0.6,
+    1.55
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "3",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    -0.5,
+    -2.0,
+    0.0
+   ],
+   "size": [
+    0.6,
+    1.55
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "4",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    0.5,
+    -2.0,
+    0.0
+   ],
+   "size": [
+    0.6,
+    1.55
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "5",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    1.5,
+    -2.0,
+    0.0
+   ],
+   "size": [
+    0.6,
+    1.55
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "6",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    2.5,
+    -2.0,
+    0.0
+   ],
+   "size": [
+    0.6,
+    1.55
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  },
+  {
+   "number": "MP",
+   "type": "smd",
+   "shape": "roundrect",
+   "at": [
+    3.8,
+    1.875,
+    0.0
+   ],
+   "size": [
+    1.2,
+    1.8
+   ],
+   "layers": [
+    "F.Cu",
+    "F.Paste",
+    "F.Mask"
+   ]
+  }
+ ]
+}

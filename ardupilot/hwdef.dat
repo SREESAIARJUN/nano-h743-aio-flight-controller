@@ -1,5 +1,5 @@
 # hwdef.dat for the Nano H743 AIO (STM32H743VIT6 FC + integrated 4-in-1 ESC)
-# Sreesai Arjun Engineering - Revision 10.0 / 150
+# Sreesai Arjun Engineering - Revision 11.0 / 150
 #
 # Processed by libraries/AP_HAL_ChibiOS/hwdef/scripts/chibios_hwdef.py.
 # Rev 6.0 scope: deterministic DMA allocation for USART1, SPI1, SPI4 and
@@ -9,6 +9,10 @@
 # Rev 10.0 scope: bidirectional DShot600 timer-channel / input-capture
 # configuration and ESC telemetry processing (see the TIM1 block below and
 # "Revision 10.0 Engineering Changelog").
+# Rev 11.0 scope: dual-IMU synchronisation. Both ICM-42688-P share one
+# 32.768 kHz CLKIN (RTC mode), IMU2 gains its DRDY line, and each IMU has a
+# dedicated supply filter (see the IMU block and "Revision 11.0 Engineering
+# Changelog").
 
 # MCU class and specific type (format: MCU <series> <type>)
 MCU STM32H7xx STM32H743xx
@@ -65,6 +69,31 @@ PE2 SPI4_SCK  SPI4
 PE5 SPI4_MISO SPI4
 PE6 SPI4_MOSI SPI4
 PE4 IMU2_CS   CS
+# Rev 11.0: IMU2 INT1 data-ready. EXTI1 - deliberately a different EXTI line
+# from IMU1_DRDY (PC4 = EXTI4) so the two can never share an EXTI vector.
+PE1 IMU2_DRDY INPUT
+
+# ---------------------------------------------------------------------------
+# Rev 11.0 - shared IMU sample clock (CLKIN / RTC mode)
+#
+# Y2 (SX2M32.768KM20F30TNN, 32.768 kHz CMOS, +/-30 ppm) drives pin 9
+# (INT2/FSYNC/CLKIN) of BOTH ICM-42688-P through one 33R source resistor per
+# branch (R14 -> U2, R15 -> U3).  With RTC_MODE=1 and PIN9_FUNCTION=CLKIN
+# each IMU derives its ODR from this clock, so IMU1 and IMU2 sample on the
+# same time base: zero relative drift, constant phase offset.
+#   ODR scales with f_CLKIN / 32 kHz: nominal 8 kHz -> 8192 Hz.  ArduPilot's
+#   _update_sensor_rate() tracks the observed rate (+/-5 % window) so the
+#   +2.4 % shift is absorbed by the notch/FFT rate estimate.
+# The INVENSENSEV3_CLKIN_BITMASK bit index is the gyro instance (imu1 = 0,
+# imu2 = 1).  Upstream only honours it for IIM-42652; patch
+# ardupilot/patches/0002-* extends RTC mode to ICM-42688 and adds the
+# loss-of-clock fallback to the internal oscillator.
+#
+# PD12 (TIM4_CH1) monitors the clock through a 1k isolation resistor (R16)
+# so a dead oscillator is observable by the MCU (firmware/imu_sync).
+# ---------------------------------------------------------------------------
+PD12 IMU_CLKIN_MON INPUT GPIO(91)
+define INVENSENSEV3_CLKIN_BITMASK 3
 
 # ---------------------------------------------------------------------------
 # SPI2 - AT7456E analog OSD          [DMA: SPI2_RX + SPI2_TX, shareable]
@@ -149,15 +178,17 @@ define HAL_OS_FATFS_IO 1
 # Round-robin: one pwm_group (TIM1) captures ONE motor per DShot frame
 # (bdshot.curr_telem_chan, bdshot_find_next_ic_channel), so each motor's
 # eRPM refreshes at f_dshot / 4.  defaults.parm SERVO_DSHOT_RATE 4 gives
-# 1600 Hz frames -> 400 Hz per motor at SCHED_LOOP_RATE 400.
+# evenly spaced 1600 Hz frames -> 400 Hz per motor at SCHED_LOOP_RATE 400.
 #
 # Timing at MCU_CLOCKRATE_MHZ 480 (TIM1 on APB2, 240 MHz kernel clock):
-#   DShot600 bit 1.667 us = 400 ticks; frame 16 bits = 26.7 us
-#   GCR reply 750 kbit/s, 21 bits = 28.0 us, ~30 us after the frame
+#   DShot600 out: PSC 49 -> 4.8 MHz, 8 ticks per 1.667 us bit (exact);
+#   frame = 16 + 1 pre + 2 post slots = 19 bits = 31 us (pulse_send_time_us)
+#   GCR reply 750 kbit/s, 21 bits = 28.0 us, ~30 us after the frame; the
+#   receive window ArduPilot arms is 31 + 30 + 10 = 71 us
 #   IC prescaler telempsc = 240e6/750e3/16 - 1 = 19 -> 83.3 ns/tick,
 #   exactly 16 ticks per GCR bit (no rounding drift; tolerates +/-14 % ESC
 #   clock error, firmware/bdshot_telem test T3).
-#   Bidir cycle ~95 us of the 625 us frame period (15 %).
+#   Bidir cycle (frame + receive window) 102 us of the 625 us period (16 %).
 #
 # Electrical: ArduPilot sets these pins PUSHPULL + PULLUP at OSPEED MID1 in
 # bidir mode.  Each line has a 100R 0402 series resistor (R4..R7, schematic

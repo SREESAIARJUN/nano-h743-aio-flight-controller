@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Nano H743 AIO - MCU core schematic generator (Revision 7.0, DShot termination Rev 10.0)
+Nano H743 AIO - MCU core schematic generator (Revision 7.0, DShot termination
+Rev 10.0, dual-IMU block Rev 11.0)
 
 Generates, deterministically:
   kicad/nano-h743-aio.kicad_sym   project-local symbol library
@@ -18,6 +19,25 @@ Scope of the sheet ("MCU core: HSE clock and analog supply"):
   * VCAP (2 x 2.2 uF), VDD decoupling, VBAT, NRST, BOOT0.
   * Rev 10.0: R4..R7 100R series resistors TIM1_CH1..4 -> ESC1..4_DSHOT
     (bidirectional DShot600 lines to the integrated 4-in-1 ESC).
+  * Rev 11.0 (sheet grown A3 -> A2; block in the new lower area):
+      - U2 IMU1 / U3 IMU2 ICM-42688-P (LGA-14, LCSC C1850418).  Pinout per
+        TDK DS-000347 rev 1.2 sec. 4.1 (fetched via LCSC mirror
+        https://pcbparts.dev/mcp/datasheet/C1850418): RESV pin 7 "Connect to
+        GND" -> GND; RESV 2/3/10/11 "No Connect or Connect to GND" -> NC.
+      - Per-IMU supply anti-alias filter: +3V3 -> FB2/FB3 (BLM15AX601SN1D)
+        -> IMUn_FB -> R8/R9 22R -> +3V3_IMUn; C17/C20 10uF bulk,
+        C18/C21 100nF at VDD (pin 8), C19/C22 100nF at VDDIO (pin 5).
+      - SPI source termination 33R: MCU-driven SCK/MOSI/CS (R10-R12, R19-R21)
+        at U1, IMU-driven SDO (R18, R22) at the IMU.  Pin 1 of every series
+        resistor is the MCU-label (hwdef) net, pin 2 the IMU-pin net.
+      - Y2 SX2M32.768KM20F30TNN 32.768 kHz CMOS XO (C2901603), OE strapped
+        high by R17 10k, C23 100nF; OUT -> IMU_CLKIN star: R14 33R ->
+        IMU1_CLKIN (U2 pin 9), R15 33R -> IMU2_CLKIN (U3 pin 9),
+        R16 1k -> IMU_CLKIN_MON (U1 PD12, loss-of-clock monitor).
+      - INT1 (pin 4) direct to IMU1_DRDY (PC4, EXTI4) / IMU2_DRDY (PE1, EXTI1).
+      Refdes note: the frozen Rev 11 plan named the IMU caps C5..C11; those
+      refs are already used on this sheet, so they are C17..C23 here
+      (C5->C17, C6->C18, C7->C19, C8->C20, C9->C21, C10->C22, C11->C23).
   * Every GPIO that ardupilot/hwdef.dat assigns is broken out with a global
     label named after its hwdef function, so the schematic netlist and the
     firmware pin map can never silently diverge (tools/verify_mcu_core_sch.py
@@ -285,6 +305,65 @@ def sym_crystal(prefix):
         ")"])
 
 
+def _sym_ic(prefix, n, ref, value, fp, ds, desc, half_w, half_h, pins, name_off=1.016):
+    body = ("(rectangle (start %s %s) (end %s %s) (stroke (width 0.254) (type default)) "
+            "(fill (type background)))" % (f(-half_w), f(half_h), f(half_w), f(-half_h)))
+    return "\n".join([
+        "(symbol %s (pin_names (offset %s)) (exclude_from_sim no) (in_bom yes) (on_board yes)" % (q(prefix + n), f(name_off)),
+        prop("Reference", ref, -half_w, half_h + 1.27),
+        prop("Value", value, half_w, -half_h - 1.27),
+        prop("Footprint", fp, 0, 0, hide=True),
+        prop("Datasheet", ds, 0, 0, hide=True),
+        prop("Description", desc, 0, 0, hide=True),
+        "(symbol %s %s)" % (q(n + "_0_1"), body),
+        "(symbol %s %s)" % (q(n + "_1_1"), "\n".join(
+            pin_s(t, x, y, r, 2.54, nm, num) for (num, nm, t, x, y, r) in pins)),
+        ")"])
+
+
+# Rev 11.0: ICM-42688-P, LGA-14.  Numbers/names = LCSC C1850418 symbol and
+# TDK DS-000347 rev 1.2 table 4.1.  (number, name, type, lib x, lib y, rot)
+ICM_PINS = (
+    ("13", "AP_SCL/AP_SCLK", "input", -27.94, 5.08, 0),
+    ("14", "AP_SDA/AP_SDIO/AP_SDI", "bidirectional", -27.94, 2.54, 0),
+    ("12", "AP_CS", "input", -27.94, 0, 0),
+    ("1", "AP_SDO/AP_AD0", "tri_state", -27.94, -2.54, 0),
+    ("4", "INT1/INT", "output", 27.94, 5.08, 180),
+    ("9", "INT2/FSYNC/CLKIN", "bidirectional", 27.94, 0, 180),
+    ("2", "RESV", "passive", 27.94, -2.54, 180),
+    ("3", "RESV", "passive", 27.94, -5.08, 180),
+    ("10", "RESV", "passive", 27.94, -7.62, 180),
+    ("11", "RESV", "passive", 27.94, -10.16, 180),
+    ("8", "VDD", "power_in", -2.54, 15.24, 270),
+    ("5", "VDDIO", "power_in", 2.54, 15.24, 270),
+    ("6", "GND", "power_in", -2.54, -15.24, 90),
+    ("7", "RESV", "passive", 2.54, -15.24, 90),
+)
+FP_ICM = "Package_LGA:LGA-14_3x2.5mm_P0.5mm_LayoutBorder3x4y"
+FP_XO2520 = "Oscillator:Oscillator_SMD_ECS_2520MV-xxx-xx-4Pin_2.5x2.0mm"
+
+# 4-pin CMOS oscillator: 1 OE, 2 GND, 3 OUT, 4 VDD (LCSC C2901603 symbol)
+XO_PINS = (
+    ("1", "OE", "input", -10.16, 0, 0),
+    ("3", "OUT", "output", 10.16, 0, 180),
+    ("4", "VDD", "power_in", 0, 10.16, 270),
+    ("2", "GND", "power_in", 0, -10.16, 90),
+)
+
+
+def sym_icm42688(prefix):
+    return _sym_ic(prefix, "ICM-42688-P", "U", "ICM-42688-P", FP_ICM,
+                   "https://invensense.tdk.com/wp-content/uploads/2020/04/ds-000347_icm-42688-p-datasheet.pdf",
+                   "6-axis IMU, SPI/I2C/I3C, CLKIN 31-50 kHz on pin 9, LGA-14 2.5x3 mm",
+                   25.4, 12.7, ICM_PINS)
+
+
+def sym_xo(prefix):
+    return _sym_ic(prefix, "XO_OE_4p", "Y", "XO_OE_4p", FP_XO2520, "~",
+                   "4-pin CMOS clock oscillator with output enable (1 OE, 2 GND, 3 OUT, 4 VDD)",
+                   7.62, 7.62, XO_PINS)
+
+
 def sym_power(prefix, n, kind):
     """kind: 'gnd' (arrow down) or 'rail' (bar up)."""
     if kind == "gnd":
@@ -326,7 +405,8 @@ def sym_pwr_flag(prefix):
 
 def all_symbols(prefix):
     return [sym_mcu(prefix), sym_r(prefix), sym_c(prefix), sym_fb(prefix),
-            sym_crystal(prefix), sym_power(prefix, "GND", "gnd"),
+            sym_crystal(prefix), sym_icm42688(prefix), sym_xo(prefix),
+            sym_power(prefix, "GND", "gnd"),
             sym_power(prefix, "+3V3", "rail"), sym_power(prefix, "+3.3VA", "rail"),
             sym_pwr_flag(prefix)]
 
@@ -337,6 +417,8 @@ PIN_OFFS = {
     "C": {"1": (0, -3.81), "2": (0, 3.81)},
     "FerriteBead": {"1": (0, -3.81), "2": (0, 3.81)},
     "Crystal_GND24": {"1": (-3.81, 0), "3": (3.81, 0), "2": (0, 5.08), "4": (0, -5.08)},
+    "ICM-42688-P": {p[0]: (p[3], -p[4]) for p in ICM_PINS},
+    "XO_OE_4p": {p[0]: (p[3], -p[4]) for p in XO_PINS},
 }
 
 
@@ -348,6 +430,7 @@ class Sheet:
         self.items = []
         self.pwr_n = 0
         self.flg_n = 0
+        self.glabels = set()
 
     def _instances(self, ref):
         return ('(instances (project %s (path %s (reference %s) (unit 1))))'
@@ -388,11 +471,16 @@ class Sheet:
 
     def glabel(self, name, x, y, rot=0):
         just = "(justify right)" if rot == 180 else "(justify left)"
+        # First instance keeps the historical name-only UUID; later instances
+        # of the same net (e.g. U1 side + series resistor side) get a
+        # position-qualified UUID so no two items share one (Rev 11.0 fix).
+        tag = "glbl-%s" % name if name not in self.glabels else "glbl-%s-%s-%s" % (name, f(x), f(y))
+        self.glabels.add(name)
         self.items.append(
             "(global_label %s (shape bidirectional) (at %s %s %d) (fields_autoplaced yes) "
             "(effects (font (size 1.27 1.27)) %s) (uuid %s) "
             "(property \"Intersheetrefs\" \"${INTERSHEET_REFS}\" (at %s %s 0) (effects (font (size 1.27 1.27)) hide)))"
-            % (q(name), f(x), f(y), rot, just, q(uid("glbl-%s" % name)), f(x), f(y)))
+            % (q(name), f(x), f(y), rot, just, q(uid(tag)), f(x), f(y)))
 
     def junction(self, x, y):
         self.items.append("(junction (at %s %s) (diameter 0) (color 0 0 0 0) (uuid %s))"
@@ -441,19 +529,41 @@ class Sheet:
             self.label(net, ex, ey, 180 if dx < 0 else 0)
 
 
-def passive(sh, libname, ref, value, x, y, net1, net2, footprint, fields, dnp=False, kind="label"):
+def passive(sh, libname, ref, value, x, y, net1, net2, footprint, fields, dnp=False, kind="label",
+            kind2=None):
     """Vertical two-pin part; pin1 up, pin2 down; stubs 2.54 mm."""
     sh.symbol(libname, ref, value, x, y, footprint=footprint, fields=fields,
               ref_xy=(x + 2.54, y - 1.27), val_xy=(x + 2.54, y + 1.27), dnp=dnp)
     o = PIN_OFFS[libname]
     sh.attach(net1, x + o["1"][0], y + o["1"][1], 0, -2.54, kind)
-    sh.attach(net2, x + o["2"][0], y + o["2"][1], 0, 2.54, kind)
+    sh.attach(net2, x + o["2"][0], y + o["2"][1], 0, 2.54, kind if kind2 is None else kind2)
 
 
 # Rev 10.0: bidirectional DShot series termination.  hwdef PWM(n) on TIM1_CHx
 # -> 100R -> ESCn_DSHOT (global label, ESC MCU on a future sheet).
 DSHOT_SERIES = (("R4", "TIM1_CH1", "ESC1_DSHOT"), ("R5", "TIM1_CH2", "ESC2_DSHOT"),
                 ("R6", "TIM1_CH3", "ESC3_DSHOT"), ("R7", "TIM1_CH4", "ESC4_DSHOT"))
+
+
+# Rev 11.0: dual ICM-42688-P.  SPI series tuples: (ref, MCU/hwdef net, IMU net,
+# IMU pin).  Pin 1 of each resistor = MCU net, pin 2 = IMU net.
+IMU_BLOCKS = (
+    {"n": 1, "ref": "U2", "fb": "FB2", "r": "R8", "fb_net": "IMU1_FB", "rail": "+3V3_IMU1",
+     "c_bulk": "C17", "c_vdd": "C18", "c_vddio": "C19", "drdy": "IMU1_DRDY",
+     "clk_r": "R14", "clk_net": "IMU1_CLKIN", "port": "SPI1",
+     "spi": (("R10", "SPI1_SCK", "IMU1_SCLK", "13"), ("R11", "SPI1_MOSI", "IMU1_SDI", "14"),
+             ("R12", "IMU1_CS", "IMU1_CS_N", "12"), ("R18", "SPI1_MISO", "IMU1_SDO", "1"))},
+    {"n": 2, "ref": "U3", "fb": "FB3", "r": "R9", "fb_net": "IMU2_FB", "rail": "+3V3_IMU2",
+     "c_bulk": "C20", "c_vdd": "C21", "c_vddio": "C22", "drdy": "IMU2_DRDY",
+     "clk_r": "R15", "clk_net": "IMU2_CLKIN", "port": "SPI4",
+     "spi": (("R19", "SPI4_SCK", "IMU2_SCLK", "13"), ("R20", "SPI4_MOSI", "IMU2_SDI", "14"),
+             ("R21", "IMU2_CS", "IMU2_CS_N", "12"), ("R22", "SPI4_MISO", "IMU2_SDO", "1"))},
+)
+IMU_NC_PINS = ("2", "3", "10", "11")      # RESV: "No Connect or Connect to GND"
+IMU_CLK = {"xo": "Y2", "src_net": "IMU_CLKIN", "mon_r": "R16", "mon_net": "IMU_CLKIN_MON",
+           "oe_r": "R17", "oe_net": "Y2_OE", "c_dec": "C23"}
+LCSC_100N = "C1525"
+R33 = {"MPN": "0402WGF330JTCE", "Manufacturer": "UNI-ROYAL", "LCSC": "C25105"}
 
 
 FP_C0402 = "Capacitor_SMD:C_0402_1005Metric"
@@ -597,6 +707,9 @@ def build():
                  "Spec": "100R 1% 0402 - DShot/GCR source damping, tau = 100R x ~15 pF = 1.5 ns << 1.33 us GCR bit"},
                 kind="global")
 
+    # ---------------- dual ICM-42688-P IMU block (Rev 11.0) ----------------
+    imu_block(sh, hw)
+
     # ---------------- power flags ----------------
     fx, fy = 345.44, 40.64
     for i, net in enumerate(["+3V3", "GND", "+3.3VA"]):
@@ -609,6 +722,13 @@ def build():
         else:
             sh.wire(x, fy + 5.08, x + 5.08, fy + 5.08)
             sh.power(net, x + 5.08, fy + 5.08, 0)
+    # Rev 11.0: the filtered IMU rails are fed through FB+R (passives), so
+    # tell ERC where their power comes from.
+    for i, blk in enumerate(IMU_BLOCKS):
+        x = fx + (3 + i) * 15.24 + 5.08
+        sh.pwr_flag(x, fy)
+        sh.wire(x, fy, x, fy + 5.08)
+        sh.label(blk["rail"], x, fy + 5.08)
 
     # ---------------- design notes ----------------
     notes = (
@@ -630,6 +750,118 @@ def build():
     return sh, hw
 
 
+def imu_block(sh, hw):
+    """Rev 11.0 dual ICM-42688-P block in the lower sheet area (A2)."""
+    for blk in IMU_BLOCKS:
+        for _, mcu_net, _, _ in blk["spi"]:
+            if mcu_net not in {net_for_hwdef(v) for v in hw.values()}:
+                raise SystemExit("IMU block: %s not assigned in hwdef.dat" % mcu_net)
+    for net in ("IMU1_DRDY", "IMU2_DRDY", IMU_CLK["mon_net"]):
+        if net not in hw.values():
+            raise SystemExit("IMU block: %s not assigned in hwdef.dat" % net)
+
+    bx, by0 = 25.4, 252.73
+    sh.text("Dual ICM-42688-P IMUs (Rev 11.0): per-IMU supply anti-alias filter, 33R SPI source termination",
+            bx, by0, 2.0)
+    for i, blk in enumerate(IMU_BLOCKS):
+        n = blk["n"]
+        ux, uy = 76.2, 289.56 + i * 71.12
+        sh.symbol("ICM-42688-P", blk["ref"], "ICM-42688-P", ux, uy, footprint=FP_ICM,
+                  fields={"MPN": "ICM-42688-P", "Manufacturer": "TDK InvenSense", "LCSC": "C1850418",
+                          "Spec": "IMU%d; pinout DS-000347 rev 1.2 sec 4.1; RESV 7 -> GND, RESV 2/3/10/11 NC" % n},
+                  pins=tuple(p[0] for p in ICM_PINS),
+                  ref_xy=(ux - 25.4, uy - 13.97), val_xy=(ux + 7.62, uy + 16.51))
+        o = PIN_OFFS["ICM-42688-P"]
+
+        def pt(num):
+            return ux + o[num][0], uy + o[num][1]
+        imu_net = {num: net for _, _, net, num in blk["spi"]}
+        for num in ("13", "14", "12", "1"):
+            sh.attach(imu_net[num], *pt(num), -5.08, 0)
+        sh.attach(blk["drdy"], *pt("4"), 5.08, 0, "global")
+        sh.attach(blk["clk_net"], *pt("9"), 5.08, 0)
+        for num in IMU_NC_PINS:
+            sh.noconnect(*pt(num))
+        # VDD (8) + VDDIO (5) -> filtered rail; GND (6) + RESV (7) -> GND
+        (x8, y8), (x5, y5) = pt("8"), pt("5")
+        sh.wire(x8, y8, x8, y8 - 2.54)
+        sh.wire(x5, y5, x5, y5 - 2.54)
+        sh.wire(x8, y8 - 2.54, x5, y5 - 2.54)
+        sh.label(blk["rail"], x5, y5 - 2.54)
+        (x6, y6), (x7, y7) = pt("6"), pt("7")
+        sh.wire(x6, y6, x6, y6 + 2.54)
+        sh.wire(x7, y7, x7, y7 + 2.54)
+        sh.wire(x6, y6 + 2.54, x7, y7 + 2.54)
+        sh.power("GND", x6, y6 + 2.54, 0)
+
+        # supply anti-alias filter: +3V3 -> FB -> IMUn_FB -> 22R -> +3V3_IMUn
+        px = 139.7
+        passive(sh, "FerriteBead", blk["fb"], "600R@100MHz", px, uy, "+3V3", blk["fb_net"], FP_L0402,
+                {"MPN": "BLM15AX601SN1D", "Manufacturer": "Murata", "LCSC": "C76886",
+                 "Spec": "600R@100MHz, Rdc 0.34R max - IMU%d supply filter (same part as FB1)" % n})
+        passive(sh, "R", blk["r"], "22R", px + 20.32, uy, blk["fb_net"], blk["rail"], FP_R0402,
+                {"MPN": "0402WGF220JTCE", "Manufacturer": "UNI-ROYAL", "LCSC": "C25092",
+                 "Spec": "22R 1%% 0402 - IMU%d RC/LC damping; 22R x 10uF = 220 us" % n})
+        passive(sh, "C", blk["c_bulk"], "10uF", px + 35.56, uy, blk["rail"], "GND", FP_C0603,
+                {"MPN": "CL10A106KP8NNNC", "Manufacturer": "Samsung", "LCSC": "C19702",
+                 "Spec": "10 uF X5R 10V 0603 - +3V3_IMU%d bulk" % n})
+        passive(sh, "C", blk["c_vdd"], "100nF", px + 50.8, uy, blk["rail"], "GND", FP_C0402,
+                {"Spec": "100 nF X7R 16V 0402 - at %s pin 8 VDD" % blk["ref"], "LCSC": LCSC_100N})
+        passive(sh, "C", blk["c_vddio"], "100nF", px + 66.04, uy, blk["rail"], "GND", FP_C0402,
+                {"Spec": "100 nF X7R 16V 0402 - at %s pin 5 VDDIO" % blk["ref"], "LCSC": LCSC_100N})
+        # SPI source termination: pin 1 = MCU (hwdef global label), pin 2 = IMU
+        sx = 223.52
+        for j, (ref, mcu_net, inet, _) in enumerate(blk["spi"]):
+            at_imu = mcu_net.endswith("MISO")
+            passive(sh, "R", ref, "33R", sx + j * 20.32, uy, mcu_net, inet, FP_R0402,
+                    dict(R33, Spec="33R 1%% 0402 - %s source termination, place at %s" % (
+                        mcu_net, ("%s pin 1 (IMU drives SDO)" % blk["ref"]) if at_imu else "U1 pin")),
+                    kind="global", kind2="label")
+
+    # ---------------- shared 32.768 kHz CLKIN ----------------
+    cx, cy = 330.2, 289.56
+    sh.text("Shared IMU CLKIN 32.768 kHz, RTC mode (Rev 11.0)\n"
+            "star from Y2: 33R per IMU branch, 1k to MCU monitor", cx - 12.7, by0, 2.0)
+    sh.symbol("XO_OE_4p", IMU_CLK["xo"], "32.768kHz CMOS", cx, cy, footprint=FP_XO2520,
+              fields={"MPN": "SX2M32.768KM20F30TNN", "Manufacturer": "SCTF", "LCSC": "C2901603",
+                      "Spec": "32.768 kHz CMOS XO, +/-30 ppm stability, 1.62-3.63 V, 90 uA (LCSC C2901603)"},
+              pins=("1", "2", "3", "4"), ref_xy=(cx + 2.54, cy - 11.43), val_xy=(cx + 2.54, cy + 11.43))
+    o = PIN_OFFS["XO_OE_4p"]
+    sh.attach(IMU_CLK["oe_net"], cx + o["1"][0], cy + o["1"][1], -5.08, 0)
+    sh.attach(IMU_CLK["src_net"], cx + o["3"][0], cy + o["3"][1], 5.08, 0)
+    sh.attach("+3V3", cx + o["4"][0], cy + o["4"][1], 0, -2.54)
+    sh.attach("GND", cx + o["2"][0], cy + o["2"][1], 0, 2.54)
+    passive(sh, "C", IMU_CLK["c_dec"], "100nF", cx + 30.48, cy, "+3V3", "GND", FP_C0402,
+            {"Spec": "100 nF X7R 16V 0402 - at Y2 pin 4 VDD", "LCSC": LCSC_100N})
+    passive(sh, "R", IMU_CLK["oe_r"], "10k", cx + 45.72, cy, "+3V3", IMU_CLK["oe_net"], FP_R0402,
+            {"Spec": "10k 1% 0402 - Y2 OE strapped high (no MCU control)", "LCSC": "C25744"})
+    ry = 360.68
+    for j, blk in enumerate(IMU_BLOCKS):
+        passive(sh, "R", blk["clk_r"], "33R", cx + j * 20.32, ry, IMU_CLK["src_net"], blk["clk_net"], FP_R0402,
+                dict(R33, Spec="33R 1%% 0402 - CLKIN branch to %s pin 9, place at Y2" % blk["ref"]))
+    passive(sh, "R", IMU_CLK["mon_r"], "1k", cx + 40.64, ry, IMU_CLK["src_net"], IMU_CLK["mon_net"], FP_R0402,
+            {"MPN": "0402WGF1001TCE", "Manufacturer": "UNI-ROYAL", "LCSC": "C11702",
+             "Spec": "1k 1% 0402 - isolates MCU PD12 clock monitor from the IMU CLKIN star"},
+            kind="label", kind2="global")
+
+    notes = (
+        "IMU BLOCK (Rev 11.0)\n"
+        "- ICM-42688-P pinout: TDK DS-000347 rev 1.2 sec 4.1 (LCSC C1850418). RESV 7 -> GND (datasheet:\n"
+        "  'Connect to GND'); RESV 2/3/10/11 'No Connect or Connect to GND' -> NC.\n"
+        "- CLKIN: datasheet range 31-50 kHz (typ 32). RTC_MODE = INTF_CONFIG1 (bank0 0x4D) bit2,\n"
+        "  PIN9_FUNCTION = INTF_CONFIG5 (bank1 0x7B) bits[2:1] = 0b10. ODR scales f_CLKIN/32 kHz\n"
+        "  (8 kHz -> 8192 Hz). Dead Y2 stalls BOTH IMUs: firmware must watch IMU_CLKIN_MON (PD12)\n"
+        "  and fall back to the internal oscillator (RTC_MODE=0).\n"
+        "- Supply filter per IMU: FB (600R@100MHz) + 22R + 10uF, 100nF at VDD and at VDDIO.\n"
+        "  Datasheet sec 4.2 reference: VDD 0.1uF + 2.2uF, VDDIO 10nF.\n"
+        "LAYOUT RULES\n"
+        "- R10-R12 / R19-R21 within 3 mm of U1; R18 / R22 within 3 mm of the IMU SDO pin.\n"
+        "- R14/R15/R16 at Y2 (star); C18/C19 (C21/C22) within 1 mm of IMU pins 8/5.\n"
+        "- No ESC switch-node copper or motor return current under U2/U3/Y2.\n"
+    )
+    sh.text(notes, 431.8, 252.73)
+
+
 def write_lib(kdir=KDIR):
     body = "\n".join(all_symbols(""))
     out = "(kicad_symbol_lib (version 20231120) (generator \"nano_h743_gen_mcu_core\") (generator_version \"8.0\")\n%s\n)\n" % body
@@ -642,13 +874,13 @@ def write_sch(sh, kdir=KDIR):
     out = "\n".join([
         "(kicad_sch (version 20231120) (generator \"nano_h743_gen_mcu_core\") (generator_version \"8.0\")",
         "(uuid %s)" % q(ROOT_UUID),
-        "(paper \"A3\")",
-        "(title_block (title \"Nano H743 AIO - MCU core: 24 MHz HSE + VDDA filter\")",
-        "  (date \"2026-11-06\") (rev \"10.0\") (company \"Sreesai Arjun Engineering\")",
+        "(paper \"A2\")",
+        "(title_block (title \"Nano H743 AIO - MCU core: HSE, VDDA filter, dual IMU\")",
+        "  (date \"2026-11-06\") (rev \"11.0\") (company \"Sreesai Arjun Engineering\")",
         "  (comment 1 \"STM32H743VIT6 480 MHz: HSE 24 MHz, PLL1 M3 N120 P2\")",
-        "  (comment 2 \"Y1 CL 12 pF, C1/C2 16 pF C0G; VDDA via FB1 + R2 2R2\")",
+        "  (comment 2 \"Y1 CL 12 pF; VDDA FB1+R2 2R2; U2/U3 ICM-42688-P, Y2 32.768 kHz CLKIN\")",
         "  (comment 3 \"Generated: tools/gen_mcu_core_sch.py + hwdef.dat\")",
-        "  (comment 4 \"Production Revision 10.0 / 150\"))",
+        "  (comment 4 \"Production Revision 11.0 / 150\"))",
         "(lib_symbols\n%s\n)" % libsyms,
         "\n".join(sh.items),
         "(sheet_instances (path \"/\" (page \"1\")))",

@@ -1,33 +1,54 @@
 From: Sreesai Arjun <sreesaiarjun@users.noreply.github.com>
 Subject: [PATCH] AP_HAL_ChibiOS: book bdshot RECV_FAILED on the channel that failed
 
-bdshot_receive_pulses_DMAR() rotates bdshot.curr_telem_chan to the next
-input-capture channel before bdshot_send_pulse() books the outcome of the
-previous receive.  The RECV_COMPLETE branch correctly uses prev_telem_chan,
-but the RECV_FAILED branch (no edges captured: the ESC never answered)
-used curr_telem_chan, i.e. the NEXT channel, and used it as a global
-channel index although it is group-local.
+bdshot_finish_dshot_gcr_transaction() (DMA-complete / receive-timeout ISR)
+sets prev_telem_chan = curr_telem_chan and rotates curr_telem_chan to the
+next input-capture channel, and only then marks the transaction
+RECV_COMPLETE or RECV_FAILED.  bdshot_prepare_for_next_pulse() books
+RECV_COMPLETE against group.chan[prev_telem_chan] (correct), but books
+RECV_FAILED (no edges captured: the ESC never answered) against
+curr_telem_chan - the NEXT channel, and as a group-local index although
+erpm_errors[] is indexed by global channel number.  The index-space part
+only matters on groups whose chan[] is not {0,1,2,3}.
 
 Effect: the no-reply failures of a silent ESC inflate its neighbour's
 erpm error rate, which AP_ESC_Telem logs (ESC message error_rate field)
 and returns from get_raw_rpm_and_error_rate().  The silent ESC itself
 never publishes a rate (update_rpm() is only called on a valid eRPM), so
-the log points at the wrong motor.  Reproduced on the Nano H743
-AIO (4 motors on TIM1) by firmware/bdshot_telem/test_bdshot_telem.cpp T8.
+the log points at the wrong motor.
+
+Once failures are booked on the silent channel it never reaches the
+RECV_COMPLETE branch that holds the 5 s statistics reset, so the reset is
+applied in the RECV_FAILED branch as well; otherwise the uint16 counter
+grows until it wraps (~164 s at 400 Hz per motor) and the first rate
+published after the ESC recovers is stale.
+
+The diagnosis comes from reading RCOutput_bdshot.cpp; the counter logic
+before and after this change is reproduced in a host-side model
+(Nano H743 AIO repo, firmware/bdshot_telem, test T8), not on hardware.
 
 ---
 --- a/libraries/AP_HAL_ChibiOS/RCOutput_bdshot.cpp
 +++ b/libraries/AP_HAL_ChibiOS/RCOutput_bdshot.cpp
-@@ -284,7 +284,11 @@
+@@ -284,7 +284,20 @@
              _bdshot.erpm_last_stats_ms[chan] = now;
          }
      } else if (group.dshot_state == DshotState::RECV_FAILED) {
 -        _bdshot.erpm_errors[group.bdshot.curr_telem_chan]++;
-+        // the DMA completion ISR has already rotated curr_telem_chan to the
-+        // next channel, so the channel that failed to answer is
-+        // prev_telem_chan; erpm_errors[] is indexed by global channel
-+        // number, the same as the RECV_COMPLETE branch above.
-+        _bdshot.erpm_errors[group.chan[group.bdshot.prev_telem_chan]]++;
++        // bdshot_finish_dshot_gcr_transaction() has already rotated
++        // curr_telem_chan to the next channel, so the channel that failed to
++        // answer is prev_telem_chan; erpm_errors[] is indexed by global
++        // channel number, as in the RECV_COMPLETE branch above.
++        const uint8_t chan = group.chan[group.bdshot.prev_telem_chan];
++        const uint32_t now = AP_HAL::millis();
++        _bdshot.erpm_errors[chan]++;
++        // a silent ESC never reaches RECV_COMPLETE, so apply the same 5 s
++        // statistics window here or its uint16 counter grows until it wraps
++        if (now - _bdshot.erpm_last_stats_ms[chan] > 5000) {
++            _bdshot.erpm_clean_frames[chan] = 0;
++            _bdshot.erpm_errors[chan] = 0;
++            _bdshot.erpm_last_stats_ms[chan] = now;
++        }
      }
  
      if (group.bdshot.enabled) {

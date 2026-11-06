@@ -1,5 +1,5 @@
 {
-  "revision": "8.0",
+  "revision": "9.0",
   "board_geometry_readback": {
     "board_w": 36.0,
     "board_h": 36.0,
@@ -59,12 +59,8 @@
     "r_spread_site": 0.8087743338886801
   },
   "assumptions": {
-    "rds_tempco_per_K": 0.0056,
-    "v_plateau": 3.0,
-    "r_drv_source": 6.0,
-    "r_drv_sink": 4.0,
-    "rg_ext": 4.7,
-    "dead_time_s": 6e-08,
+    "rds_tempco_per_K": 0.0072,
+    "v_plateau": 3.3,
     "duty_at_rated": 0.9,
     "solder_bond_um": 50.0,
     "solder_void_frac": 0.3,
@@ -116,7 +112,14 @@
       ]
     ],
     "vdrv_qg_slope_F": 7.37e-09,
-    "am32_margin_K": 5.0
+    "am32_margin_K": 5.0,
+    "r_drv_source": 9.0,
+    "r_drv_sink": 4.5,
+    "rg_on": 15.0,
+    "rg_off": 0.48387096774193544,
+    "dead_time_s": 7.087333333333336e-07,
+    "am32_dead_time_code": 34,
+    "st_frac": 0.0729936388883249
   },
   "limits_C": {
     "tj_cont": 125.0,
@@ -125,164 +128,164 @@
   },
   "am32_temperature_cutoff_C": 115.0,
   "published_rating": {
-    "cont_conservative_A": 17.0,
-    "burst10s_conservative_A": 22.0,
+    "cont_conservative_A": 16.0,
+    "burst10s_conservative_A": 21.0,
     "cont_typical_A": 20.0,
-    "burst10s_typical_A": 28.0
+    "burst10s_typical_A": 25.0
   },
   "scenarios": {
     "R1_4S_cont_conservative": {
-      "I_motor_A": 17.0,
+      "I_motor_A": 16.0,
       "vbat_V": 16.8,
       "fsw_kHz": 24.0,
       "h_W_m2K": 50.0,
       "duty": 0.9,
       "vgs_class": "10V",
-      "t_on_ns": 19.666666666666668,
-      "t_off_ns": 75.13333333333334,
+      "t_on_ns": 42.76296296296297,
+      "t_off_ns": 42.40273704789835,
       "p_hs_W": {
-        "cond": 0.103,
-        "sw": 0.1083,
+        "cond": 0.0993,
+        "sw": 0.0949,
         "coss_qrr": 0.0182
       },
       "p_ls_W": {
-        "cond": 0.1259,
-        "deadtime": 0.0131
+        "cond": 0.1221,
+        "deadtime": 0.1451
       },
-      "p_fet_hs_W": 0.22957136754379553,
-      "p_fet_ls_W": 0.1389973881380739,
-      "p_fets_total_W": 4.4228250681824335,
-      "p_planes_W": 1.0213548887338555,
-      "p_shunt_W": 1.8727200000000004,
+      "p_fet_hs_W": 0.21243512276671406,
+      "p_fet_ls_W": 0.26723152272952727,
+      "p_fets_total_W": 5.755999745954896,
+      "p_planes_W": 0.907854817539852,
+      "p_shunt_W": 1.6588800000000001,
       "p_gate_drive_W": 0.49389096960000006,
-      "p_phase_bridge_W": 1.2063046295317232,
+      "p_phase_bridge_W": 1.072251654563114,
       "p_misc_W": 0.6,
-      "p_board_total_W": 9.617095556048012,
+      "p_board_total_W": 10.488877187657863,
       "g_plate_W_K": 0.1152941912828445,
       "fin_eff": 0.9122602166473837,
       "g_wires_W_K": 0.13594776968729766,
-      "wire_self_heating_term_W": 5.262745114179793,
+      "wire_self_heating_term_W": 4.6779122106277455,
       "wires": {
         "battery_12AWG": {
-          "I_A": 61.2,
+          "I_A": 57.6,
           "g_W_K_each": 0.026844514293583102,
-          "self_heating_rise_K": 44.38077399922576
+          "self_heating_rise_K": 39.4488731838279
         },
         "motor_20AWG": {
-          "I_A": 13.880441875771343,
+          "I_A": 13.063945294843617,
           "g_W_K_each": 0.00685489509167762,
-          "self_heating_rise_K": 35.011287939710485
+          "self_heating_rise_K": 31.120589694091787
         }
       },
       "g_total_W_K": 0.2512419609701422,
       "r_board_air_K_W": 3.980226854378202,
-      "t_board_C": 94.22514142450966,
-      "t_site_C": 94.82131932424723,
-      "tj_hs_C": 96.09119673228409,
-      "tj_ls_C": 96.11345642888189,
-      "rds_hs_mohm": 1.188394096445672
+      "t_board_C": 95.36726245775499,
+      "t_site_C": 96.14314660115467,
+      "tj_hs_C": 97.3182346182765,
+      "tj_ls_C": 98.62736425928676,
+      "rds_hs_mohm": 1.2925875958638522
     },
     "R2_2S_cont_conservative": {
-      "I_motor_A": 17.0,
+      "I_motor_A": 16.0,
       "vbat_V": 8.4,
       "fsw_kHz": 24.0,
       "h_W_m2K": 50.0,
       "duty": 0.9,
       "vgs_class": "4.5V",
-      "t_on_ns": 59.00000000000001,
-      "t_off_ns": 75.13333333333334,
+      "t_on_ns": 134.25581395348837,
+      "t_off_ns": 42.40273704789835,
       "p_hs_W": {
-        "cond": 0.173,
-        "sw": 0.0766,
+        "cond": 0.1689,
+        "sw": 0.1002,
         "coss_qrr": 0.0091
       },
       "p_ls_W": {
-        "cond": 0.212,
-        "deadtime": 0.0131
+        "cond": 0.2081,
+        "deadtime": 0.1451
       },
-      "p_fet_hs_W": 0.25876728202804805,
-      "p_fet_ls_W": 0.22508788072621147,
-      "p_fets_total_W": 5.806261953051115,
-      "p_planes_W": 1.0354070206130173,
-      "p_shunt_W": 1.8727200000000004,
+      "p_fet_hs_W": 0.27828915337176807,
+      "p_fet_ls_W": 0.35326947131766473,
+      "p_fets_total_W": 7.578703496273194,
+      "p_planes_W": 0.9253625761082225,
+      "p_shunt_W": 1.6588800000000001,
       "p_gate_drive_W": 0.15029759999999998,
-      "p_phase_bridge_W": 1.2229013599411083,
+      "p_phase_bridge_W": 1.0929297660077366,
       "p_misc_W": 0.6,
-      "p_board_total_W": 10.68758793360524,
+      "p_board_total_W": 12.006173438389153,
       "g_plate_W_K": 0.1152941912828445,
       "fin_eff": 0.9122602166473837,
       "g_wires_W_K": 0.13594776968729766,
-      "wire_self_heating_term_W": 5.335151668656216,
+      "wire_self_heating_term_W": 4.768124605831682,
       "wires": {
         "battery_12AWG": {
-          "I_A": 61.2,
+          "I_A": 57.6,
           "g_W_K_each": 0.026844514293583102,
-          "self_heating_rise_K": 44.99137908470149
+          "self_heating_rise_K": 40.20963507455433
         },
         "motor_20AWG": {
-          "I_A": 13.880441875771343,
+          "I_A": 13.063945294843617,
           "g_W_K_each": 0.00685489509167762,
-          "self_heating_rise_K": 35.492984596587526
+          "self_heating_rise_K": 31.720742670474007
         }
       },
       "g_total_W_K": 0.2512419609701422,
       "r_board_air_K_W": 3.980226854378202,
-      "t_board_C": 98.77413844563016,
-      "t_site_C": 99.55679771954051,
-      "tj_hs_C": 100.98817275947808,
-      "tj_ls_C": 101.64924281067422,
-      "rds_hs_mohm": 1.995747274434308
+      "t_board_C": 101.76551153895151,
+      "t_site_C": 102.7870883509412,
+      "tj_hs_C": 104.32644891035895,
+      "tj_ls_C": 106.07112553997662,
+      "rds_hs_mohm": 2.199610605016418
     },
     "R3_4S_burst10s_conservative": {
-      "I_motor_A": 22.0,
+      "I_motor_A": 21.0,
       "vbat_V": 16.8,
       "fsw_kHz": 24.0,
       "h_W_m2K": 50.0,
       "duty": 0.9,
       "vgs_class": "10V",
-      "t_on_ns": 19.666666666666668,
-      "t_off_ns": 75.13333333333334,
+      "t_on_ns": 42.76296296296297,
+      "t_off_ns": 42.40273704789835,
       "p_hs_W": {
-        "cond": 0.1818,
-        "sw": 0.1402,
+        "cond": 0.1824,
+        "sw": 0.1246,
         "coss_qrr": 0.0182
       },
       "p_ls_W": {
-        "cond": 0.2225,
-        "deadtime": 0.0169
+        "cond": 0.2249,
+        "deadtime": 0.1905
       },
-      "p_fet_hs_W": 0.3402028259431584,
-      "p_fet_ls_W": 0.23940149878504,
-      "p_fets_total_W": 6.955251896738382,
-      "p_planes_W": 1.7748671687780726,
-      "p_shunt_W": 3.1363200000000004,
+      "p_fet_hs_W": 0.3252041106174494,
+      "p_fet_ls_W": 0.4154523682680289,
+      "p_fets_total_W": 8.88787774662574,
+      "p_planes_W": 1.6251613674438172,
+      "p_shunt_W": 2.8576800000000007,
       "p_gate_drive_W": 0.49389096960000006,
-      "p_phase_bridge_W": 2.096264977156986,
+      "p_phase_bridge_W": 1.9194500392648866,
       "p_misc_W": 0.6,
-      "p_board_total_W": 15.056595012273442,
+      "p_board_total_W": 16.384060122934446,
       "g_plate_W_K": 0.1152941912828445,
       "fin_eff": 0.9122602166473837,
       "g_wires_W_K": 0.13594776968729766,
-      "wire_self_heating_term_W": 7.589181520985587,
+      "wire_self_heating_term_W": 6.890311756876242,
       "wires": {
         "battery_12AWG": {
-          "I_A": 68.79266736595146,
+          "I_A": 65.22373920569545,
           "g_W_K_each": 0.026844514293583102,
-          "self_heating_rise_K": 58.18593146004635
+          "self_heating_rise_K": 52.56328324447914
         },
         "motor_20AWG": {
-          "I_A": 16.967176012729723,
+          "I_A": 16.15555840020149,
           "g_W_K_each": 0.00685489509167762,
-          "self_heating_rise_K": 54.2828071976065
+          "self_heating_rise_K": 49.4566302099849
         }
       },
       "g_total_W_K": 0.2512419609701422,
       "r_board_air_K_W": 3.980226854378202,
-      "t_board_C": 106.66627489943949,
-      "t_site_C": 107.60381310274158,
-      "tj_hs_C": 109.48565005583242,
-      "tj_ls_C": 109.82931937756464,
-      "rds_hs_mohm": 1.2521516942657622,
+      "t_board_C": 108.35890825219636,
+      "t_site_C": 109.55695615289824,
+      "tj_hs_C": 111.35582749078421,
+      "tj_ls_C": 113.41905332924381,
+      "rds_hs_mohm": 1.3784976642435993,
       "burst_s": 10,
       "c_board_J_K": 5.8698648,
       "tau_board_s": 23.363393508529334,
@@ -290,7 +293,7 @@
         "battery_12AWG": 20.194109695976657,
         "motor_20AWG": 7.584687967987363
       },
-      "t_board_equilibrium_if_sustained_C": 129.95482332267278
+      "t_board_equilibrium_if_sustained_C": 132.6779602735436
     },
     "R4_4S_cont_typical": {
       "I_motor_A": 20.0,
@@ -299,100 +302,100 @@
       "h_W_m2K": 80.0,
       "duty": 0.9,
       "vgs_class": "10V",
-      "t_on_ns": 19.666666666666668,
-      "t_off_ns": 75.13333333333334,
+      "t_on_ns": 42.76296296296297,
+      "t_off_ns": 42.40273704789835,
       "p_hs_W": {
-        "cond": 0.1386,
-        "sw": 0.1274,
+        "cond": 0.1546,
+        "sw": 0.1187,
         "coss_qrr": 0.0182
       },
       "p_ls_W": {
-        "cond": 0.1695,
-        "deadtime": 0.0154
+        "cond": 0.1906,
+        "deadtime": 0.1814
       },
-      "p_fet_hs_W": 0.2842068570021745,
-      "p_fet_ls_W": 0.18481002308658423,
-      "p_fets_total_W": 5.628202561065105,
-      "p_planes_W": 1.3813403938355489,
+      "p_fet_hs_W": 0.29150504001188315,
+      "p_fet_ls_W": 0.3720595602472,
+      "p_fets_total_W": 7.962775203108998,
+      "p_planes_W": 1.4124620117882256,
       "p_shunt_W": 2.592,
       "p_gate_drive_W": 0.49389096960000006,
-      "p_phase_bridge_W": 1.6314772959168804,
+      "p_phase_bridge_W": 1.6682345016922124,
       "p_misc_W": 0.6,
-      "p_board_total_W": 12.326911220417536,
+      "p_board_total_W": 14.729362686189438,
       "g_plate_W_K": 0.17550655716324598,
       "fin_eff": 0.8679299455555205,
       "g_wires_W_K": 0.17196183801274295,
-      "wire_self_heating_term_W": 5.626993134303934,
+      "wire_self_heating_term_W": 5.753769366527104,
       "wires": {
         "battery_12AWG": {
           "I_A": 72.0,
           "g_W_K_each": 0.03395592313946744,
-          "self_heating_rise_K": 37.51447985357899
+          "self_heating_rise_K": 38.35968159741178
         },
         "motor_20AWG": {
           "I_A": 16.32993161855452,
           "g_W_K_each": 0.008670832644484006,
-          "self_heating_rise_K": 29.594577509735085
+          "self_heating_rise_K": 30.261343745515273
         }
       },
       "g_total_W_K": 0.34746839517598893,
       "r_board_air_K_W": 2.8779595896585386,
-      "t_board_C": 86.67061120948284,
-      "t_site_C": 87.42926883903552,
-      "tj_hs_C": 89.00136326343004,
-      "tj_ls_C": 89.14728592797067,
-      "rds_hs_mohm": 1.154646489133927
+      "t_board_C": 93.94962631735775,
+      "t_site_C": 95.02297435249105,
+      "tj_hs_C": 96.63543878392478,
+      "tj_ls_C": 98.48168655830534,
+      "rds_hs_mohm": 1.2884088853576194
     },
     "R5_4S_burst10s_typical": {
-      "I_motor_A": 28.0,
+      "I_motor_A": 25.0,
       "vbat_V": 16.8,
       "fsw_kHz": 24.0,
       "h_W_m2K": 80.0,
       "duty": 0.9,
       "vgs_class": "10V",
-      "t_on_ns": 19.666666666666668,
-      "t_off_ns": 75.13333333333334,
+      "t_on_ns": 42.76296296296297,
+      "t_off_ns": 42.40273704789835,
       "p_hs_W": {
-        "cond": 0.2989,
-        "sw": 0.1784,
+        "cond": 0.2593,
+        "sw": 0.1483,
         "coss_qrr": 0.0182
       },
       "p_ls_W": {
-        "cond": 0.3665,
-        "deadtime": 0.0215
+        "cond": 0.3208,
+        "deadtime": 0.2268
       },
-      "p_fet_hs_W": 0.49551677393730553,
-      "p_fet_ls_W": 0.3880149936151608,
-      "p_fets_total_W": 10.602381210629595,
-      "p_planes_W": 2.896584001455826,
-      "p_shunt_W": 5.0803199999999995,
+      "p_fet_hs_W": 0.4258826982191481,
+      "p_fet_ls_W": 0.5475793422425155,
+      "p_fets_total_W": 11.681544485539963,
+      "p_planes_W": 2.301968566104704,
+      "p_shunt_W": 4.05,
       "p_gate_drive_W": 0.49389096960000006,
-      "p_phase_bridge_W": 3.421105366338728,
+      "p_phase_bridge_W": 2.7188153392705847,
       "p_misc_W": 0.6,
-      "p_board_total_W": 23.09428154802415,
+      "p_board_total_W": 21.846219360515253,
       "g_plate_W_K": 0.17550655716324598,
       "fin_eff": 0.8679299455555205,
       "g_wires_W_K": 0.17196183801274295,
-      "wire_self_heating_term_W": 10.23101686139065,
+      "wire_self_heating_term_W": 8.461090033446753,
       "wires": {
         "battery_12AWG": {
-          "I_A": 88.92260559452673,
+          "I_A": 82.33858422738498,
           "g_W_K_each": 0.03395592313946744,
-          "self_heating_rise_K": 61.21919865344007
+          "self_heating_rise_K": 52.3262218210396
         },
         "motor_20AWG": {
-          "I_A": 22.172384565526286,
+          "I_A": 19.961766410372725,
           "g_W_K_each": 0.008670832644484006,
-          "self_heating_rise_K": 58.37105752642976
+          "self_heating_rise_K": 47.16501769009084
         }
       },
       "g_total_W_K": 0.34746839517598893,
       "r_board_air_K_W": 2.8779595896585386,
-      "t_board_C": 109.24294298348278,
-      "t_site_C": 110.67209861702625,
-      "tj_hs_C": 113.41305696587719,
-      "tj_ls_C": 114.27913452698661,
-      "rds_hs_mohm": 1.2708461511575753,
+      "t_board_C": 108.16960163624285,
+      "t_site_C": 109.74422386292343,
+      "tj_hs_C": 112.10000029414195,
+      "tj_ls_C": 114.83458991455133,
+      "rds_hs_mohm": 1.3830520018001486,
       "burst_s": 10,
       "c_board_J_K": 5.8698648,
       "tau_board_s": 16.8932336911591,
@@ -400,7 +403,7 @@
         "battery_12AWG": 12.62131855998541,
         "motor_20AWG": 4.740429979992102
       },
-      "t_board_equilibrium_if_sustained_C": 137.1957754819852
+      "t_board_equilibrium_if_sustained_C": 125.77915089333302
     },
     "I1_legacy_4S_20A_conservative": {
       "I_motor_A": 20,
@@ -409,49 +412,49 @@
       "h_W_m2K": 50.0,
       "duty": 0.9,
       "vgs_class": "10V",
-      "t_on_ns": 19.666666666666668,
-      "t_off_ns": 75.13333333333334,
+      "t_on_ns": 42.76296296296297,
+      "t_off_ns": 42.40273704789835,
       "p_hs_W": {
-        "cond": 0.1567,
-        "sw": 0.1274,
+        "cond": 0.1812,
+        "sw": 0.1187,
         "coss_qrr": 0.0182
       },
       "p_ls_W": {
-        "cond": 0.1917,
-        "deadtime": 0.0154
+        "cond": 0.2233,
+        "deadtime": 0.1814
       },
-      "p_fet_hs_W": 0.3023488329741449,
-      "p_fet_ls_W": 0.20705787683242888,
-      "p_fets_total_W": 6.112880517678885,
-      "p_planes_W": 1.5164276552362803,
+      "p_fet_hs_W": 0.3180936187063026,
+      "p_fet_ls_W": 0.4046970309439054,
+      "p_fets_total_W": 8.673487795802496,
+      "p_planes_W": 1.5662168074165081,
       "p_shunt_W": 2.592,
       "p_gate_drive_W": 0.49389096960000006,
-      "p_phase_bridge_W": 1.791026528623327,
+      "p_phase_bridge_W": 1.8498316368555143,
       "p_misc_W": 0.6,
-      "p_board_total_W": 13.106225671138493,
+      "p_board_total_W": 15.775427209674518,
       "g_plate_W_K": 0.1152941912828445,
       "fin_eff": 0.9122602166473837,
       "g_wires_W_K": 0.13594776968729766,
-      "wire_self_heating_term_W": 7.813711298229691,
+      "wire_self_heating_term_W": 8.070260339376864,
       "wires": {
         "battery_12AWG": {
           "I_A": 72.0,
           "g_W_K_each": 0.026844514293583102,
-          "self_heating_rise_K": 65.89309337584645
+          "self_heating_rise_K": 68.05657360676112
         },
         "motor_20AWG": {
           "I_A": 16.32993161855452,
           "g_W_K_each": 0.00685489509167762,
-          "self_heating_rise_K": 51.98201512799747
+          "self_heating_rise_K": 53.6887503308974
         }
       },
       "g_total_W_K": 0.2512419609701422,
       "r_board_air_K_W": 3.980226854378202,
-      "t_board_C": 118.26609491737858,
-      "t_site_C": 119.09008506218305,
-      "tj_hs_C": 120.7625320944417,
-      "tj_ls_C": 121.01492098209462,
-      "rds_hs_mohm": 1.3058296527695425
+      "t_board_C": 129.91124594384627,
+      "t_site_C": 131.0803949962699,
+      "tj_hs_C": 132.83993454319864,
+      "tj_ls_C": 134.84250921167265,
+      "rds_hs_mohm": 1.5099803994043757
     },
     "I2_4S_cont_typical_48kHz": {
       "I_motor_A": 20.0,
@@ -460,49 +463,49 @@
       "h_W_m2K": 80.0,
       "duty": 0.9,
       "vgs_class": "10V",
-      "t_on_ns": 19.666666666666668,
-      "t_off_ns": 75.13333333333334,
+      "t_on_ns": 42.76296296296297,
+      "t_off_ns": 42.40273704789835,
       "p_hs_W": {
-        "cond": 0.1438,
-        "sw": 0.2548,
+        "cond": 0.1662,
+        "sw": 0.2373,
         "coss_qrr": 0.0365
       },
       "p_ls_W": {
-        "cond": 0.1754,
-        "deadtime": 0.0307
+        "cond": 0.2057,
+        "deadtime": 0.3629
       },
-      "p_fet_hs_W": 0.4350495034944879,
-      "p_fet_ls_W": 0.20607295167419837,
-      "p_fets_total_W": 7.693469462024235,
-      "p_planes_W": 1.4154558822496477,
+      "p_fet_hs_W": 0.4400268820048645,
+      "p_fet_ls_W": 0.56860729649377,
+      "p_fets_total_W": 12.103610141983612,
+      "p_planes_W": 1.47424639294714,
       "p_shunt_W": 2.592,
       "p_gate_drive_W": 0.9877819392000001,
-      "p_phase_bridge_W": 1.671770510417161,
+      "p_phase_bridge_W": 1.741206967822124,
       "p_misc_W": 0.6,
-      "p_board_total_W": 14.960477793891044,
+      "p_board_total_W": 19.498845441952877,
       "g_plate_W_K": 0.17550655716324598,
       "fin_eff": 0.8679299455555205,
       "g_wires_W_K": 0.17196183801274295,
-      "wire_self_heating_term_W": 5.765965121177151,
+      "wire_self_heating_term_W": 6.005452651935912,
       "wires": {
         "battery_12AWG": {
           "I_A": 72.0,
           "g_W_K_each": 0.03395592313946744,
-          "self_heating_rise_K": 38.44098921254449
+          "self_heating_rise_K": 40.03762349543744
         },
         "motor_20AWG": {
           "I_A": 16.32993161855452,
           "g_W_K_each": 0.008670832644484006,
-          "self_heating_rise_K": 30.325486032108834
+          "self_heating_rise_K": 31.585045466871136
         }
       },
       "g_total_W_K": 0.34746839517598893,
       "r_board_air_K_W": 2.8779595896585386,
-      "t_board_C": 94.6498651469308,
-      "t_site_C": 95.68691192017106,
-      "tj_hs_C": 98.09339467007196,
-      "tj_ls_C": 97.60259185262642,
-      "rds_hs_mohm": 1.1979245586295426
+      "t_board_C": 108.40033927681722,
+      "t_site_C": 110.0318541485224,
+      "tj_hs_C": 112.46586934111946,
+      "tj_ls_C": 115.31769869285128,
+      "rds_hs_mohm": 1.385291120367651
     },
     "I3_legacy_35A_10s_burst_typical": {
       "I_motor_A": 35,
@@ -511,49 +514,49 @@
       "h_W_m2K": 80.0,
       "duty": 0.9,
       "vgs_class": "10V",
-      "t_on_ns": 19.666666666666668,
-      "t_off_ns": 75.13333333333334,
+      "t_on_ns": 42.76296296296297,
+      "t_off_ns": 42.40273704789835,
       "p_hs_W": {
-        "cond": 0.5318,
-        "sw": 0.223,
+        "cond": 0.6354,
+        "sw": 0.2077,
         "coss_qrr": 0.0182
       },
       "p_ls_W": {
-        "cond": 0.6544,
-        "deadtime": 0.0269
+        "cond": 0.7919,
+        "deadtime": 0.3175
       },
-      "p_fet_hs_W": 0.7730104275199963,
-      "p_fet_ls_W": 0.6812593592064583,
-      "p_fets_total_W": 17.451237440717456,
-      "p_planes_W": 4.978515991301907,
+      "p_fet_hs_W": 0.8613367647842954,
+      "p_fet_ls_W": 1.1094236393406067,
+      "p_fets_total_W": 23.649124849498826,
+      "p_planes_W": 5.199587490841527,
       "p_shunt_W": 7.938,
       "p_gate_drive_W": 0.49389096960000006,
-      "p_phase_bridge_W": 5.880039303429769,
+      "p_phase_bridge_W": 6.141143035632743,
       "p_misc_W": 0.6,
-      "p_board_total_W": 37.341683705049135,
+      "p_board_total_W": 44.0217463455731,
       "g_plate_W_K": 0.17550655716324598,
       "fin_eff": 0.8679299455555205,
       "g_wires_W_K": 0.17196183801274295,
-      "wire_self_heating_term_W": 16.57369615916387,
+      "wire_self_heating_term_W": 17.309652791465908,
       "wires": {
         "battery_12AWG": {
           "I_A": 105.04612792843577,
           "g_W_K_each": 0.03395592313946744,
-          "self_heating_rise_K": 93.9760379009904
+          "self_heating_rise_K": 98.14905324449062
         },
         "motor_20AWG": {
           "I_A": 27.385275648979693,
           "g_W_K_each": 0.008670832644484006,
-          "self_heating_rise_K": 97.94916606434462
+          "self_heating_rise_K": 102.29860856052858
         }
       },
       "g_total_W_K": 0.34746839517598893,
       "r_board_air_K_W": 2.8779595896585386,
-      "t_board_C": 143.80919762503515,
-      "t_site_C": 146.1615497811434,
-      "tj_hs_C": 150.43746837058725,
-      "tj_ls_C": 152.49462198992381,
-      "rds_hs_mohm": 1.447082349443995,
+      "t_board_C": 160.69288043424433,
+      "t_site_C": 163.88068130044493,
+      "tj_hs_C": 168.64517832816105,
+      "tj_ls_C": 174.1940222081663,
+      "rds_hs_mohm": 1.7291084913683454,
       "burst_s": 10,
       "c_board_J_K": 5.8698648,
       "tau_board_s": 16.8932336911591,
@@ -561,7 +564,7 @@
         "battery_12AWG": 12.62131855998541,
         "motor_20AWG": 4.740429979992102
       },
-      "t_board_equilibrium_if_sustained_C": 214.56774181384893
+      "t_board_equilibrium_if_sustained_C": 243.34552888075035
     },
     "I4_4S_20A_static_bench": {
       "I_motor_A": 20,
@@ -570,49 +573,49 @@
       "h_W_m2K": 12.0,
       "duty": 0.9,
       "vgs_class": "10V",
-      "t_on_ns": 19.666666666666668,
-      "t_off_ns": 75.13333333333334,
+      "t_on_ns": 42.76296296296297,
+      "t_off_ns": 42.40273704789835,
       "p_hs_W": {
-        "cond": 0.6109,
-        "sw": 0.1274,
+        "cond": 0.9517,
+        "sw": 0.1187,
         "coss_qrr": 0.0182
       },
       "p_ls_W": {
-        "cond": 0.7487,
-        "deadtime": 0.0154
+        "cond": 1.1691,
+        "deadtime": 0.1814
       },
-      "p_fet_hs_W": 0.7565229753833002,
-      "p_fet_ls_W": 0.7640203565983386,
-      "p_fets_total_W": 18.246519983779663,
-      "p_planes_W": 4.898261084689609,
+      "p_fet_hs_W": 1.0886012003655399,
+      "p_fet_ls_W": 1.3504948096202014,
+      "p_fets_total_W": 29.269152119828895,
+      "p_planes_W": 6.021860591628575,
       "p_shunt_W": 2.592,
       "p_gate_drive_W": 0.49389096960000006,
-      "p_phase_bridge_W": 5.785251618505613,
+      "p_phase_bridge_W": 7.112315601760533,
       "p_misc_W": 0.6,
-      "p_board_total_W": 32.615923656574886,
+      "p_board_total_W": 46.08921928281801,
       "g_plate_W_K": 0.029637755123096344,
       "fin_eff": 0.977114306768241,
       "g_wires_W_K": 0.06660053348065709,
-      "wire_self_heating_term_W": 51.51953965928393,
+      "wire_self_heating_term_W": 63.33747430140235,
       "wires": {
         "battery_12AWG": {
           "I_A": 72.0,
           "g_W_K_each": 0.013151072482425644,
-          "self_heating_rise_K": 886.8473819545006
+          "self_heating_rise_K": 1090.2790210332764
         },
         "motor_20AWG": {
           "I_A": 16.32993161855452,
           "g_W_K_each": 0.0033581990429838167,
-          "self_heating_rise_K": 699.6198184540249
+          "self_heating_rise_K": 860.1038084799432
         }
       },
       "g_total_W_K": 0.09623828860375343,
       "r_board_air_K_W": 10.39087471845378,
-      "t_board_C": 909.2410586941528,
-      "t_site_C": 911.7006115350974,
-      "tj_hs_C": 915.8853295396927,
-      "tj_ls_C": 918.8030403266101,
-      "rds_hs_mohm": 5.090614168608937
+      "t_board_C": 1172.0390638882639,
+      "t_site_C": 1175.9844203897974,
+      "tj_hs_C": 1182.0060339973493,
+      "tj_ls_C": 1188.5387890473821,
+      "rds_hs_mohm": 7.9308769280637765
     }
   },
   "verdict": {
@@ -659,7 +662,7 @@
       "am32_cutoff_trips": true
     },
     "I2_4S_cont_typical_48kHz": {
-      "pass": true,
+      "pass": false,
       "must_pass": false,
       "tj_limit_C": 125.0,
       "t_board_limit_C": 105.0,
@@ -681,20 +684,20 @@
     }
   },
   "max_continuous_current_per_motor": {
-    "conservative_h50_4S_24kHz_A": 18.448361573596422,
-    "conservative_h50_2S_24kHz_A": 17.730447979257328,
-    "typical_h80_4S_24kHz_A": 23.13852155716536,
-    "typical_h80_4S_48kHz_A": 21.74115645526971,
-    "static_bench_h12_4S_24kHz_A": 8.643143026643436,
-    "allowed_35A_burst_s_from_typical_cont": 4.094767379719997,
-    "allowed_35A_burst_s_from_conservative_cont": 2.1390003935448476
+    "conservative_h50_4S_24kHz_A": 17.275237926442458,
+    "conservative_h50_2S_24kHz_A": 16.368051463996522,
+    "typical_h80_4S_24kHz_A": 21.781376471613854,
+    "typical_h80_4S_48kHz_A": 19.477298212666582,
+    "static_bench_h12_4S_24kHz_A": 7.927618193310635,
+    "allowed_35A_burst_s_from_typical_cont": 2.4829566693733796,
+    "allowed_35A_burst_s_from_conservative_cont": 1.6364564095420064
   },
   "via_array_ablation_35A": {
-    "p_hs_W": 0.7730104275199963,
-    "hs_rise_above_site_with_vias_K": 4.275918589443848,
-    "hs_rise_above_site_prepreg_only_K": 16.448877748745815,
-    "ls_rise_above_site_K": 6.3330722087804,
-    "via_array_benefit_K": 12.172959159301968
+    "p_hs_W": 0.8613367647842954,
+    "hs_rise_above_site_with_vias_K": 4.764497027716123,
+    "hs_rise_above_site_prepreg_only_K": 18.328372606682084,
+    "ls_rise_above_site_K": 10.313340907721358,
+    "via_array_benefit_K": 13.56387557896596
   },
   "must_pass_failures": [],
   "status": "PASS"

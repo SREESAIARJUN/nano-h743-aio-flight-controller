@@ -201,8 +201,8 @@
   "DEAD_TIME": 34,
   "dt_mcu_ns": 283.33333333333337,
   "body_diode_per_edge_ns": {
-   "typ": 483.3333333333333,
-   "max": 613.3333333333334
+   "typ": 424.5833333333334,
+   "max": 708.7333333333336
   },
   "arr_at_24kHz": 4999,
   "min_duty_from_dead_time_pct": 0.68,

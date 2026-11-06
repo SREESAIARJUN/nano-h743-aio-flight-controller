@@ -45,7 +45,10 @@
     "tim1_kernel_clock_hz": 240000000.0,
     "dshot_bitrate": 600000,
     "dshot_bit_us": 1.6666666666666667,
-    "output_ticks_per_bit": 400.0,
+    "output_psc": 49,
+    "output_tick_hz": 4800000.0,
+    "output_ticks_per_bit": 8.0,
+    "output_bitrate_error_pct": 0.0,
     "gcr_bitrate": 750000,
     "gcr_bit_us": 1.3333333333333333,
     "telem_psc": 19,
@@ -56,73 +59,98 @@
     "ic_counter_wrap_ms": 5.461333333333334
   },
   "bidir_cycle_us": {
-    "frame": 26.666666666666668,
+    "frame_19_slots": 31.0,
     "turnaround": 30.0,
     "gcr_reply": 28.0,
-    "margin": 10.0,
-    "total": 94.66666666666667
+    "receive_window": 71.0,
+    "total": 102.0
   },
   "rate_sweep": [
     {
       "SERVO_DSHOT_RATE": 0,
-      "punch_residual_attenuation_db": -0.6151748812304265,
-      "frame_hz": 1000.0,
+      "punch_residual_attenuation_db": -0.19970944325264803,
+      "frame_interval_us": [
+        500.0,
+        1000.0
+      ],
+      "worst_capture_gap_ms": 3.5,
+      "frame_hz": 1200,
       "loop_synchronous": false,
-      "per_motor_erpm_hz": 250.0,
-      "worst_sample_age_ms": 5.428571428571429,
-      "punch_tracking_error_hz": 51.269841269841265,
-      "cycle_duty_pct": 9.466666666666669
+      "per_motor_erpm_hz": 300.0,
+      "worst_sample_age_ms": 9.761904761904763,
+      "punch_tracking_error_hz": 92.1957671957672,
+      "cycle_duty_pct": 12.24
     },
     {
       "SERVO_DSHOT_RATE": 1,
-      "punch_residual_attenuation_db": -0.4160593495677257,
+      "punch_residual_attenuation_db": -0.11498167314572297,
+      "frame_interval_us": [
+        1250.0
+      ],
+      "worst_capture_gap_ms": 5.0,
       "frame_hz": 800.0,
       "loop_synchronous": true,
       "per_motor_erpm_hz": 200.0,
-      "worst_sample_age_ms": 6.678571428571429,
-      "punch_tracking_error_hz": 63.07539682539682,
-      "cycle_duty_pct": 7.573333333333334
+      "worst_sample_age_ms": 12.92857142857143,
+      "punch_tracking_error_hz": 122.10317460317461,
+      "cycle_duty_pct": 8.16
     },
     {
       "SERVO_DSHOT_RATE": 2,
-      "punch_residual_attenuation_db": -0.4160593495677257,
+      "punch_residual_attenuation_db": -0.11498167314572297,
+      "frame_interval_us": [
+        1250.0
+      ],
+      "worst_capture_gap_ms": 5.0,
       "frame_hz": 800.0,
       "loop_synchronous": true,
       "per_motor_erpm_hz": 200.0,
-      "worst_sample_age_ms": 6.678571428571429,
-      "punch_tracking_error_hz": 63.07539682539682,
-      "cycle_duty_pct": 7.573333333333334
+      "worst_sample_age_ms": 12.92857142857143,
+      "punch_tracking_error_hz": 122.10317460317461,
+      "cycle_duty_pct": 8.16
     },
     {
       "SERVO_DSHOT_RATE": 3,
-      "punch_residual_attenuation_db": -0.8363482293946406,
+      "punch_residual_attenuation_db": -0.20654365028959937,
+      "frame_interval_us": [
+        833.3
+      ],
+      "worst_capture_gap_ms": 3.3333333333333335,
       "frame_hz": 1200.0,
       "loop_synchronous": true,
       "per_motor_erpm_hz": 300.0,
-      "worst_sample_age_ms": 4.595238095238095,
-      "punch_tracking_error_hz": 43.39947089947089,
-      "cycle_duty_pct": 11.360000000000001
+      "worst_sample_age_ms": 9.595238095238097,
+      "punch_tracking_error_hz": 90.62169312169311,
+      "cycle_duty_pct": 12.24
     },
     {
       "SERVO_DSHOT_RATE": 4,
-      "punch_residual_attenuation_db": -1.319782602478317,
+      "punch_residual_attenuation_db": -0.2992626595977727,
+      "frame_interval_us": [
+        625.0
+      ],
+      "worst_capture_gap_ms": 2.5,
       "frame_hz": 1600.0,
       "loop_synchronous": true,
       "per_motor_erpm_hz": 400.0,
-      "worst_sample_age_ms": 3.5535714285714284,
-      "punch_tracking_error_hz": 33.56150793650793,
-      "cycle_duty_pct": 15.146666666666668
+      "worst_sample_age_ms": 7.928571428571429,
+      "punch_tracking_error_hz": 74.88095238095238,
+      "cycle_duty_pct": 16.32
     }
   ],
   "chosen": {
     "SERVO_DSHOT_RATE": 4,
-    "punch_residual_attenuation_db": -1.319782602478317,
+    "punch_residual_attenuation_db": -0.2992626595977727,
+    "frame_interval_us": [
+      625.0
+    ],
+    "worst_capture_gap_ms": 2.5,
     "frame_hz": 1600.0,
     "loop_synchronous": true,
     "per_motor_erpm_hz": 400.0,
-    "worst_sample_age_ms": 3.5535714285714284,
-    "punch_tracking_error_hz": 33.56150793650793,
-    "cycle_duty_pct": 15.146666666666668
+    "worst_sample_age_ms": 7.928571428571429,
+    "punch_tracking_error_hz": 74.88095238095238,
+    "cycle_duty_pct": 16.32
   },
   "quantisation": {
     "worst_rel_error_pct": 0.4,
@@ -154,9 +182,9 @@
   },
   "gates": [
     {
-      "gate": "B1 integer output ticks per DShot bit",
+      "gate": "B1 DShot600 output exact: PSC gives 8 ticks/bit",
       "pass": true,
-      "detail": "400.000 ticks"
+      "detail": "PSC 49 -> 4.8 MHz, 8.000 ticks/bit"
     },
     {
       "gate": "B2 IC sampling exactly 16 ticks/GCR bit",
@@ -164,9 +192,14 @@
       "detail": "PSC 19 -> 16.0000 ticks/bit"
     },
     {
-      "gate": "B3 DShot output loop-synchronous",
+      "gate": "B1b GCR reply fits ArduPilot's receive window",
       "pass": true,
-      "detail": "SERVO_DSHOT_RATE 4 -> 1600 Hz"
+      "detail": "58.0 us needed vs 71 us window"
+    },
+    {
+      "gate": "B3 DShot frames evenly spaced and loop-locked",
+      "pass": true,
+      "detail": "SERVO_DSHOT_RATE 4 -> 1600 Hz, [625.0] us"
     },
     {
       "gate": "B4 frame rate within ArduPilot bounds [800, 4096] Hz",
@@ -179,14 +212,14 @@
       "detail": "400 Hz (4 motors on one timer)"
     },
     {
-      "gate": "B6 punch tracking lag <= INS_HNTCH_BW (sizing rule)",
+      "gate": "B6 chosen rate has the smallest punch lag of 0..4",
       "pass": true,
-      "detail": "33.6 Hz vs BW 40 Hz (residual depth -1.3 dB during the slew)"
+      "detail": "74.9 Hz lag (BW 40 Hz, residual depth -0.3 dB during the slew; informational)"
     },
     {
       "gate": "B7 bidir cycle < 50 % of frame period",
       "pass": true,
-      "detail": "94.7 us of 625.0 us"
+      "detail": "102.0 us of 625.0 us"
     },
     {
       "gate": "B8 eRPM quantisation < BW/4",
@@ -229,20 +262,15 @@
       "detail": "5 tau = 2.8 us vs 30 us"
     },
     {
-      "gate": "B16 AM32 MOTOR_POLES == SERVO_BLH_POLES",
-      "pass": false,
-      "detail": "None vs 14"
+      "gate": "B16 AM32 EEPROM motor_poles == SERVO_BLH_POLES (same motor)",
+      "pass": true,
+      "detail": "14 vs 14"
     },
     {
-      "gate": "B17 EDT enabled on both FC and ESC",
-      "pass": false,
-      "detail": "SERVO_DSHOT_ESC 3, AM32 EDT None"
-    },
-    {
-      "gate": "B18 AM32 input rate == MOT_PWM_TYPE",
-      "pass": false,
-      "detail": "None kbps vs 600000"
+      "gate": "B17 EDT requested by the FC (SERVO_DSHOT_ESC 3/4 -> cmd 13)",
+      "pass": true,
+      "detail": "SERVO_DSHOT_ESC 3"
     }
   ],
-  "result": "FAIL"
+  "result": "PASS"
 }

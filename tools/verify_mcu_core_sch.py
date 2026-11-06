@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Nano H743 AIO - MCU core schematic verifier (Revision 7.0)
+Nano H743 AIO - MCU core schematic verifier (Revision 7.0, Rev 11.0 IMU block)
 
 Gates (exit 0 only if every check passes):
   S1  Committed .kicad_sch / .kicad_sym are byte-identical to a fresh
@@ -13,13 +13,21 @@ Gates (exit 0 only if every check passes):
   S4  Exact netlist: HSE_IN/HSE_OUT/HSE_OUT_MCU, VDDA_FB, +3.3VA, +3V3, GND,
       VCAP, NRST, BOOT0 compared as exact node sets (both ends of every
       passive), every hwdef.dat pin on its official LQFP-100 pin number (S6),
-      no unexpected nets, every other GPIO a single no-connect pin.
-  S5  Exact values for all 22 parts, key MPNs, no DNP, only #PWR/#FLG
+      no unexpected nets, every other GPIO a single no-connect pin, and the
+      only other no-connect pins are the ICM-42688-P RESV pins 2/3/10/11.
+  S5  Exact values for all 52 parts, key MPNs, no DNP, only #PWR/#FLG
       symbols out of BOM, U1 rev V silicon procurement field.
   S8  (Rev 10.0) DShot series resistors R4..R7: U1 TIM1_CHn -> 100R ->
       ESCn_DSHOT, in hwdef PWM(n) order.
   S7  Clock consistency: OSCILLATOR_HZ in hwdef.dat and hwdef-bl.dat equals
       the Y1 frequency, and hwdef.dat sets MCU_CLOCKRATE_MHZ 480.
+  S9  (Rev 11.0) dual ICM-42688-P block, exact netlist from an independent
+      table in this file (NOT the generator's IMU_BLOCKS): every U2/U3 pin on
+      its net, CLKIN star Y2 -> R14/R15/R16, per-IMU supply filter
+      +3V3 -> FB -> IMUn_FB -> 22R -> +3V3_IMUn with its caps, 33R SPI series
+      resistors between the hwdef (MCU) net and the IMU-pin net, DRDY nets to
+      U1 PC4 / PE1 with distinct EXTI lines, exact values, and hwdef.dat
+      INVENSENSEV3_CLKIN_BITMASK with bits 0 (imu1) and 1 (imu2) set.
 
 Usage: python3 tools/verify_mcu_core_sch.py
 """
@@ -126,6 +134,10 @@ def main():
             m = re.search(r"'([^']+)'", x["items"][0]["description"])
             dang.add(m.group(1) if m else "?")
     esc_labels = {esc for _, _, esc in gen.DSHOT_SERIES}
+    imu_closed = {"SPI1_SCK", "SPI1_MOSI", "SPI1_MISO", "IMU1_CS", "IMU1_DRDY",
+                  "SPI4_SCK", "SPI4_MOSI", "SPI4_MISO", "IMU2_CS", "IMU2_DRDY", "IMU_CLKIN_MON"}
+    check(not (dang & imu_closed), "S9 IMU interface labels are closed on this sheet (not dangling) %s"
+          % sorted(dang & imu_closed))
     check(dang <= hw_labels | esc_labels,
           "dangling global labels are all hwdef / ESC interface signals (%d) %s"
           % (len(dang), sorted(dang - hw_labels - esc_labels)[:5]))
@@ -173,16 +185,18 @@ def main():
         check(live == KICAD_REF_PINS, "embedded reference table == installed KiCad library copy (%s)" % os.path.basename(sk))
 
     print("S4 exact netlist (all non-interface nets, both ends of every part)")
-    caps_3v3 = ["C9", "C10", "C11", "C12", "C13", "C14", "C15"]
-    all_caps = ["C%d" % i for i in range(1, 17)]
+    caps_3v3 = ["C9", "C10", "C11", "C12", "C13", "C14", "C15", "C23"]
+    all_caps = ["C%d" % i for i in range(1, 24)]
     expected = {
         "HSE_IN": U(12) | {("Y1", "1"), ("C1", "1")},
         "HSE_OUT": {("Y1", "3"), ("C2", "1"), ("R1", "2")},
         "HSE_OUT_MCU": U(13) | {("R1", "1")},
         "VDDA_FB": {("FB1", "2"), ("R2", "1")},
         "+3.3VA": U(20, 21) | {("R2", "2")} | P(["C3", "C4", "C5", "C6"], "1"),
-        "+3V3": U(6, 11, 27, 50, 75, 100) | {("FB1", "1")} | P(caps_3v3, "1"),
-        "GND": U(10, 26, 49, 74, 99, 19) | {("Y1", "2"), ("Y1", "4"), ("R3", "2")} | P(all_caps, "2"),
+        "+3V3": U(6, 11, 27, 50, 75, 100) | P(["FB1", "FB2", "FB3", "R17"], "1") | {("Y2", "4")}
+        | P(caps_3v3, "1"),
+        "GND": U(10, 26, 49, 74, 99, 19) | {("Y1", "2"), ("Y1", "4"), ("R3", "2"), ("Y2", "2")}
+        | P(["U2", "U3"], "6") | P(["U2", "U3"], "7") | P(all_caps, "2"),
         "VCAP": U(48, 73) | P(["C7", "C8"], "1"),
         "NRST": U(14) | {("C16", "1")},
         "BOOT0": U(94) | {("R3", "1")},
@@ -203,17 +217,50 @@ def main():
     check(sorted(pwm_nets) == [1, 2, 3, 4] and all(
           gen.DSHOT_SERIES[n - 1][1] == pwm_nets[n] and gen.DSHOT_SERIES[n - 1][2] == "ESC%d_DSHOT" % n
           for n in pwm_nets), "S8 R4..R7 map hwdef PWM(1..4) %s to ESC1..4_DSHOT" % pwm_nets)
+    # Rev 11.0 IMU block (S9): independent expected table.  Series resistor
+    # pin 1 = MCU/hwdef net, pin 2 = IMU-pin net.
+    IMU_SPI = {  # ref: (MCU net, IMU net, IMU ref, IMU pin)
+        "R10": ("SPI1_SCK", "IMU1_SCLK", "U2", "13"), "R11": ("SPI1_MOSI", "IMU1_SDI", "U2", "14"),
+        "R12": ("IMU1_CS", "IMU1_CS_N", "U2", "12"), "R18": ("SPI1_MISO", "IMU1_SDO", "U2", "1"),
+        "R19": ("SPI4_SCK", "IMU2_SCLK", "U3", "13"), "R20": ("SPI4_MOSI", "IMU2_SDI", "U3", "14"),
+        "R21": ("IMU2_CS", "IMU2_CS_N", "U3", "12"), "R22": ("SPI4_MISO", "IMU2_SDO", "U3", "1"),
+    }
+    imu_exp = {
+        "IMU1_FB": {("FB2", "2"), ("R8", "1")},
+        "IMU2_FB": {("FB3", "2"), ("R9", "1")},
+        "+3V3_IMU1": {("R8", "2"), ("C17", "1"), ("C18", "1"), ("C19", "1"), ("U2", "8"), ("U2", "5")},
+        "+3V3_IMU2": {("R9", "2"), ("C20", "1"), ("C21", "1"), ("C22", "1"), ("U3", "8"), ("U3", "5")},
+        "IMU_CLKIN": {("Y2", "3"), ("R14", "1"), ("R15", "1"), ("R16", "1")},
+        "IMU1_CLKIN": {("R14", "2"), ("U2", "9")},
+        "IMU2_CLKIN": {("R15", "2"), ("U3", "9")},
+        "Y2_OE": {("Y2", "1"), ("R17", "2")},
+    }
+    for ref, (mcu_net, inet, u, upin) in IMU_SPI.items():
+        imu_exp[inet] = {(ref, "2"), (u, upin)}
+        expected[mcu_net] = expected[mcu_net] | {(ref, "1")}
+    expected["IMU1_DRDY"] = expected["IMU1_DRDY"] | {("U2", "4")}
+    expected["IMU2_DRDY"] = expected["IMU2_DRDY"] | {("U3", "4")}
+    expected["IMU_CLKIN_MON"] = expected["IMU_CLKIN_MON"] | {("R16", "2")}
+    expected.update(imu_exp)
     for k, v in sorted(expected.items()):
         if k in ("HSE_IN", "HSE_OUT", "HSE_OUT_MCU", "VDDA_FB", "+3.3VA", "+3V3", "GND", "VCAP", "NRST", "BOOT0"):
             got = nets.get(k, set())
             check(got == v, "%s exact: missing %s extra %s" % (k, sorted(v - got), sorted(got - v)))
     hw_bad = [k for k in expected if k not in ("HSE_IN", "HSE_OUT", "HSE_OUT_MCU", "VDDA_FB", "+3.3VA", "+3V3",
-                                               "GND", "VCAP", "NRST", "BOOT0") and nets.get(k) != expected[k]]
+                                               "GND", "VCAP", "NRST", "BOOT0") and k not in imu_exp
+              and nets.get(k) != expected[k]]
     check(not hw_bad, "S6 %d hwdef.dat pins on the official LQFP-100 pin numbers %s" % (len(hw), hw_bad[:5]))
     extra = [k for k in nets if k not in expected and not k.startswith("unconnected-")]
     check(not extra, "no unexpected nets %s" % extra[:5])
     stray = [k for k in nets if k.startswith("unconnected-") and len(nets[k]) != 1]
-    check(not stray, "every unconnected net is a single no-connect U1 pin")
+    check(not stray, "every unconnected net is a single no-connect pin")
+    nc_got = {nd for k in nets if k.startswith("unconnected-") for nd in nets[k]}
+    gpio_nc = {("U1", str(port_to_num[pt])) for pt in port_to_num
+               if re.match(r"^P[A-K]\d+$", pt) and pt not in hw}
+    imu_nc = {(u, p_) for u in ("U2", "U3") for p_ in ("2", "3", "10", "11")}
+    check(nc_got == gpio_nc | imu_nc,
+          "no-connects are exactly the %d unassigned GPIOs + ICM-42688-P RESV 2/3/10/11 (missing %s extra %s)"
+          % (len(gpio_nc), sorted((gpio_nc | imu_nc) - nc_got)[:5], sorted(nc_got - gpio_nc - imu_nc)[:5]))
 
     print("S5 values, MPNs, fitted/BOM state")
     values = {"U1": "STM32H743VITx", "Y1": "24MHz CL=12pF", "C1": "16pF", "C2": "16pF", "R1": "0R",
@@ -221,16 +268,31 @@ def main():
               "C7": "2.2uF", "C8": "2.2uF", "C9": "100nF", "C10": "100nF", "C11": "100nF", "C12": "100nF",
               "C13": "100nF", "C14": "4.7uF", "C15": "100nF", "C16": "100nF", "R3": "10k",
               "R4": "100R", "R5": "100R", "R6": "100R", "R7": "100R"}
+    imu_values = {"U2": "ICM-42688-P", "U3": "ICM-42688-P", "Y2": "32.768kHz CMOS",
+                  "FB2": "600R@100MHz", "FB3": "600R@100MHz", "R8": "22R", "R9": "22R",
+                  "C17": "10uF", "C20": "10uF", "C18": "100nF", "C19": "100nF", "C21": "100nF",
+                  "C22": "100nF", "C23": "100nF", "R14": "33R", "R15": "33R", "R16": "1k", "R17": "10k"}
+    imu_values.update({r: "33R" for r in IMU_SPI})
+    values.update(imu_values)
     vbad = [(r, comps.get(r, {}).get("value"), v) for r, v in values.items() if comps.get(r, {}).get("value") != v]
     check(not vbad, "all %d part values exact %s" % (len(values), vbad))
     check(set(comps) == set(values), "BOM refs exactly %s (extra %s)" % (len(values), sorted(set(comps) - set(values))))
     mpns = {"U1": "STM32H743VIT6", "Y1": "TXM24M0004322FBCDO00T", "C1": "GJM1555C1H160FB01J",
             "C2": "GJM1555C1H160FB01J", "FB1": "BLM15AX601SN1D", "R2": "0402WGF220KTCE",
             "C7": "CL10B225KP8NNNC", "C8": "CL10B225KP8NNNC",
-            "R4": "0402WGF1000TCE", "R5": "0402WGF1000TCE", "R6": "0402WGF1000TCE", "R7": "0402WGF1000TCE"}
+            "R4": "0402WGF1000TCE", "R5": "0402WGF1000TCE", "R6": "0402WGF1000TCE", "R7": "0402WGF1000TCE",
+            "U2": "ICM-42688-P", "U3": "ICM-42688-P", "Y2": "SX2M32.768KM20F30TNN",
+            "FB2": "BLM15AX601SN1D", "FB3": "BLM15AX601SN1D", "R8": "0402WGF220JTCE", "R9": "0402WGF220JTCE",
+            "C17": "CL10A106KP8NNNC", "C20": "CL10A106KP8NNNC", "R16": "0402WGF1001TCE"}
+    mpns.update({r: "0402WGF330JTCE" for r in list(IMU_SPI) + ["R14", "R15"]})
     mbad = [(r, comps.get(r, {}).get("fields", {}).get("MPN"), m) for r, m in mpns.items()
             if comps.get(r, {}).get("fields", {}).get("MPN") != m]
-    check(not mbad, "key MPNs (Y1, C1/C2, FB1, R2, VCAP, U1, R4-R7) %s" % mbad)
+    check(not mbad, "key MPNs (Y1, C1/C2, FB1, R2, VCAP, U1, R4-R7, U2/U3, Y2, FB2/3, R8/9, C17/20, 33R, R16) %s"
+          % mbad)
+    lcsc = {"U2": "C1850418", "U3": "C1850418", "Y2": "C2901603"}
+    lbad = [(r, comps.get(r, {}).get("fields", {}).get("LCSC"), c) for r, c in lcsc.items()
+            if comps.get(r, {}).get("fields", {}).get("LCSC") != c]
+    check(not lbad, "S9 LCSC U2/U3 C1850418, Y2 C2901603 %s" % lbad)
     sch_txt = open(SCH).read()
     check("(dnp yes)" not in sch_txt, "no part marked DNP")
     nobom = re.findall(r'\(in_bom no\).*?\(property "Reference" "([^"]+)"', sch_txt, re.S)
@@ -248,6 +310,49 @@ def main():
           "OSCILLATOR_HZ fw=%s bl=%s == Y1 %d Hz" % (hz["hwdef.dat"], hz["hwdef-bl.dat"], yf))
     check(re.search(r"^MCU_CLOCKRATE_MHZ\s+480\b", open(os.path.join(REPO, "ardupilot", "hwdef.dat")).read(), re.M)
           is not None, "hwdef.dat MCU_CLOCKRATE_MHZ 480")
+
+    print("S9 dual ICM-42688-P block (Rev 11.0)")
+    for k in sorted(imu_exp):
+        got = nets.get(k, set())
+        check(got == imu_exp[k], "%s exact: missing %s extra %s" % (k, sorted(imu_exp[k] - got), sorted(got - imu_exp[k])))
+    for k in ("SPI1_SCK", "SPI1_MOSI", "SPI1_MISO", "IMU1_CS", "SPI4_SCK", "SPI4_MOSI", "SPI4_MISO", "IMU2_CS",
+              "IMU1_DRDY", "IMU2_DRDY", "IMU_CLKIN_MON"):
+        got = nets.get(k, set())
+        check(got == expected[k], "%s exact (U1 pin + IMU-side part): missing %s extra %s"
+              % (k, sorted(expected[k] - got), sorted(got - expected[k])))
+    # every U2/U3 pin accounted for (14 each): on an expected net or a RESV no-connect
+    for u in ("U2", "U3"):
+        pins_on = {p_ for k in nets for (r, p_) in nets[k] if r == u}
+        check(pins_on == {str(i) for i in range(1, 15)}, "%s all 14 pins present in netlist %s" % (u, sorted(pins_on)))
+    # supply filter chain order: +3V3 -> FB -> IMUn_FB -> R -> +3V3_IMUn
+    for fb, r, mid, rail, u in (("FB2", "R8", "IMU1_FB", "+3V3_IMU1", "U2"), ("FB3", "R9", "IMU2_FB", "+3V3_IMU2", "U3")):
+        ok = (net_of(fb, "1") == "+3V3" and net_of(fb, "2") == mid and net_of(r, "1") == mid
+              and net_of(r, "2") == rail and net_of(u, "8") == rail and net_of(u, "5") == rail
+              and net_of(u, "6") == "GND" and net_of(u, "7") == "GND")
+        check(ok, "%s supply: +3V3 -> %s -> %s -> %s 22R -> %s (VDD+VDDIO), GND+RESV7 -> GND" % (u, fb, mid, r, rail))
+    # CLKIN star: Y2 OUT is the only driver; each IMU pin 9 reached through exactly one 33R
+    star = (net_of("Y2", "3") == "IMU_CLKIN" and net_of("U2", "9") != net_of("U3", "9")
+            and net_of("U1", "59") == "IMU_CLKIN_MON" and net_of("Y2", "4") == "+3V3"
+            and net_of("Y2", "2") == "GND" and net_of("R17", "1") == "+3V3")
+    check(star, "CLKIN star: Y2.3 -> R14 -> U2.9, R15 -> U3.9, R16 1k -> U1 PD12 (pin 59); Y2 OE pulled to +3V3")
+    # DRDY EXTI uniqueness
+    drdy = {v: k for k, v in hw.items() if v in ("IMU1_DRDY", "IMU2_DRDY")}
+    exti = {k: int(re.match(r"P[A-K](\d+)", drdy[k]).group(1)) for k in drdy}
+    check(drdy.get("IMU1_DRDY") == "PC4" and drdy.get("IMU2_DRDY") == "PE1",
+          "DRDY ports IMU1=PC4 IMU2=PE1 (%s)" % drdy)
+    check(len(exti) == 2 and exti["IMU1_DRDY"] != exti["IMU2_DRDY"],
+          "IMU1_DRDY / IMU2_DRDY on distinct EXTI lines %s" % exti)
+    check(net_of("U1", "32") == "IMU1_DRDY" and net_of("U1", "98") == "IMU2_DRDY",
+          "U1 pin 32 (PC4) = IMU1_DRDY, pin 98 (PE1) = IMU2_DRDY")
+    hwtxt = open(gen.HWDEF).read()
+    m = re.search(r"^define\s+INVENSENSEV3_CLKIN_BITMASK\s+(\S+)", hwtxt, re.M)
+    bm = int(m.group(1), 0) if m else 0
+    check(m is not None and (bm & 0b11) == 0b11,
+          "hwdef.dat INVENSENSEV3_CLKIN_BITMASK %s has bits 0 and 1 set" % (m.group(1) if m else None))
+    imu_order = re.findall(r"^IMU\s+Invensensev3\s+SPI:(\w+)", hwtxt, re.M)
+    spidev = dict(re.findall(r"^SPIDEV\s+(\w+)\s+(SPI\d)\b", hwtxt, re.M))
+    check(imu_order[:2] == ["imu1", "imu2"] and spidev.get("imu1") == "SPI1" and spidev.get("imu2") == "SPI4",
+          "bitmask bit0 = imu1 on SPI1 (U2), bit1 = imu2 on SPI4 (U3) %s %s" % (imu_order, spidev))
 
     print("\nRESULT: %s (%d failures)" % ("PASS" if not FAIL else "FAIL", len(FAIL)))
     return 1 if FAIL else 0

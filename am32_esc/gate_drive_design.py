@@ -171,6 +171,8 @@ def simulate_on(vd, vbus, r_src, rg_int, rg_on, cgs_ext, dt=0.05e-9):
         v = g.v(q)
         if "vth_hot" not in ev and v >= VTH_HOT_MIN:
             ev["vth_hot"] = t
+        if "vth_hot_typ" not in ev and v >= VTH_HOT_TYP:
+            ev["vth_hot_typ"] = t
         if "vth" not in ev and v >= vth_ref:
             ev["vth"] = t
         if "pl_start" not in ev and q >= g.q1:
@@ -421,9 +423,25 @@ def main():
     dtg = dtg_encode(ticks)
     dt_mcu = dtg_decode(dtg) * tick
     check("C4_dtg_linear_range", dtg < 0x80, f"DEAD_TIME = {dtg} (0x{dtg:02X}) -> {dt_mcu*1e9:.1f} ns, need {dt_need*1e9:.1f} ns")
-    # effective body-diode conduction per edge (what the thermal model needs)
-    dt_diode_typ = dt_mcu + DRV["dt_int"][1]
-    dt_diode_max = dt_mcu + DRV["dt_int"][2] + DRV["mt_max"]
+    # Body-diode conduction per edge (what the thermal model needs) = time from the outgoing
+    # channel actually turning off to the incoming channel turning on, both measured from the
+    # MCU edge.  The MCU + FD6288Q dead time only *starts* that window; the outgoing turn-off
+    # time is subtracted.  typ: typical delays/R at Vth,hot,typ.  max: outgoing fastest
+    # (toff_prop_min, fast R) vs incoming slowest (ton_max, slow R) -> longest conduction.
+    def diode_window(vb, corner):
+        rs_f, rk_f, rgi_f = corner_r("fast")
+        rs_s, rk_s, rgi_s = corner_r("slow")
+        rs_t, rk_t, rgi_t = DRV["r_src"]["typ"], DRV["r_snk"]["typ"], FET["rg_int"][0]
+        if corner == "typ":
+            out = DRV["toff_typ"] + simulate_off(vb, vb, rk_t, rgi_t, rg_on, r_off, cgs, VTH_HOT_TYP)["v_stop"]
+            inn = dt_mcu + DRV["ton_typ"] + simulate_on(vb, vb, rs_t, rgi_t, rg_on, cgs)["vth_hot_typ"]
+        else:
+            out = ASSUME["toff_prop_min"] + simulate_off(vb, vb, rk_f, rgi_f, rg_on, r_off, cgs, VTH_HOT_TYP)["v_stop"]
+            on_s = simulate_on(vb, vb, rs_s, rgi_s, rg_on, cgs)
+            inn = dt_mcu + DRV["ton_max"] + DRV["mt_max"] + on_s["vth"]
+        return max(0.0, inn - out)
+    dt_diode_typ = max(diode_window(v, "typ") for v in (BUS["4S_full"], BUS["2S_full"]))
+    dt_diode_max = max(diode_window(v, "max") for v in (BUS["4S_full"], BUS["2S_full"]))
     # minimum on-time AM32 can command: minimum_duty_cycle starts at DEAD_TIME ARR ticks
     arr = int(MCU["tim_clk_hz"] / MCU["nominal_pwm_hz"]) - 1
 

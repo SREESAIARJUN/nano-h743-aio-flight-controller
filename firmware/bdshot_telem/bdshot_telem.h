@@ -13,7 +13,9 @@
 //   2. Board-level health policy.  ArduPilot only exposes a 5 s windowed error
 //      percentage; MotorTelemetryMonitor adds staleness tracking that
 //      understands the TIM1 round-robin (one motor captured per DShot frame)
-//      so bench/ground-test tooling can flag a dead ESC within 3 frames.
+//      so bench/ground-test tooling can flag a dead ESC within 3 of its own
+//      capture slots (12 DShot frames on TIM1), plus a physical-plausibility
+//      gate ArduPilot does not have.
 //   3. Notch planning.  NotchPlanner reproduces the HarmonicNotchFilter
 //      min-frequency / fade-out / disable rules for INS_HNTCH_MODE 3 with
 //      INS_HNTCH_OPTS 6 so analysis/bdshot_timing_analysis.py and the tests
@@ -75,7 +77,9 @@ uint16_t telemetry_frame_with_crc(uint16_t payload12);
 // Layer 2: payload decode  (== RCOutput::bdshot_decode_telemetry_from_erpm)
 // ---------------------------------------------------------------------------
 enum class FrameType : uint8_t {
-    Invalid = 0,     // CRC/GCR failure or decoded period 0
+    Invalid = 0,     // GCR length / CRC failure
+    ZeroPeriod,      // CRC-valid but period field decodes to 0: ArduPilot
+                     // counts it as a CLEAN frame yet publishes no RPM
     ERPM,            // eRPM sample (erpm_x100 valid; 0 means stopped)
     EDT_Temperature, // value = deg C
     EDT_Voltage,     // value = 0.25 V units
@@ -89,7 +93,7 @@ enum class FrameType : uint8_t {
 struct Frame {
     FrameType type;
     uint16_t  erpm_x100;   // eRPM / 100, ArduPilot's _bdshot.erpm[] unit
-    uint16_t  value;       // EDT raw 8-bit value
+    uint16_t  value;       // EDT raw 8-bit value; for ERPM the period in us
 };
 
 // edt_enabled == (SERVO_DSHOT_ESC is 3 or 4).  When false, EDT-shaped frames
@@ -114,8 +118,9 @@ uint16_t encode_erpm_period(uint32_t erpm);
 // whose last good frame is older than `stale_frames` of ITS OWN capture slots
 // is reported stale.
 struct MotorHealth {
-    uint32_t good_frames;
-    uint32_t bad_frames;
+    uint32_t good_frames;        // CRC-valid (ArduPilot erpm_clean_frames)
+    uint32_t bad_frames;         // GCR/CRC failure (ArduPilot erpm_errors)
+    uint32_t implausible_frames; // CRC-valid eRPM faster than the motor can spin
     uint32_t last_good_frame;   // global frame index of the last good capture
     uint16_t erpm_x100;
     uint8_t  consecutive_bad;
@@ -126,8 +131,14 @@ class MotorTelemetryMonitor {
 public:
     static constexpr uint8_t NUM_MOTORS = 4;
 
+    // min_period_us: shortest physically possible commutation period.  This
+    // board: 42 000 RPM x 7 pole pairs = 294 000 eRPM -> 204 us; default 100 us
+    // (2x margin).  A CRC-valid eRPM frame below it (4-bit CRC lets ~1/16 of
+    // corrupted frames through, test T4) is booked as implausible and does not
+    // refresh the motor.  ArduPilot has no such gate; 0 disables it.
     explicit MotorTelemetryMonitor(uint8_t motors_in_group = NUM_MOTORS,
-                                   uint8_t stale_slots = 3);
+                                   uint8_t stale_slots = 3,
+                                   uint16_t min_period_us = 100);
 
     // Called once per DShot frame with the outcome of the capture of the motor
     // that owned this frame's slot.  Returns that motor index.
@@ -138,7 +149,8 @@ public:
     bool fresh(uint8_t motor) const;
 
     // Error rate in percent over the lifetime of the monitor, computed with
-    // ArduPilot's formula 100*err/(1+err+clean).
+    // ArduPilot's formula 100*err/(1+err+clean) on ArduPilot's definitions of
+    // err (GCR/CRC failure) and clean (CRC-valid, incl. EDT and zero-period).
     float error_rate_pct(uint8_t motor) const;
 
     const MotorHealth& health(uint8_t motor) const { return m_[motor]; }
@@ -150,30 +162,40 @@ private:
     uint8_t  slot_;
     uint8_t  n_;
     uint8_t  stale_slots_;
+    uint16_t min_period_us_;
 };
 
 // ---------------------------------------------------------------------------
 // Layer 3b: model of ArduPilot's own per-channel error counters
 // ---------------------------------------------------------------------------
-// RCOutput::bdshot_receive_pulses_DMAR() rotates curr_telem_chan BEFORE the
-// receive outcome is booked.  RCOutput::bdshot_send_pulse() then books
-//   RECV_COMPLETE + bad CRC  -> erpm_errors[chan[prev_telem_chan]]  (correct)
-//   RECV_FAILED (no edges)   -> erpm_errors[curr_telem_chan]        (WRONG:
-//                               that is the NEXT motor, and it is a group-
-//                               local index, not a global channel number)
-// so a completely silent ESC is charged to its neighbour.  This model exists
-// so the test-suite can demonstrate the defect and the effect of
-// ardupilot/patches/0001-bdshot-book-recv-failed-on-prev-telem-chan.patch.
+// RCOutput::bdshot_finish_dshot_gcr_transaction() (DMA-complete / timeout
+// ISR) rotates curr_telem_chan BEFORE the receive outcome is booked.
+// RCOutput::bdshot_prepare_for_next_pulse() then books
+//   RECV_COMPLETE (edges seen) -> clean/erpm_errors[chan[prev_telem_chan]],
+//                                 plus the 5 s statistics reset   (correct)
+//   RECV_FAILED (no edges)     -> erpm_errors[curr_telem_chan]     (WRONG:
+//                                 the NEXT motor; also a group-local index,
+//                                 which only matters when chan[] != {0..3})
+// so a completely silent ESC is charged to its neighbour.  This is a host
+// model of that counter logic (uint16 counters, 5 s window in frames), used by
+// test T8 to demonstrate the defect and the behaviour of
+// ardupilot/patches/0001-bdshot-book-recv-failed-on-prev-telem-chan.patch,
+// which also applies the 5 s reset on the RECV_FAILED path.
 class ApErrorCounterModel {
 public:
-    explicit ApErrorCounterModel(uint8_t motors_in_group, bool patched);
+    // window_frames: DShot frames in ArduPilot's 5 s stats window (0 = never)
+    ApErrorCounterModel(uint8_t motors_in_group, bool patched, uint32_t window_frames = 0);
     // one DShot frame; got_edges == false means the ESC never answered.
     void on_frame(bool got_edges, bool crc_ok);
-    uint32_t errors(uint8_t motor) const { return err_[motor]; }
-    uint32_t clean(uint8_t motor) const { return clean_[motor]; }
+    uint16_t errors(uint8_t motor) const { return err_[motor]; }
+    uint16_t clean(uint8_t motor) const { return clean_[motor]; }
 private:
-    uint32_t err_[4];
-    uint32_t clean_[4];
+    void maybe_reset(uint8_t motor);
+    uint16_t err_[4];      // RCOutput.h: uint16_t erpm_errors[]
+    uint16_t clean_[4];
+    uint32_t last_reset_[4];
+    uint32_t frame_;
+    uint32_t window_;
     uint8_t  curr_;
     uint8_t  n_;
     bool     patched_;
@@ -192,19 +214,23 @@ private:
 //   h*f0 >= 0.48 * gyro_rate  -> that harmonic is disabled (Nyquist guard).
 struct NotchSlot {
     float center_hz;
-    float attenuation_scale;  // 1 = full INS_HNTCH_ATT, 0 = no attenuation
+    float depth_fraction;   // fraction of the way from A=1 (0) to A0 (1): ArduPilot
+                            // interpolates the LINEAR gain A, not dB
+    float depth_db;         // effective notch depth = -40*log10(A)
     bool  enabled;
 };
 
 struct NotchPlan {
-    static constexpr uint8_t MAX = 4 * 4;   // 4 motors x up to 4 harmonics
+    static constexpr uint8_t MAX = 54;      // HAL_HNF_MAX_FILTERS on H7
     NotchSlot slot[MAX];
     uint8_t   count;
 };
 
 // motor_hz[] are per-motor mechanical frequencies (rpm/60), 0 = no data.
-// harmonics_mask = INS_HNTCH_HMNCS, min_hz = INS_HNTCH_FREQ * INS_HNTCH_FM_RAT.
-void plan_notches(const float* motor_hz, uint8_t n_motors, uint8_t harmonics_mask,
-                  float min_hz, float gyro_rate_hz, NotchPlan& out);
+// harmonics_mask = INS_HNTCH_HMNCS (16 harmonics), min_hz = INS_HNTCH_FREQ *
+// INS_HNTCH_FM_RAT, att_db = INS_HNTCH_ATT.  Single notches only (OPTS bits 0/4/6
+// clear).  Slots beyond HAL_HNF_MAX_FILTERS are dropped, as in ArduPilot.
+void plan_notches(const float* motor_hz, uint8_t n_motors, uint16_t harmonics_mask,
+                  float min_hz, float gyro_rate_hz, float att_db, NotchPlan& out);
 
 } // namespace nano_bdshot

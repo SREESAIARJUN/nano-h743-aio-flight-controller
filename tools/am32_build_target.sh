@@ -69,7 +69,8 @@ if [ ! -x "$CC" ]; then
 fi
 [ -x "$CC" ] || fail "toolchain not installed"
 
-make targets 2>/dev/null | tr ' ' '\n' | grep -qx "$TARGET" || fail "$TARGET not discovered by make targets"
+TARGETS=$(make targets 2>/dev/null || true)   # captured first: grep -q + pipefail would SIGPIPE make
+echo "$TARGETS" | tr ' ' '\n' | grep -qx "$TARGET" || fail "$TARGET not discovered by make targets"
 
 # --- build
 echo "== make $TARGET"
@@ -131,7 +132,7 @@ EOF
 # --- SITL twin: DEAD_TIME code must reach BDTR unchanged
 echo "== make $SITL"
 if make "$SITL" > "$WORK/build_sitl.log" 2>&1; then
-  ELF=$(ls obj/AM32_${SITL}_*.elf | head -1)
+  ELF=$(ls obj/AM32_${SITL}_*.elf | head -n1)
   OUT=$(cd "$WORK" && timeout -s INT 4 "$WORK/am32/$ELF" 2>&1 || true)
   LINE=$(echo "$OUT" | grep -m1 "dead time" || true)
   echo "   $LINE"

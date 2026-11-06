@@ -7,19 +7,25 @@
 MOT_PWM_TYPE 6
 SERVO_BLH_AUTO 1
 SERVO_BLH_BDMASK 15
-# 12N14P motors; must equal MOTOR_POLES in am32_esc/am32_target.h
+# 12N14P motors (physical magnet count).  The FC alone converts eRPM -> RPM
+# (erpm*200/POLES), so this sets the notch frequency.  Must equal motor_poles in
+# am32_esc/eeprom_settings.json (same motor; checked by am32_esc/gate_drive_design.py
+# E1 and analysis/bdshot_timing_analysis.py B16)
 SERVO_BLH_POLES 14
-# 3 = BLHeli32/AM32/Kiss + Extended DShot Telemetry. AM32 then interleaves
-# temperature / voltage / current EDT frames with eRPM frames on the same
-# wire, giving per-ESC temperature without a serial telemetry pin.
+# 3 = BLHeli32/AM32/Kiss + Extended DShot Telemetry.  ArduPilot then sends
+# DShot command 13 at start-up; AM32 (EDT off until it gets that command)
+# interleaves temperature / voltage / current EDT frames with eRPM frames on
+# the same wire - per-ESC temperature without a serial telemetry pin.
 SERVO_DSHOT_ESC 3
-# Rev 10.0: DShot frame rate = 4 x SCHED_LOOP_RATE (400 Hz) = 1600 Hz,
-# loop-synchronous.  The default 0 runs a free 1 kHz timer that beats against
-# the 400 Hz loop.  All four motors share TIM1 and ArduPilot captures ONE
-# motor's eRPM reply per frame (round-robin), so each motor's RPM refreshes
-# at 1600 / 4 = 400 Hz (2.5 ms).  3 (1200 Hz) leaves the notch 43 Hz behind
-# a full-throttle punch, more than INS_HNTCH_BW; see analysis/bdshot_report.json.
-# If SCHED_LOOP_RATE is raised, lower this so loop x rate stays <= 4096 Hz.
+# Rev 10.0: DShot frame rate = 4 x SCHED_LOOP_RATE (400 Hz) = 1600 Hz, one
+# frame every 625 us, phase-locked to the loop.  The default 0 sends on every
+# loop push plus 1 ms timer ticks re-armed by each push: ~1.2 kHz with uneven
+# 1 / 1 / 0.5 ms spacing.  All four motors share TIM1 and ArduPilot captures
+# ONE motor's eRPM reply per frame (round-robin), so each motor's RPM
+# refreshes every 2.5 ms (400 Hz), the fastest of rates 0..4.  No rate keeps
+# the notch inside INS_HNTCH_BW during a full-throttle punch (lag >= 75 Hz,
+# analysis/bdshot_report.json), so that is not the selection criterion.
+# If SCHED_LOOP_RATE is raised, ArduPilot clamps loop x rate to <= 4096 Hz.
 SERVO_DSHOT_RATE 4
 
 # --- RPM-driven harmonic notch from bidir DShot eRPM -----------------------
@@ -37,7 +43,8 @@ INS_HNTCH_ATT 40
 # above the 960 Hz Nyquist guard at INS_GYRO_RATE 2 kHz and is skipped.
 INS_HNTCH_HMNCS 3
 # Rev 10.0: 6 = Multi-Source (bit1, one notch set per motor) + update at loop
-# rate (bit2).  Rev 6..9 used 2, which re-centres the notches at 200 Hz only.
+# rate (bit2).  Rev 6..9 used 2: without bit2 the notch is re-centred only when
+# >5 ms have passed, i.e. every 3rd 2.5 ms loop (~133 Hz at SCHED_LOOP_RATE 400).
 INS_HNTCH_OPTS 6
 
 # --- logging ---------------------------------------------------------------

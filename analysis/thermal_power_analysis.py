@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Nano H743 AIO - 4-in-1 ESC power-stage loss & thermal analysis (Revision 8.0)
+Nano H743 AIO - 4-in-1 ESC power-stage loss & thermal analysis (Revision 8.0, gate drive updated in Revision 9.0)
 ============================================================================
 Replaces the Rev <=7 script, which multiplied the TOTAL board loss by one
 theta_JA (so 4 ESCs were treated as one junction), used 1.4 mOhm (the 4.5 V
@@ -40,7 +40,7 @@ sys.path.insert(0, os.path.join(REPO, "tools"))
 PCB = os.path.join(REPO, "kicad", "nano-h743-aio.kicad_pcb")
 
 # ---------------------------------------------------------------- device data
-# Toshiba TPHR8504PL datasheet Rev.5.0.A (2026-04-14)
+# Toshiba TPHR8504PL datasheet Rev.5.0 (2019-10-24)  [Rev 9: label corrected]
 FET = {
     "rds_max_10v": 0.85e-3,       # ID=50 A, Ta=25 C
     "rds_max_4v5": 1.40e-3,
@@ -54,12 +54,13 @@ FET = {
 }
 # ASSUMPTIONS (flagged in the report):
 ASSUME = {
-    "rds_tempco_per_K": 0.0056,   # normalised RDS(on) 1.70 at 150 C (U-MOS IX-H typical curve shape)
-    "v_plateau": 3.0,             # Miller plateau at 10-35 A (VGS(th) max 2.4 V + I/gfs)
-    "r_drv_source": 6.0,          # FD6288Q output resistance, source (ohm)  - confirm
-    "r_drv_sink": 4.0,            # FD6288Q output resistance, sink (ohm)    - confirm
-    "rg_ext": 4.7,                # external gate resistor (schematic TBD)   - design requirement
-    "dead_time_s": 60e-9,         # am32_esc/am32_target.h DEAD_TIME_NS
+    "rds_tempco_per_K": 0.0072,   # Rev 9: datasheet Fig. 8.9 (10 V) 0.70 -> ~1.33 mOhm, 25 -> 150 C (was 0.0056)
+    "v_plateau": 3.3,             # Rev 9: datasheet Fig. 8.10 / 8.1 at 20-50 A (was 3.0)
+    # Rev 9: gate drive taken from am32_esc/gate_drive_report.json (see load_gate_drive()):
+    #   r_drv_source/sink  FD6288Q slow corner from VOH/VOL max @ 100 mA (9.0 / 4.5 ohm)
+    #   rg_on / rg_off     selected network (15 ohm on, Schottky bypass off)
+    #   dead_time_s        worst-case body-diode conduction per edge (outgoing channel off -> incoming on)
+    #   st_frac            shoot-through energy as a fraction of HS turn-on energy
     "duty_at_rated": 0.90,
     "solder_bond_um": 50.0, "solder_void_frac": 0.30, "k_sac305": 58.0,
     "via_plating_um": 18.0,       # IPC-6012 class 2 minimum average hole-wall Cu
@@ -80,13 +81,43 @@ ASSUME = {
     "wires": [("battery_12AWG", 2, 3.31e-6, 3.6e-3, "bat"), ("motor_20AWG", 12, 0.518e-6, 1.5e-3, "motor")],
     "wires_alt_14AWG_22AWG": [("battery_14AWG", 2, 2.08e-6, 2.6e-3, "bat"), ("motor_22AWG", 12, 0.326e-6, 1.2e-3, "motor")],
     "vdrv_qg_slope_F": 7.37e-9,   # Qg(V) above 10 V ~ Qg(10 V) + Ciss*(V-10) (gate charge curve linear region)
-    "am32_margin_K": 5.0,         # burst must end >= 5 K below TEMPERATURE_CUTOFF_C
+    "am32_margin_K": 5.0,         # burst must end >= 5 K below the AM32 limits.temperature (115 C)
 }
 # Published per-motor ratings (all 4 ESCs loaded, D=0.9, 24 kHz, Tamb 35 C, 12 AWG
 # battery / 20 AWG motor leads).  Derived from this model in Rev 8.0; the gate checks
 # the published numbers, it does not tune the model to fit them.
-RATING = {"cont_conservative_A": 17.0, "burst10s_conservative_A": 22.0,   # h = 50 W/m2K
-          "cont_typical_A": 20.0, "burst10s_typical_A": 28.0}             # h = 80 W/m2K
+# Rev 9.0 derating (was 17 / 22 / 20 / 28 A): the Rev 8 loss model used 60 ns of body-diode
+# conduction per edge; with the FD6288Q's fixed 100-300 ns interlock plus AM32 DEAD_TIME 34
+# (283 ns) the worst-case window is ~0.7 us (am32_esc/gate_drive_report.json), and the
+# datasheet RDS(on) tempco / Miller plateau corrections add conduction loss.
+RATING = {"cont_conservative_A": 16.0, "burst10s_conservative_A": 21.0,   # h = 50 W/m2K
+          "cont_typical_A": 20.0, "burst10s_typical_A": 25.0}             # h = 80 W/m2K
+GATE_REPORT = os.path.join(REPO, "am32_esc", "gate_drive_report.json")
+
+
+def load_gate_drive(path=GATE_REPORT):
+    """Rev 9: single source of truth for driver R, gate network and dead time."""
+    with open(path) as f:
+        g = json.load(f)
+    if g.get("status") != "PASS":
+        raise SystemExit(f"{path} status {g.get('status')}: run am32_esc/gate_drive_design.py first")
+    net = g["selected_gate_network"]
+    r_off = net["r_off_ohm"]
+    ASSUME.update({
+        "r_drv_source": g["driver"]["r_src"]["slow"],
+        "r_drv_sink": g["driver"]["r_snk"]["slow"],
+        "rg_on": net["rg_on_ohm"],
+        # Schottky bypass: ~0.3 V knee + ~0.5 ohm dynamic + R_off; at the 3.3 V plateau the
+        # bypass carries the discharge, so model it as R_off + 0.5 ohm || Rg_on
+        "rg_off": net["rg_on_ohm"] if r_off is None else
+                  1.0 / (1.0 / net["rg_on_ohm"] + 1.0 / (r_off + 0.5)),
+        "dead_time_s": g["dead_time"]["body_diode_per_edge_ns"]["max"] * 1e-9,
+        "am32_dead_time_code": g["dead_time"]["DEAD_TIME"],
+        "st_frac": net["stress_4S_HV_35A"]["est_frac"],
+    })
+    return g
+
+
 LIMITS = {"tj_cont": 125.0, "tj_burst": 150.0, "t_board_cont": 105.0}
 AM32_CUTOFF = 115.0
 
@@ -125,16 +156,15 @@ def rds(tj, vgs_class):
 
 
 def switching_times(v_drive):
-    rg = ASSUME["rg_ext"] + FET["rg_int_max"]
-    i_on = (v_drive - ASSUME["v_plateau"]) / (rg + ASSUME["r_drv_source"])
-    i_off = ASSUME["v_plateau"] / (rg + ASSUME["r_drv_sink"])
+    i_on = (v_drive - ASSUME["v_plateau"]) / (ASSUME["rg_on"] + FET["rg_int_max"] + ASSUME["r_drv_source"])
+    i_off = ASSUME["v_plateau"] / (ASSUME["rg_off"] + FET["rg_int_max"] + ASSUME["r_drv_sink"])
     return FET["qsw"] / i_on, FET["qsw"] / i_off
 
 
 def fet_losses(i, vbat, fsw, duty, tj_hs, tj_ls, vgs_class, v_drive):
     t_on, t_off = switching_times(v_drive)
     hs = {"cond": i * i * rds(tj_hs, vgs_class) * duty / 3.0,
-          "sw": 0.5 * vbat * i * (t_on + t_off) * fsw / 3.0,
+          "sw": 0.5 * vbat * i * (t_on * (1.0 + ASSUME["st_frac"]) + t_off) * fsw / 3.0,
           "coss_qrr": (0.5 * FET["qoss"] + FET["qrr"]) * vbat * fsw / 3.0}
     ls = {"cond": i * i * rds(tj_ls, vgs_class) * (2.0 - duty) / 3.0,
           "deadtime": FET["vf_diode"] * i * 2 * ASSUME["dead_time_s"] * fsw / 3.0}
@@ -327,6 +357,7 @@ def main():
     ap.add_argument("--out", default=os.path.join(HERE, "thermal_report.json"))
     a = ap.parse_args()
 
+    load_gate_drive()
     g = read_board(a.board)
     net = network(g)
     V4S, V2S = 16.8, 8.4
@@ -388,7 +419,7 @@ def main():
                                        - ablation["hs_rise_above_site_with_vias_K"])
 
     report = {
-        "revision": "8.0",
+        "revision": "9.0",
         "board_geometry_readback": {k: g[k] for k in ("board_w", "board_h", "copper", "dielectrics",
                                                      "ls_row_vias", "mount_holes")},
         "hs_thermal_arrays": {"count": len(g["hs_via_arrays"]), "vias_each": [len(v) for v in g["hs_via_arrays"]],
@@ -435,7 +466,7 @@ def main():
             ax.plot(cur, [max(r["tj_hs_C"], r["tj_ls_C"]) for r in rs], st, lw=2, label=f"Tj max, {lab}")
             ax.plot(cur, [r["t_board_C"] for r in rs], st, lw=1, alpha=0.5, label=f"board, {lab}")
         ax.axhline(LIMITS["tj_cont"], color="k", ls=":", label="Tj continuous design limit 125 C")
-        ax.axhline(AM32_CUTOFF, color="m", ls=":", label="AM32 TEMPERATURE_CUTOFF 115 C")
+        ax.axhline(AM32_CUTOFF, color="m", ls=":", label="AM32 limits.temperature 115 C")
         ax.axvline(RATING["cont_conservative_A"], color="g", ls="-.", lw=1, label="rated cont. (conservative)")
         ax.axvline(RATING["cont_typical_A"], color="c", ls="-.", lw=1, label="rated cont. (typical)")
         ax.set_xlabel("Motor current per ESC, all 4 loaded (A), 4S, D=0.9, 12 AWG / 20 AWG leads")

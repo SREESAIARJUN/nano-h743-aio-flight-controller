@@ -4,19 +4,22 @@ Nano H743 AIO - bidirectional DShot600 timing and RPM-notch tracking analysis
 (Revision 10.0)
 
 Reads the configuration from the repository (ardupilot/hwdef.dat,
-ardupilot/defaults.parm, am32_esc/am32_target.h) and computes:
+ardupilot/defaults.parm, am32_esc/eeprom_settings.json) and computes:
 
-  1. TIM1 clocking and the DShot600 / GCR bit timing at 480 MHz
-     (output ticks per bit, input-capture prescaler, ticks per GCR bit).
+  1. TIM1 clocking and the DShot600 / GCR bit timing at 480 MHz, using
+     ArduPilot's own prescaler arithmetic (RCOutput::setup_group_DMA,
+     AP_HAL::RCOutput::calculate_bitrate_prescaler; RCOutput_bdshot telempsc).
   2. The bidir cycle budget: command frame + ESC turnaround + GCR reply +
      DMAMUX re-point margin vs the DShot frame period.
   3. The effective DShot frame rate exactly as
      AP_HAL_ChibiOS::RCOutput::set_dshot_rate() computes it, and the
      per-motor eRPM refresh rate under TIM1 round-robin capture.
   4. eRPM format quantisation over the motor speed envelope.
-  5. Notch tracking error during a throttle punch: worst-case
-     age of the RPM sample x motor frequency slew, vs INS_HNTCH_BW.
-     Compared across SERVO_DSHOT_RATE 0..4 to justify the chosen value.
+  5. Notch tracking lag during a throttle punch (REPORTED, not gated): age of
+     the RPM the notch actually uses (round-robin wait + AP_ESC_Telem::get_rpm
+     interpolation + loop consumption + ESC averaging) x motor frequency slew.
+     Rev 10 review finding: no SERVO_DSHOT_RATE keeps this inside
+     INS_HNTCH_BW, so it does not decide the rate.
   6. Line electricals for the R4..R7 100R series resistors.
 
 Writes analysis/bdshot_report.json.  Exit 1 if any design gate fails.
@@ -32,7 +35,7 @@ import sys
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HWDEF = os.path.join(REPO, "ardupilot", "hwdef.dat")
 PARM = os.path.join(REPO, "ardupilot", "defaults.parm")
-AM32 = os.path.join(REPO, "am32_esc", "am32_target.h")
+AM32_EEPROM = os.path.join(REPO, "am32_esc", "eeprom_settings.json")
 OUT = os.path.join(REPO, "analysis", "bdshot_report.json")
 
 # ArduPilot constants (AP_HAL_ChibiOS/RCOutput.h, Filter/HarmonicNotchFilter.cpp)
@@ -51,8 +54,8 @@ MOTOR_RPM_MAX = 42000
 # ~6 000 RPM -> 40 000 RPM in ~60 ms (measured 5" class motors, prop-loaded)
 PUNCH_SLEW_HZ_PER_S = (40000 - 6000) / 60.0 / 0.060   # ~9 440 Hz/s
 # AM32 reports the average of the last 6 commutation periods; at hover
-# (~20 000 RPM, 7 pole pairs -> 2 333 eRPS x 6 steps) that window is ~70 us,
-# negligible, but it is included as a latency term.
+# (~20 000 RPM, 7 pole pairs -> 2 333 eRPS x 6 steps = 14 000 steps/s) one
+# period is 71 us, so the 6-period window is ~0.43 ms of latency.
 ESC_MEASUREMENT_LATENCY_S = 6.0 / (20000 * 7 / 60.0 * 6)
 
 # Line electricals
@@ -81,17 +84,28 @@ def parse_hwdef(path):
     return clk, pwm
 
 
-def parse_am32(path):
-    d = {}
-    for m in re.finditer(r"^#define\s+(\w+)\s+([\w.]+)", open(path).read(), re.M):
-        d[m.group(1)] = m.group(2)
-    return d
+def parse_am32_eeprom(path):
+    """AM32 keeps motor poles etc. in EEPROM (Inc/eeprom.h), not in targets.h;
+    am32_esc/eeprom_settings.json is the programmed image.  Missing -> error."""
+    d = json.load(open(path))
+    return {s["field"]: s["value"] for s in d["settings"]}
 
 
 def ap_dshot_rate(dshot_rate, loop_hz):
-    """RCOutput::set_dshot_rate(): returns (frame_hz, loop_synchronous)."""
+    """RCOutput::set_dshot_rate() + the rcout thread scheduling.
+    Returns (mean_frame_hz, evenly_spaced, frame_intervals_us).
+
+    Rate 0: _dshot_period_us = 1000 and _dshot_rate = 0.  Every loop push()
+    sends a frame and (re)arms a 1 ms virtual timer (chVTSet resets it);
+    dshot_update_tick() does not re-arm itself (_dshot_cycle + 1 < 0 false)
+    but its synthetic send re-arms it from the thread.  So at a 400 Hz loop
+    frames go out at 0, 1, 2, 2.5, 3.5, 4.5 ms ...: ~1.2 kHz mean, uneven.
+    Rate >= 1: frames every loop_period / rate, phase-locked to push()."""
     if loop_hz <= 100 or dshot_rate == 0:
-        return 1000.0, False
+        loop_us = 1e6 / loop_hz
+        n_extra = int(math.ceil(loop_us / 1000.0)) - 1
+        intervals = [1000.0] * n_extra + [loop_us - 1000.0 * n_extra]
+        return len(intervals) * loop_hz, False, intervals
     drate = dshot_rate * loop_hz
     while drate < 800:
         dshot_rate += 1
@@ -99,7 +113,7 @@ def ap_dshot_rate(dshot_rate, loop_hz):
     while dshot_rate > 1 and drate > max(4096, loop_hz):
         dshot_rate -= 1
         drate = dshot_rate * loop_hz
-    return float(drate), True
+    return float(drate), True, [1e6 / drate] * dshot_rate
 
 
 def encode_period(erpm):
@@ -125,7 +139,7 @@ def main():
 
     p = parse_params(PARM)
     clk_mhz, pwm = parse_hwdef(HWDEF)
-    am32 = parse_am32(AM32)
+    am32 = parse_am32_eeprom(AM32_EEPROM)
     loop_hz = int(p.get("SCHED_LOOP_RATE", COPTER_DEFAULT_LOOP_HZ))
     poles = int(p["SERVO_BLH_POLES"])
     dshot_bps = DSHOT_RATES[int(p["MOT_PWM_TYPE"])]
@@ -134,7 +148,13 @@ def main():
     # H7 @480: HCLK = SYSCLK/2, PCLK2 = HCLK/2, APB timer clock = 2*PCLK2
     hclk = clk_mhz * 1e6 / 2
     tim1_clk = 2 * (hclk / 2)
-    out_ticks_per_bit = tim1_clk / dshot_bps
+    # RCOutput::setup_group_DMA: target = bitrate * DSHOT_BIT_WIDTH_TICKS (8),
+    # prescaler = calculate_bitrate_prescaler() -> lrintf(clock/target) - 1,
+    # ARR = 8 ticks per bit (bit_width_mul 1 when the prescaler is exact).
+    DSHOT_BIT_WIDTH_TICKS = 8
+    out_psc = int(round(tim1_clk / (dshot_bps * DSHOT_BIT_WIDTH_TICKS))) - 1
+    out_tick_hz = tim1_clk / (out_psc + 1)
+    out_ticks_per_bit = out_tick_hz / dshot_bps
     gcr_bps = dshot_bps * 5 // 4
     telempsc = int(round((tim1_clk / gcr_bps + 0.01) / TELEM_IC_SAMPLE)) - 1
     ic_tick_s = (telempsc + 1) / tim1_clk
@@ -142,7 +162,9 @@ def main():
     clocking = {
         "sysclk_mhz": clk_mhz, "tim1_kernel_clock_hz": tim1_clk,
         "dshot_bitrate": dshot_bps, "dshot_bit_us": 1e6 / dshot_bps,
+        "output_psc": out_psc, "output_tick_hz": out_tick_hz,
         "output_ticks_per_bit": out_ticks_per_bit,
+        "output_bitrate_error_pct": 100.0 * (out_tick_hz / DSHOT_BIT_WIDTH_TICKS / dshot_bps - 1.0),
         "gcr_bitrate": gcr_bps, "gcr_bit_us": 1e6 / gcr_bps,
         "telem_psc": telempsc, "ic_tick_ns": ic_tick_s * 1e9,
         "ic_ticks_per_gcr_bit": ticks_per_gcr_bit,
@@ -151,17 +173,23 @@ def main():
         "ic_capture_window_ticks": GCR_BITS * TELEM_IC_SAMPLE,
         "ic_counter_wrap_ms": 65536 * ic_tick_s * 1e3,
     }
-    gate(abs(out_ticks_per_bit - round(out_ticks_per_bit)) < 1e-9, "B1 integer output ticks per DShot bit",
-         "%.3f ticks" % out_ticks_per_bit)
+    gate(abs(out_ticks_per_bit - DSHOT_BIT_WIDTH_TICKS) < 1e-9, "B1 DShot600 output exact: PSC gives 8 ticks/bit",
+         "PSC %d -> %.1f MHz, %.3f ticks/bit" % (out_psc, out_tick_hz / 1e6, out_ticks_per_bit))
     gate(abs(ticks_per_gcr_bit - TELEM_IC_SAMPLE) < 1e-9, "B2 IC sampling exactly 16 ticks/GCR bit",
          "PSC %d -> %.4f ticks/bit" % (telempsc, ticks_per_gcr_bit))
 
     # ---- 2. bidir cycle budget ---------------------------------------------
-    frame_us = 16 * 1e6 / dshot_bps
-    turnaround_us = float(am32.get("DSHOT_TELEM_TURNAROUND_US", 30))
+    # RCOutput.h: dshot_bit_length = 16 + dshot_pre(1) + dshot_post(2) = 19 slots;
+    # pulse_send_time_us = 1e6 * 19 / rate (integer us).  RCOutput_bdshot.cpp
+    # bdshot_receive_pulses_DMAR arms the receive timeout at
+    # pulse_send_time_us + 30 + 10 us; that window is the hard upper bound.
+    frame_us = float(int(1000000 * 19 / dshot_bps))
+    turnaround_us = 30.0      # DShot bidir spec / ArduPilot's "+ 30U"
     reply_us = GCR_BITS * 1e6 / gcr_bps
-    margin_us = 10.0   # DMAMUX re-point, IC arm, ESC edge jitter, ISR latency
-    cycle_us = frame_us + turnaround_us + reply_us + margin_us
+    margin_us = 10.0          # ArduPilot's "+ 10U"
+    cycle_us = frame_us + (frame_us + turnaround_us + margin_us)   # send + receive window
+    gate(turnaround_us + reply_us <= frame_us + turnaround_us + margin_us, "B1b GCR reply fits ArduPilot's receive window",
+         "%.1f us needed vs %.0f us window" % (turnaround_us + reply_us, frame_us + turnaround_us + margin_us))
 
     # ---- 3. rates ----------------------------------------------------------
     timers = sorted({c["timer"] for c in pwm})
@@ -169,32 +197,42 @@ def main():
     worst_group = max(motors_per_group.values())
     sweep = []
     for r in range(0, 5):
-        f, sync = ap_dshot_rate(r, loop_hz)
+        f, sync, intervals = ap_dshot_rate(r, loop_hz)
         per_motor = f / worst_group
-        age_s = 1.0 / per_motor + 1.0 / f + ESC_MEASUREMENT_LATENCY_S
+        # worst gap between two captures of one motor (round-robin of uneven frames)
+        rr = intervals * worst_group
+        worst_gap_s = max(sum(rr[i:i + worst_group]) for i in range(len(intervals))) / 1e6
+        # age of the value the notch uses: wait for the motor's slot (worst gap)
+        # + AP_ESC_Telem::get_rpm() interpolates prev->new over one update
+        # period (another 1/per_motor) + notch consumed at loop rate + ESC
+        # 6-commutation averaging
+        age_s = worst_gap_s + 1.0 / per_motor + 1.0 / loop_hz + ESC_MEASUREMENT_LATENCY_S
         err_hz = PUNCH_SLEW_HZ_PER_S * age_s
         # residual depth of a single INS_HNTCH_ATT notch whose centre is
         # err_hz away from the tone: 2nd-order notch, -3 dB half-width BW/2
         half = p["INS_HNTCH_BW"] / 2.0
         h = err_hz / math.hypot(err_hz, half)
-        sweep.append({"SERVO_DSHOT_RATE": r, "punch_residual_attenuation_db": 20 * math.log10(max(h, 1e-5)), "frame_hz": f, "loop_synchronous": sync,
+        sweep.append({"SERVO_DSHOT_RATE": r, "punch_residual_attenuation_db": 20 * math.log10(max(h, 1e-5)),
+                      "frame_interval_us": sorted(set(round(x, 1) for x in intervals)),
+                      "worst_capture_gap_ms": worst_gap_s * 1e3, "frame_hz": f, "loop_synchronous": sync,
                       "per_motor_erpm_hz": per_motor, "worst_sample_age_ms": age_s * 1e3,
                       "punch_tracking_error_hz": err_hz,
                       "cycle_duty_pct": 100.0 * cycle_us * f / 1e6})
     chosen = next(s for s in sweep if s["SERVO_DSHOT_RATE"] == int(p.get("SERVO_DSHOT_RATE", 0)))
     bw = p["INS_HNTCH_BW"]
-    gate(chosen["loop_synchronous"], "B3 DShot output loop-synchronous", "SERVO_DSHOT_RATE %d -> %.0f Hz"
-         % (chosen["SERVO_DSHOT_RATE"], chosen["frame_hz"]))
+    gate(chosen["loop_synchronous"], "B3 DShot frames evenly spaced and loop-locked", "SERVO_DSHOT_RATE %d -> %.0f Hz, %s us"
+         % (chosen["SERVO_DSHOT_RATE"], chosen["frame_hz"], chosen["frame_interval_us"]))
     gate(800 <= chosen["frame_hz"] <= 4096, "B4 frame rate within ArduPilot bounds [800, 4096] Hz",
          "%.0f Hz" % chosen["frame_hz"])
     gate(chosen["per_motor_erpm_hz"] >= 250, "B5 per-motor eRPM refresh >= 250 Hz under round-robin",
          "%.0f Hz (%d motors on one timer)" % (chosen["per_motor_erpm_hz"], worst_group))
-    # Sizing rule, not an attenuation guarantee: during a full punch every
-    # rate leaves only a few dB of notch depth (see punch_residual_attenuation_db);
-    # the rule keeps the lag inside one notch bandwidth so the notch re-acquires
-    # within one RPM sample once the slew ends.
-    gate(chosen["punch_tracking_error_hz"] <= bw, "B6 punch tracking lag <= INS_HNTCH_BW (sizing rule)",
-         "%.1f Hz vs BW %.0f Hz (residual depth %.1f dB during the slew)"
+    # B6 is REPORTED, not gated (Rev 10 review): with the get_rpm interpolation
+    # lag included every rate leaves the notch more than one bandwidth behind a
+    # full punch, i.e. the RPM notch gives ~1 dB during a 60 ms full-throttle
+    # slew whatever SERVO_DSHOT_RATE is.  The rate is chosen on B3/B5.
+    best = min(sweep, key=lambda s_: s_["punch_tracking_error_hz"])
+    gate(chosen["SERVO_DSHOT_RATE"] == best["SERVO_DSHOT_RATE"], "B6 chosen rate has the smallest punch lag of 0..4",
+         "%.1f Hz lag (BW %.0f Hz, residual depth %.1f dB during the slew; informational)"
          % (chosen["punch_tracking_error_hz"], bw, chosen["punch_residual_attenuation_db"]))
     gate(cycle_us * chosen["frame_hz"] / 1e6 < 0.5, "B7 bidir cycle < 50 % of frame period",
          "%.1f us of %.1f us" % (cycle_us, 1e6 / chosen["frame_hz"]))
@@ -251,21 +289,23 @@ def main():
          "5 tau = %.1f us vs %.0f us" % (5 * pullup_tau_us, turnaround_us))
 
     # ---- cross-file consistency --------------------------------------------
-    gate(int(am32.get("MOTOR_POLES", -1)) == poles, "B16 AM32 MOTOR_POLES == SERVO_BLH_POLES",
-         "%s vs %d" % (am32.get("MOTOR_POLES"), poles))
-    edt_fc = int(p.get("SERVO_DSHOT_ESC", 0)) in (3, 4)
-    gate(edt_fc == (am32.get("EXTENDED_DSHOT_TELEMETRY") == "1"), "B17 EDT enabled on both FC and ESC",
-         "SERVO_DSHOT_ESC %d, AM32 EDT %s" % (p.get("SERVO_DSHOT_ESC", 0), am32.get("EXTENDED_DSHOT_TELEMETRY")))
-    gate(int(am32.get("DSHOT_INPUT_RATE_KBPS", 0)) * 1000 == dshot_bps, "B18 AM32 input rate == MOT_PWM_TYPE",
-         "%s kbps vs %d" % (am32.get("DSHOT_INPUT_RATE_KBPS"), dshot_bps))
+    # The FC alone converts eRPM -> RPM (erpm * 200 / SERVO_BLH_POLES); AM32's
+    # motor_poles only feeds its own RPM-based features.  Both describe the same
+    # physical motor, so they must agree.  EDT needs no ESC-side setting: AM32
+    # starts with it off and ArduPilot enables it with DShot command 13 when
+    # SERVO_DSHOT_ESC is 3/4.  AM32 auto-detects the DShot bit rate.
+    gate(am32.get("motor_poles") == poles, "B16 AM32 EEPROM motor_poles == SERVO_BLH_POLES (same motor)",
+         "%s vs %d" % (am32.get("motor_poles"), poles))
+    gate(int(p.get("SERVO_DSHOT_ESC", 0)) in (3, 4), "B17 EDT requested by the FC (SERVO_DSHOT_ESC 3/4 -> cmd 13)",
+         "SERVO_DSHOT_ESC %d" % p.get("SERVO_DSHOT_ESC", 0))
 
     report = {
         "revision": "10.0",
         "inputs": {"loop_hz": loop_hz, "poles": poles, "pwm_channels": pwm,
                    "punch_slew_hz_per_s": PUNCH_SLEW_HZ_PER_S, "gyro_rate_hz": INS_GYRO_RATE_HZ},
         "clocking": clocking,
-        "bidir_cycle_us": {"frame": frame_us, "turnaround": turnaround_us, "gcr_reply": reply_us,
-                           "margin": margin_us, "total": cycle_us},
+        "bidir_cycle_us": {"frame_19_slots": frame_us, "turnaround": turnaround_us, "gcr_reply": reply_us,
+                           "receive_window": frame_us + turnaround_us + margin_us, "total": cycle_us},
         "rate_sweep": sweep, "chosen": chosen,
         "quantisation": quant, "notch": notch, "line": line,
         "gates": gates,
@@ -275,10 +315,10 @@ def main():
         json.dump(report, fh, indent=2)
         fh.write("\n")
 
-    print("TIM1 %.0f MHz, DShot%d: %.0f ticks/bit; GCR PSC %d -> %.1f ns tick, %.2f ticks/bit"
-          % (tim1_clk / 1e6, dshot_bps // 1000, out_ticks_per_bit, telempsc, ic_tick_s * 1e9, ticks_per_gcr_bit))
-    print("bidir cycle %.1f us (frame %.1f + turnaround %.0f + reply %.1f + margin %.0f)"
-          % (cycle_us, frame_us, turnaround_us, reply_us, margin_us))
+    print("TIM1 %.0f MHz, DShot%d: PSC %d, %.0f ticks/bit; GCR PSC %d -> %.1f ns tick, %.2f ticks/bit"
+          % (tim1_clk / 1e6, dshot_bps // 1000, out_psc, out_ticks_per_bit, telempsc, ic_tick_s * 1e9, ticks_per_gcr_bit))
+    print("bidir cycle %.1f us (19-slot frame %.0f + receive window %.0f; reply needs %.1f)"
+          % (cycle_us, frame_us, frame_us + turnaround_us + margin_us, turnaround_us + reply_us))
     print("SERVO_DSHOT_RATE sweep @ loop %d Hz, %d motors/timer:" % (loop_hz, worst_group))
     for s in sweep:
         print("  %d: %6.0f Hz %-5s per-motor %5.0f Hz  age %.2f ms  punch lag %5.1f Hz (%5.1f dB)"

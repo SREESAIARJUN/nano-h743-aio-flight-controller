@@ -86,8 +86,8 @@ static void test_clock_tolerance()
 static void test_jitter()
 {
     std::printf("T4 edge jitter / noise immunity\n");
-    // +/-7 ticks (583 ns at 83.3 ns/tick) on every edge: intervals see up to
-    // +/-14 ticks which can still round wrong only past +/-8 per interval.
+    // +/-3 ticks (250 ns at 83.3 ns/tick) on every edge: intervals see at most
+    // +/-6 ticks, inside the +/-8 tick rounding margin.
     int bad = 0, undetected = 0, trials = 0;
     for (int rep = 0; rep < 4; rep++) {
         for (uint32_t p = 0; p < 4096; p++) {
@@ -106,8 +106,8 @@ static void test_jitter()
             if (r != p) { bad++; if (r != INVALID_ERPM) undetected++; }
         }
     }
-    const double loss = 100.0 * bad / trials, und = 100.0 * undetected / trials;
-    std::printf("      +/-9 tick jitter: %.2f %% frames rejected, %.3f %% undetected corruption\n", loss, und);
+    const double rej = 100.0 * (bad - undetected) / trials, und = 100.0 * undetected / trials;
+    std::printf("      +/-9 tick jitter: %.2f %% frames rejected, %.3f %% undetected corruption\n", rej, und);
     // A 4-bit CRC lets ~1/16 of random corruptions through; require the
     // GCR length check + CRC to keep undetected errors well under that.
     CHECK(bad == 0 || double(undetected) / bad < 1.0 / 16.0 + 0.02,
@@ -149,7 +149,7 @@ static void test_payload_decode()
     f = decode_payload(ZERO_ERPM, true);
     CHECK(f.type == FrameType::ERPM && f.erpm_x100 == 0, "ZERO_ERPM -> stopped");
     CHECK(decode_payload(INVALID_ERPM, true).type == FrameType::Invalid, "INVALID passthrough");
-    CHECK(decode_payload(0x000, false).type == FrameType::Invalid, "period 0 is an error");
+    CHECK(decode_payload(0x000, false).type == FrameType::ZeroPeriod, "period 0: CRC-valid, no RPM");
 
     // EDT temperature 80 C: e=001, bit8=0, value 80
     const uint16_t temp = uint16_t((1u << 9) | 80u);
@@ -193,7 +193,7 @@ static void test_round_robin()
 {
     std::printf("T7 TIM1 round-robin freshness (1 capture slot per frame, 4 motors)\n");
     MotorTelemetryMonitor mon(4, 3);
-    Frame good{FrameType::ERPM, 1500, 0};
+    const Frame good = decode_payload(encode_erpm_period(140000), true);   // 20k RPM, 429 us
     Frame bad{FrameType::Invalid, 0, 0};
     for (int i = 0; i < 4; i++) mon.on_frame(good);
     bool all = true;
@@ -215,13 +215,23 @@ static void test_round_robin()
     Frame edt{FrameType::EDT_Temperature, 0, 60};
     for (int i = 0; i < 8; i++) m2.on_frame(edt);
     CHECK(!m2.fresh(0) && m2.health(0).good_frames == 3, "EDT-only stream is clean but not fresh");
+    // plausibility: a CRC-valid 9 us period decodes (wrapped) to 1131 x100 eRPM
+    MotorTelemetryMonitor m3(4, 3, 100);
+    const Frame wrapped = decode_payload(9, true);
+    CHECK(wrapped.type == FrameType::ERPM && wrapped.erpm_x100 == 1131, "9 us period wraps in ArduPilot arithmetic");
+    m3.on_frame(wrapped);
+    CHECK(!m3.fresh(0) && m3.health(0).implausible_frames == 1 && m3.health(0).good_frames == 1,
+          "9 us period rejected as implausible, still CRC-clean");
+    MotorTelemetryMonitor m4(4, 3, 100);
+    m4.on_frame(decode_payload(ZERO_ERPM, true));
+    CHECK(m4.fresh(0), "stopped motor (ZERO_ERPM) is fresh, not implausible");
 }
 
 static void test_ap_error_attribution()
 {
     std::printf("T8 ArduPilot RECV_FAILED error attribution (upstream defect + patch)\n");
     for (int patched = 0; patched <= 1; patched++) {
-        ApErrorCounterModel ap(4, patched != 0);
+        ApErrorCounterModel ap(4, patched != 0, 0);
         for (int i = 0; i < 400; i++) {
             const int motor = i % 4;
             ap.on_frame(motor != 1, true);   // ESC2 (index 1) never answers
@@ -234,18 +244,34 @@ static void test_ap_error_attribution()
             CHECK(ap.errors(1) == 0 && ap.errors(2) == 100, "upstream: dead ESC2 charged to ESC3 (defect reproduced)");
         }
     }
+    // long outage with the 5 s window (1600 Hz frames -> 8000 frames): the
+    // patched counter is bounded by the window instead of wrapping its uint16
+    ApErrorCounterModel lp(4, true, 8000);
+    uint16_t peak = 0;
+    for (int i = 0; i < 400000; i++) {
+        lp.on_frame((i % 4) != 1, true);
+        if (lp.errors(1) > peak) peak = lp.errors(1);
+    }
+    CHECK(peak <= 2001 && peak >= 1999, "patched: silent ESC2 errors bounded by 5 s window (peak %u)", unsigned(peak));
 }
 
 static void test_notch_plan()
 {
-    std::printf("T9 notch plan, INS_HNTCH_FREQ 80, HMNCS 3, gyro 2 kHz (OPTS 6)\n");
+    std::printf("T9 notch plan, INS_HNTCH_FREQ 80, ATT 40, HMNCS 3, gyro 2 kHz (OPTS 6)\n");
     const float hz[4] = {15.0f, 50.0f, 300.0f, 500.0f};
     NotchPlan plan;
-    plan_notches(hz, 4, 0x3, 80.0f, 2000.0f, plan);
+    plan_notches(hz, 4, 0x3, 80.0f, 2000.0f, 40.0f, plan);
     CHECK(plan.count == 8, "8 notch slots (4 motors x 2 harmonics), got %u", plan.count);
     CHECK(!plan.slot[0].enabled, "15 Hz < 0.25*min -> disabled");
+    // 50 Hz: half-way from disable (20) to min (80) in LINEAR A: A = 1 + (0.1-1)*0.5 = 0.55
+    // -> 10.4 dB, not 20 dB
     CHECK(plan.slot[1].enabled && std::fabs(plan.slot[1].center_hz - 80.0f) < 1e-3f &&
-          std::fabs(plan.slot[1].attenuation_scale - 0.5f) < 1e-3f, "50 Hz -> 80 Hz centre, half attenuation");
+          std::fabs(plan.slot[1].depth_db - 10.385f) < 0.01f, "50 Hz -> 80 Hz centre, 10.4 dB (A interpolated), got %.2f",
+          plan.slot[1].depth_db);
+    CHECK(std::fabs(plan.slot[2].depth_db - 40.0f) < 0.01f, "full depth 40 dB above min");
+    NotchPlan big;
+    plan_notches(hz, 4, 0xFFFF, 80.0f, 8000.0f, 40.0f, big);
+    CHECK(big.count == 54, "16 harmonics x 4 motors capped at HAL_HNF_MAX_FILTERS 54 (got %u)", big.count);
     CHECK(plan.slot[2].enabled && plan.slot[2].center_hz == 300.0f, "300 Hz h1");
     CHECK(plan.slot[6].enabled && plan.slot[6].center_hz == 600.0f, "300 Hz h2 = 600");
     CHECK(!plan.slot[7].enabled, "500 Hz h2 = 1000 Hz >= 960 Hz Nyquist guard -> disabled");

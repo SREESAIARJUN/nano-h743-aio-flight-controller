@@ -16,9 +16,9 @@
 - **DroneCAN / UAVCAN**: On-board TCAN334 CAN FD transceiver on FDCAN1.
 - **Blackbox**: MicroSD card slot with 4-bit high-speed SDIO (SDMMC1).
 - **Integrated 4-in-1 ESC**:
-  - 4x Brushless ESC channels, 2S–4S LiPo input. **Rev 8 thermal rating per motor, all four loaded:** 20 A continuous / 28 A for 10 s in typical prop wash; 17 A / 22 A in the pessimistic case. 35 A is held for only ~4 s, and only ~8 A is allowed on a static bench. These figures require 12 AWG battery and 20 AWG motor leads.
+  - 4x Brushless ESC channels, 2S–4S LiPo input. **Rev 9 thermal rating per motor, all four loaded, 24 kHz PWM:** 20 A continuous / 25 A for 10 s in typical prop wash; 16 A / 21 A in the pessimistic case. 35 A is held for only ~2.5 s, and only ~8 A is allowed on a static bench. These figures require 12 AWG battery and 20 AWG motor leads. Rev 9 lowered them from 20/28 and 17/22 A once the FD6288Q's built-in dead time was included in the loss model.
   - 24x Toshiba TPHR8504PL 40 V N-MOSFETs, SOP Advance. RDS(on) max 0.85 mΩ at VGS=10 V and 1.40 mΩ at 4.5 V, Rth(ch-c) 0.88 K/W. ESC1/2 sit on the top face and ESC3/4 on the bottom; each half-bridge site is shared by both faces, and every high-side pair has a 16-via POFV thermal array.
-  - 4x FD6288Q 3-phase half-bridge gate drivers with bootstrap diodes.
+  - 4x AT32F421K8U7 ESC MCUs running AM32 (target `NANO_H743_AIO_F421`), each driving one FD6288Q 3-phase gate driver. The FD6288Q has no internal bootstrap diode; an external Schottky plus 2.2 Ω is used per phase. Gate network: 15 Ω per gate with a Schottky across it for fast turn-off. AM32 `DEAD_TIME 34` (283 ns) adds to the driver's fixed 100–300 ns dead time (Rev 9).
   - 0.5 mΩ shunt resistor with INA226 / INA169 current monitor. **Rev 8 finding:** at 4 × 20 A, D=0.9 (72 A battery current) it dissipates 2.6 W, which is over the 2 W rating previously specified. It needs a ≥ 4 W part or 0.25 mΩ; this is an open item.
   - Support for BLHeli_32 / AM32 firmware, DShot300/600/1200, and bi-directional DShot RPM filtering.
 
@@ -32,10 +32,92 @@
 - `tools/gen_mcu_core_sch.py`: generates the MCU-core schematic, project symbol library and `sym-lib-table` from `ardupilot/hwdef.dat` (Rev 7).
 - `tools/verify_mcu_core_sch.py`: schematic gate covering KiCad ERC, netlist topology of the HSE and VDDA circuits, and the hwdef ↔ schematic pin map (Rev 7).
 - `analysis/hse_vdda_analysis.py`: design check for the 24 MHz crystal and the VDDA filter (clock tree, load capacitance, gm_crit, drive level, LC damping). Writes `analysis/hse_vdda_report.json`.
-- `am32_esc/`: AM32 ESC target configuration `am32_target.h`.
+- `am32_esc/am32_target.h`: AM32 `Inc/targets.h` block for the AT32F421 + FD6288Q channel (Rev 9).
+- `am32_esc/gate_drive_design.py`: FD6288Q/TPHR8504PL gate-drive design (gate-resistor sweep, dead-time derivation, DTG encoding, driver and bootstrap checks). It checks `am32_target.h` and `eeprom_settings.json` against the derived values and writes `gate_drive_report.json`, which the thermal model reads (Rev 9).
+- `am32_esc/eeprom_settings.json`: the AM32 EEPROM fields the analysis depends on (PWM frequency, complementary PWM, brake dead-time override, cutoffs), with offsets (Rev 9).
+- `tools/am32_build_target.sh`: splices the target into an AM32 checkout, builds it with AM32's pinned toolchain, checks the resolved macros and runs a SITL twin (Rev 9).
 - `tools/gen_power_stage_pcb.py`: generates the footprint library, DRC rules, project rules and the 6-layer board (Rev 8).
 - `tools/verify_power_stage_pcb.py`: PCB gate covering stackup, MOSFET population, thermal via geometry, through-hole net safety, topology, DRC with a rule-liveness check, regeneration, fab outputs and the thermal report (Rev 8).
 - `analysis/thermal_power_analysis.py`: per-MOSFET loss model and a thermal network that reads its geometry back from the KiCad board. Writes `thermal_report.json` and `thermal_dissipation_curve.png` (rewritten in Rev 8).
+- `firmware/bdshot_telem/`: bidirectional DShot telemetry reference in C++. It is bit-exact with ArduPilot's GCR/eRPM decode, and adds EDT decoding, round-robin health and plausibility tracking, and notch planning. `make test` runs 46 checks under ASan/UBSan (Rev 10).
+- `tools/validate_bdshot.py`: bidir-DShot gate run against an ArduPilot tree. It covers the generated DMA/IC config, capture coverage, parameter validity, a bit-exact decoder cross-check, unit tests, analysis gates and the upstream patch (Rev 10).
+- `analysis/bdshot_timing_analysis.py`: TIM1/DShot600/GCR timing, round-robin eRPM rates, notch-lag sweep over `SERVO_DSHOT_RATE`, quantisation and line electricals. Writes `bdshot_report.json` (Rev 10).
+- `ardupilot/patches/`: upstream ArduPilot fix for bdshot `RECV_FAILED` error attribution (Rev 10).
+
+---
+
+## Revision 10.0 Engineering Changelog
+
+**Scope:** Bidirectional DShot600 RPM filtering. Covers the ArduPilot TIM1 timer-channel and input-capture configuration, and processing of the ESC telemetry fed back from the motors. Every claim below was checked against ArduPilot 4.7.1 source (`AP_HAL_ChibiOS/RCOutput_bdshot.cpp`, `RCOutput.cpp`, `chibios_hwdef.py`, `dma_resolver.py`, `Filter/HarmonicNotchFilter.cpp`, `AP_ESC_Telem`, `AP_Vehicle`). An independent adversarial review then went over the claims, and its corrections are included.
+
+### Changes implemented
+
+**1. TIM1 timer-channel / input-capture configuration (`ardupilot/hwdef.dat`).** The pin assignment stays `PE9/PE11/PE13/PE14 = TIM1_CH1..CH4`, with `BIDIR` on CH1 and CH3. The block now records why that set is complete and how it actually works, and `tools/validate_bdshot.py` proves it against the generated `hwdef.h`:
+- **Capture pairing.** `bdshot_setup_group_ic_DMA()` captures a channel with no IC DMA of its own on its partner's capture unit: CH2 on IC1 with `CC1S=10` (TI2→IC1), and CH4 on IC3. Pairing only exists within CH1/CH2 and CH3/CH4, so BIDIR on 1 and 3 covers all four motors. No `CHxN` outputs are used, because ArduPilot cannot input-capture them.
+- **DMA.** `dma_resolver.py` places `TIM1_CH1` and `TIM1_CH3` on the `TIM1_UP` stream (DMA1-0). RCOutput re-points the DMAMUX request from UP to CHx for each receive window (`has_shared_ic_up_dma()`). The whole motor group still costs one stream, and `SHARED_DMA_MASK` stays 0.
+- **Round-robin (new finding).** One timer group captures **one** motor's reply per DShot frame (`bdshot.curr_telem_chan`, `bdshot_find_next_ic_channel()`). With all four motors on TIM1, each motor's eRPM refreshes at f_DShot / 4. Earlier revisions did not account for this.
+- **Timing at 480 MHz** (TIM1 kernel clock 240 MHz):
+
+| Quantity | Value | Source |
+|---|---|---|
+| DShot600 output | PSC 49 → 4.8 MHz, 8 ticks/bit, exact | `setup_group_DMA`, `DSHOT_BIT_WIDTH_TICKS` |
+| Command frame | 16 + 1 + 2 slots = 31 µs | `dshot_bit_length`, `pulse_send_time_us` |
+| GCR reply | 750 kbit/s, 21 bits = 28 µs, ~30 µs after the frame | `bdshot_get_output_rate_hz` (5/4) |
+| Capture prescaler | `telempsc` = 19 → 83.3 ns/tick, **exactly 16 ticks per GCR bit** | `RCOutput_bdshot.cpp:300` |
+| Receive window | 31 + 30 + 10 = 71 µs (the reply needs 58 µs) | `bdshot_receive_pulses_DMAR` |
+| Bidir cycle | 102 µs of a 625 µs frame period (16 %) | |
+
+- **Electrical.** In bidir mode ArduPilot configures the pins as PUSHPULL + PULLUP at OSPEED MID1. The 40 kΩ internal pull-up settles the idle level within 2.8 µs (5τ), well inside the 30 µs turnaround.
+
+**2. DShot series termination in the schematic (`tools/gen_mcu_core_sch.py`).** Added R4–R7: 100 Ω 0402, UNI-ROYAL 0402WGF1000TCE, LCSC C25076 (JLC basic part). Each sits in series on `TIM1_CHn → ESCn_DSHOT` and goes within 3 mm of U1. With ~14 pF of line capacitance, the RC is 1.4 ns (3.1 ns 10–90 %), which is < 2 % of a GCR bit. The resistors damp the ringing from MID1 edges into the ESC MCU input, and limit the current when the FC and ESC both drive the line during turnaround. **No external pull-up was added on purpose.** ESC bootloaders treat a signal line that is high at power-on as a host waiting for 1-wire passthrough. `verify_mcu_core_sch.py` gained the matching netlist, value, MPN and BOM checks, plus a new S8 check that R4..R7 follow hwdef `PWM(1..4)` order to `ESC1..4_DSHOT`.
+
+**3. Parameters (`ardupilot/defaults.parm`).**
+
+| Parameter | Rev 6–9 | Rev 10 | Reason |
+|---|---|---|---|
+| `SERVO_DSHOT_RATE` | 0 (default) | **4** | Rate 0 sends on every loop push and also on 1 ms timer ticks that each push re-arms, giving uneven 0.5 / 1 / 1 ms spacing (~1.2 kHz). Rate 4 sends a frame every 625 µs, phase-locked to the 400 Hz loop. That gives **400 Hz per motor** under round-robin, the fastest of rates 0–4, and ArduPilot keeps loop × rate ≤ 4096 Hz. |
+| `INS_HNTCH_OPTS` | 2 | **6** | Adds bit 2, loop-rate update. Without it the notch is re-centred only when more than 5 ms have passed, which is every 3rd loop (~133 Hz). |
+| `INS_HNTCH_HMNCS` / `ATT` | implicit | 3 / 40 | Now explicit. At `INS_GYRO_RATE` 2 kHz, the 2nd harmonic of motors above 480 Hz is past the 0.48 × 2 kHz = 960 Hz Nyquist guard and is skipped. |
+| `SERVO_DSHOT_ESC` | 3 | 3 | Documented: ArduPilot sends DShot command 13 to enable EDT, and AM32 then interleaves temperature, voltage and current frames. |
+
+Behaviour below `INS_HNTCH_FREQ` 80 Hz was derived from `HarmonicNotchFilter`. The notch is held at 80 Hz, and its **linear** gain A, not its dB depth, is interpolated towards 1. At 50 Hz this leaves 10.4 dB, not "half of 40 dB". Below 20 Hz the notch is disabled.
+
+**4. ESC telemetry processing reference (`firmware/bdshot_telem/`, C++17, no allocation).**
+- `decode_gcr_edges()` is **bit-exact** with `RCOutput::bdshot_decode_telemetry_packet()`. `validate_bdshot.py` V4 extracts the upstream function from the ArduPilot tree, compiles it next to ours and compares 421 184 cases: all payloads × ±6–19 % clock error, jitter, dropped and extra edges, and 200 000 random edge trains. **0 mismatches.** The review caught a divergence on reversed (synthetic) edge intervals, where ArduPilot's signed/unsigned arithmetic yields len 0. That behaviour is now reproduced. Cortex-M7 `LSL` semantics are modelled for upstream's `1U << (len-1)` with len = 0.
+- `decode_payload()` covers eRPM and EDT (temperature, voltage, current, debug, v2 stress and status). It keeps ArduPilot's uint16 truncation and the `ZERO_ERPM` case, and adds a distinct `ZeroPeriod` frame type, which ArduPilot counts as clean but which carries no RPM.
+- `MotorTelemetryMonitor` tracks staleness with round-robin awareness: a dead ESC is flagged after 3 of its own slots, i.e. 12 frames or 7.5 ms. It also adds a **plausibility gate** that ArduPilot lacks: CRC-valid eRPM with a period under 100 µs is rejected. The 4-bit CRC lets ~5 % of heavily corrupted frames through (test T4), and periods under 10 µs wrap in ArduPilot's uint16 arithmetic. Example: a 9 µs frame reads as 113 100 eRPM.
+- `plan_notches()` mirrors the HarmonicNotchFilter centre, Nyquist, minimum-frequency, fade and disable rules for 16 harmonics, capped at `HAL_HNF_MAX_FILTERS` = 54.
+
+**5. Upstream ArduPilot defect + patch (`ardupilot/patches/0001-…patch`).** `bdshot_finish_dshot_gcr_transaction()` rotates `curr_telem_chan` *before* `bdshot_prepare_for_next_pulse()` books the result. `RECV_FAILED` (no edges, i.e. the ESC is silent) is then booked on `curr_telem_chan`, which is the **next** motor. A dead ESC2 therefore inflates ESC3's logged error rate. The patch books the failure on `group.chan[prev_telem_chan]` and applies the 5 s statistics reset on that path as well. Without the reset, the silent channel's uint16 counter would grow until it wraps. The patch applies cleanly (V7). The defect is reproduced in a host model of the counter logic (T8), not on hardware.
+
+**6. Timing analysis (`analysis/bdshot_timing_analysis.py` → `bdshot_report.json`).** The rate sweep uses ArduPilot's own scheduling model. The notch-lag column is the age of the RPM the notch actually uses: round-robin wait + `AP_ESC_Telem::get_rpm()` interpolation (one more update period) + loop consumption + AM32's 6-commutation average (0.43 ms). Punch lag assumes a full punch of ~9.4 kHz/s mechanical-frequency slew.
+
+| `SERVO_DSHOT_RATE` | Frames | Spacing | Per-motor eRPM | RPM age | Punch lag |
+|---|---|---|---|---|---|
+| 0 | ~1200 Hz | 0.5 / 1 ms, uneven | 300 Hz | 9.8 ms | 92 Hz |
+| 1, 2 | 800 Hz | 1.25 ms | 200 Hz | 12.9 ms | 122 Hz |
+| 3 | 1200 Hz | 0.83 ms | 300 Hz | 9.6 ms | 91 Hz |
+| **4** | **1600 Hz** | **0.625 ms** | **400 Hz** | **7.9 ms** | **75 Hz** |
+
+eRPM quantisation is ≤ 0.40 % (0.12 Hz) from 1 500 to 42 000 RPM, and the slowest representable speed is 131 RPM.
+
+### Architecture improvements
+- The FC/ESC telemetry contract is now one checked chain: `hwdef.dat` (pins, BIDIR pairing) → generated `hwdef.h` (DMA) → `defaults.parm` (rates, notch) → AM32 EEPROM `motor_poles` (`am32_esc/eeprom_settings.json`) → schematic R4–R7. `validate_bdshot.py` fails if any link drifts.
+- `defaults.parm` is validated against the real ArduPilot `@Param` documentation (names, `@Values`, `@Bitmask`, `@Range`), instead of trusting comments.
+- AM32-side assumptions are corrected. EDT is off in AM32 until DShot command 13, and AM32 auto-detects the DShot rate, so neither is a compile-time macro. The eRPM period is independent of AM32's `motor_poles`, so only the FC's `SERVO_BLH_POLES` sets the notch frequency.
+
+### Validation status
+- `python3 tools/validate_bdshot.py --ardupilot <ArduPilot 4.7.1>`: **PASS**. V1 generation and DMA, V2 capture coverage and BDMASK, V3 all 15 parameters valid, V4 0/421 184 mismatches, V5 46/46 unit checks under ASan + UBSan, V6 all analysis gates, V7 the patch applies.
+- `make -C firmware/bdshot_telem test`: **PASS** (46 checks). This includes the exhaustive GCR round trip and decoding with up to ±14 % ESC bit-clock error.
+- `python3 tools/validate_dma.py`: **PASS**, unchanged DMA map with 12/16 streams.
+- `python3 tools/verify_mcu_core_sch.py`: **PASS** on the Rev 10 hwdef pin set (ERC 0 errors, exact netlist with R4–R7, new S8 check). *Working-tree note:* concurrent Rev 11 edits add `PE1 IMU2_DRDY` / `PD12 IMU_CLKIN_MON` to `hwdef.dat` before the schematic has been regenerated, so S1/S6 fail until `tools/gen_mcu_core_sch.py` is re-run as part of that work.
+- `tools/verify_power_stage_pcb.py`: 2 **pre-existing** failures (the Gerber file set and silkscreen re-plot have been out of step since Rev 9). Rev 10 does not touch the PCB.
+
+### Open items
+- **Hardware not yet verified:** scope the GCR reply at the H743 pin to confirm the 30 µs turnaround and edge quality through R4–R7. Fly a log with `INS_LOG_BAT_OPT` 4 (pre/post filter) to confirm notch placement.
+- The notch cannot follow a full-throttle punch at any DShot rate: it lags by ≥ 75 Hz and keeps < 1 dB of depth during the ~60 ms slew. Options are a higher `SCHED_LOOP_RATE`, or splitting the motors over two timers (two captures per frame). The second needs a pin change, because PE9/11/13/14 are TIM1-only.
+- Submit the `RECV_FAILED` patch upstream.
+- Leave PCB placement for R4–R7 to the signal-layout revision.
 
 ---
 

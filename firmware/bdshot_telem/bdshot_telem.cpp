@@ -3,6 +3,8 @@
 // the upstream function it reproduces; keep them bit-exact.
 #include "bdshot_telem.h"
 
+#include <cmath>
+
 namespace nano_bdshot {
 
 namespace {
@@ -143,11 +145,13 @@ Frame decode_payload(uint32_t payload12, bool edt_enabled)
 
     uint16_t erpm = uint16_t(value << expo);   // period in us
     if (erpm == 0U) {
-        return f;   // Invalid
+        f.type = FrameType::ZeroPeriod;   // CRC-valid: ArduPilot counts it clean
+        return f;
     }
+    f.value = erpm;
     // ArduPilot stores into a uint16_t: periods < 10 us (> 6M eRPM, physically
     // impossible) wrap.  Reproduced deliberately; MotorTelemetryMonitor's
-    // plausibility gate is what rejects them on this board.
+    // min_period_us plausibility gate rejects them on this board.
     erpm = uint16_t((1000000U * 60U / 100U + erpm / 2U) / erpm);
     if (encoded == ZERO_ERPM) {
         erpm = 0;
@@ -186,13 +190,15 @@ uint16_t encode_erpm_period(uint32_t erpm)
 }
 
 // ---------------------------------------------------------------------------
-MotorTelemetryMonitor::MotorTelemetryMonitor(uint8_t motors_in_group, uint8_t stale_slots)
+MotorTelemetryMonitor::MotorTelemetryMonitor(uint8_t motors_in_group, uint8_t stale_slots,
+                                             uint16_t min_period_us)
     : frame_(0), slot_(0),
       n_(motors_in_group == 0 || motors_in_group > NUM_MOTORS ? NUM_MOTORS : motors_in_group),
-      stale_slots_(stale_slots == 0 ? 1 : stale_slots)
+      stale_slots_(stale_slots == 0 ? 1 : stale_slots),
+      min_period_us_(min_period_us)
 {
     for (auto& h : m_) {
-        h = MotorHealth{0, 0, 0, 0, 0, false};
+        h = MotorHealth{0, 0, 0, 0, 0, 0, false};
     }
 }
 
@@ -210,7 +216,10 @@ uint8_t MotorTelemetryMonitor::on_frame(const Frame& f)
         // clean (erpm_clean_frames) even though they carry no speed.
         h.good_frames++;
         h.consecutive_bad = 0;
-        if (f.type == FrameType::ERPM) {
+        const bool stopped = (f.type == FrameType::ERPM && f.erpm_x100 == 0U);
+        if (f.type == FrameType::ERPM && !stopped && f.value < min_period_us_) {
+            h.implausible_frames++;   // CRC collision: faster than the motor can turn
+        } else if (f.type == FrameType::ERPM) {
             h.erpm_x100 = f.erpm_x100;
             h.last_good_frame = frame_;
             h.ever_valid = true;
@@ -238,41 +247,58 @@ float MotorTelemetryMonitor::error_rate_pct(uint8_t motor) const
 }
 
 // ---------------------------------------------------------------------------
-ApErrorCounterModel::ApErrorCounterModel(uint8_t motors_in_group, bool patched)
-    : curr_(0), n_(motors_in_group == 0 || motors_in_group > 4 ? 4 : motors_in_group), patched_(patched)
+ApErrorCounterModel::ApErrorCounterModel(uint8_t motors_in_group, bool patched, uint32_t window_frames)
+    : frame_(0), window_(window_frames), curr_(0),
+      n_(motors_in_group == 0 || motors_in_group > 4 ? 4 : motors_in_group), patched_(patched)
 {
     for (uint8_t i = 0; i < 4; i++) {
         err_[i] = 0;
         clean_[i] = 0;
+        last_reset_[i] = 0;
+    }
+}
+
+void ApErrorCounterModel::maybe_reset(uint8_t motor)
+{
+    if (window_ != 0U && frame_ - last_reset_[motor] > window_) {
+        err_[motor] = 0;
+        clean_[motor] = 0;
+        last_reset_[motor] = frame_;
     }
 }
 
 void ApErrorCounterModel::on_frame(bool got_edges, bool crc_ok)
 {
-    // DMA-complete ISR: prev = curr; curr = next   (bdshot_receive_pulses_DMAR)
+    // bdshot_finish_dshot_gcr_transaction(): prev = curr; curr = next
     const uint8_t prev = curr_;
     curr_ = uint8_t((curr_ + 1U) % n_);
-    // next bdshot_send_pulse(): book the outcome
+    frame_++;
+    // bdshot_prepare_for_next_pulse(): book the outcome
     if (got_edges) {
         if (crc_ok) {
             clean_[prev]++;
         } else {
             err_[prev]++;
         }
+        maybe_reset(prev);           // 5 s reset lives in the RECV_COMPLETE branch
+    } else if (patched_) {
+        err_[prev]++;
+        maybe_reset(prev);           // patch: same reset on RECV_FAILED
     } else {
-        err_[patched_ ? prev : curr_]++;
+        err_[curr_]++;               // upstream: next motor, never reset here
     }
 }
 
 // ---------------------------------------------------------------------------
-void plan_notches(const float* motor_hz, uint8_t n_motors, uint8_t harmonics_mask,
-                  float min_hz, float gyro_rate_hz, NotchPlan& out)
+void plan_notches(const float* motor_hz, uint8_t n_motors, uint16_t harmonics_mask,
+                  float min_hz, float gyro_rate_hz, float att_db, NotchPlan& out)
 {
     out.count = 0;
     const float nyquist = gyro_rate_hz * 0.48f;           // HARMONIC_NYQUIST_CUTOFF
     const float disable_hz = min_hz * 0.25f;               // NOTCHFILTER_ATTENUATION_CUTOFF
-    // order: f1h1, f2h1, ..., f1h2, ... (HarmonicNotchFilter::update)
-    for (uint8_t h = 0; h < 4; h++) {
+    const float a0 = std::pow(10.0f, -att_db / 40.0f);     // NotchFilter A
+    // order: f1h1, f2h1, ..., f1h2, ... (HarmonicNotchFilter::update), 16 harmonics
+    for (uint8_t h = 0; h < 16; h++) {
         if (!(harmonics_mask & (1U << h))) {
             continue;
         }
@@ -283,7 +309,8 @@ void plan_notches(const float* motor_hz, uint8_t n_motors, uint8_t harmonics_mas
             if (fc > nyquist) fc = nyquist;
             fc *= float(h + 1);
             s.center_hz = 0.0f;
-            s.attenuation_scale = 0.0f;
+            s.depth_fraction = 0.0f;
+            s.depth_db = 0.0f;
             s.enabled = false;
             if (fc >= nyquist) {
                 continue;                       // above Nyquist guard
@@ -291,13 +318,16 @@ void plan_notches(const float* motor_hz, uint8_t n_motors, uint8_t harmonics_mas
             if (fc < disable_hz) {
                 continue;                       // too far below min: disabled
             }
-            float scale = 1.0f;
+            float frac = 1.0f;
             if (fc < min_hz) {
-                // A fades linearly from full (at min) to none (at disable_hz)
-                scale = (fc - disable_hz) / (min_hz - disable_hz);
+                // linear_interpolate(A, 1.0, fc, min, disable): A (not dB)
+                // goes from A0 at min to 1.0 at disable_hz
+                frac = (fc - disable_hz) / (min_hz - disable_hz);
             }
+            const float a = 1.0f + (a0 - 1.0f) * frac;
             s.center_hz = fc < min_hz ? min_hz : fc;
-            s.attenuation_scale = scale;
+            s.depth_fraction = frac;
+            s.depth_db = -40.0f * std::log10(a);
             s.enabled = true;
         }
     }
